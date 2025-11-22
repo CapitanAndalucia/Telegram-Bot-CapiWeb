@@ -1,0 +1,144 @@
+#!/bin/bash
+
+# Script para iniciar el entorno de desarrollo completo
+# Docker Compose + Django Backend + React Frontend
+
+echo "🚀 Iniciando entorno de desarrollo..."
+echo ""
+
+# Colores para output
+GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+RED='\033[0;31m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+# Función para verificar si un puerto está en uso
+check_port() {
+    if lsof -Pi :$1 -sTCP:LISTEN -t >/dev/null ; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+# Verificar si Docker Compose está instalado
+if ! command -v docker &> /dev/null; then
+    echo -e "${RED}❌ Docker no está instalado${NC}"
+    exit 1
+fi
+
+if ! command -v docker-compose &> /dev/null && ! docker compose version &> /dev/null; then
+    echo -e "${RED}❌ Docker Compose no está instalado${NC}"
+    exit 1
+fi
+
+# Verificar si Python está instalado
+if ! command -v python3 &> /dev/null; then
+    echo -e "${RED}❌ Python3 no está instalado${NC}"
+    exit 1
+fi
+
+# Verificar si Node.js está instalado
+if ! command -v node &> /dev/null; then
+    echo -e "${RED}❌ Node.js no está instalado${NC}"
+    exit 1
+fi
+
+echo -e "${BLUE}📦 Verificando dependencias...${NC}"
+
+# Iniciar Django Backend
+echo -e "${GREEN}🐍 Preparando Django Backend...${NC}"
+cd CapiWebBackend
+
+# Verificar si el entorno virtual existe
+if [ ! -d "botTelegram" ]; then
+    echo -e "${RED}❌ Entorno virtual no encontrado. Creando...${NC}"
+    python3 -m venv botTelegram
+fi
+
+# Activar entorno virtual
+source botTelegram/bin/activate
+
+
+# Iniciar Docker Compose desde la carpeta del backend
+echo -e "${YELLOW}🐳 Iniciando servicios Docker...${NC}"
+if docker compose version &> /dev/null; then
+	
+    docker compose -f local.yml up --detach
+else
+    docker-compose -f local.yml up --detach
+fi
+
+if [ $? -eq 0 ]; then
+    echo -e "${GREEN}✅ Docker Compose iniciado correctamente${NC}"
+else
+    echo -e "${RED}❌ Error al iniciar Docker Compose${NC}"
+    exit 1
+fi
+
+echo ""
+
+# Verificar si las dependencias están instaladas
+#if ! python -c "import django" &> /dev/null; then
+#    echo -e "${BLUE}📦 Instalando dependencias de Django...${NC}"
+#    pip install -r requirements.txt 2>/dev/null || pip install django djangorestframework django-cors-headers
+#fi
+
+# Verificar si el puerto 8000 está en uso
+if check_port 8000; then
+    echo -e "${RED}⚠️  El puerto 8000 ya está en uso${NC}"
+    echo "Django Backend probablemente ya está corriendo"
+else
+    # Iniciar Django en segundo plano
+    echo -e "${GREEN}✅ Iniciando Django en http://localhost:8000${NC}"
+    python3 manage.py runserver > /tmp/django.log 2>&1 &
+    DJANGO_PID=$!
+    echo "Django PID: $DJANGO_PID"
+fi
+
+cd ..
+
+# Iniciar React Frontend
+echo -e "${GREEN}⚛️  Iniciando React Frontend...${NC}"
+cd CapiWebFrontend
+
+# Verificar si node_modules existe
+if [ ! -d "node_modules" ]; then
+    echo -e "${BLUE}📦 Instalando dependencias de React...${NC}"
+    npm install
+fi
+
+# Verificar si el puerto 5173 está en uso
+if check_port 5173; then
+    echo -e "${RED}⚠️  El puerto 5173 ya está en uso${NC}"
+    echo "React Frontend probablemente ya está corriendo"
+else
+    # Iniciar React en segundo plano
+    echo -e "${GREEN}✅ Iniciando React en http://localhost:5173${NC}"
+    npm run dev > /tmp/react.log 2>&1 &
+    REACT_PID=$!
+    echo "React PID: $REACT_PID"
+fi
+
+cd ..
+
+echo ""
+echo -e "${GREEN}✅ Entorno de desarrollo iniciado correctamente${NC}"
+echo ""
+echo "📍 URLs disponibles:"
+echo "   - Frontend (React): http://localhost:5173"
+echo "   - Backend (Django): http://localhost:8000"
+echo "   - Admin Django: http://localhost:8000/admin"
+echo ""
+echo "📝 Logs:"
+echo "   - Django: /tmp/django.log"
+echo "   - React: /tmp/react.log"
+echo ""
+echo "🛑 Para detener los servidores:"
+echo "   - Ejecuta: ./stop-dev.sh"
+echo "   - O presiona Ctrl+C y luego ejecuta: killall python node"
+echo ""
+
+# Mantener el script corriendo
+wait
