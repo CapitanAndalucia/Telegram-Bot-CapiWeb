@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'core/css/core.css' %}">
+    <script src="{% static 'core/js/core.js' %}" defer></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hub de Aplicaciones</title>
+    <style>
+        
+    </style>
+</head>
+<body>
+    <div class="background-animation" id="particles"></div>
+    
+    <div class="container">
+        <header>
+            <h1>Mi Plataforma</h1>
+            <p class="subtitle">Selecciona una aplicación para comenzar</p>
+        </header>
+
+        <div class="apps-grid">
+            <!-- Portfolio Card -->
+            <div class="app-card" onclick="window.location.href='/portafolio/curriculum'">
+                <div class="app-icon">👤</div>
+                <h2>Portfolio</h2>
+                <p>Explora mis proyectos, experiencia profesional y habilidades técnicas</p>
+                <!-- <span class="app-badge">Personal</span> -->
+            </div>
+
+            <div class="app-card" onclick="window.location.href='/portafolio/portfolio_arte'">
+                <div class="app-icon">👤</div>
+                <h2>Portfolio Arte</h2>
+                <p>Explora mis proyectos artisticos</p>
+                <!-- <span class="app-badge">Personal</span> -->
+            </div>
+
+            <!-- API Tickets Card -->
+            <div class="app-card" onclick="window.location.href='/api'">
+                <div class="app-icon">🔗</div>
+                <h2>API</h2>
+                <p>API que utilizo para las llamadas de otras aplicaciones</p>
+                <!-- <span class="app-badge">API</span> -->
+            </div>
+
+            <!-- Gestion Tickets Card -->
+            <div class="app-card" onclick="window.location.href='/tickets'">
+                <div class="app-icon">🎫</div>
+                <h2>Tickets</h2>
+                <p>Gestión de TICKETS</p>
+                <!-- <span class="app-badge">Tickets</span> -->
+            </div>
+
+            <!-- Placeholder for future apps -->
+            <div class="app-card add-app-card">
+                <div class="add-icon">+</div>
+                <div class="add-text">Próximamente</div>
+            </div>
+        </div>
+
+        <footer>
+            <p>&copy; 2025 Mi Plataforma. Todos los derechos reservados.</p>
+        </footer>
+    </div>
+
+</body>
+</html>

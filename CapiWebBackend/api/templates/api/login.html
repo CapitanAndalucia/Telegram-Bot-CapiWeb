@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login API</title>
+    <style>
+        body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Arial, "Apple Color Emoji", "Segoe UI Emoji"; background:#f7f7f8; margin:0; }
+        .container { max-width: 380px; margin: 8vh auto; background:#fff; padding: 24px; border-radius: 12px; box-shadow: 0 6px 30px rgba(0,0,0,0.08); }
+        h1 { margin: 0 0 18px; font-size: 22px; }
+        label { display:block; margin: 10px 0 6px; font-weight: 600; }
+        input { width: 100%; padding: 10px 12px; border-radius: 8px; border:1px solid #d0d7de; outline: none; }
+        button { margin-top: 16px; width: 100%; padding: 12px; border:0; border-radius: 8px; background:#0d6efd; color:#fff; font-weight: 600; cursor:pointer; }
+        .error { background:#fee2e2; color:#991b1b; padding: 10px 12px; border-radius: 8px; margin-bottom: 10px; }
+    </style>
+    {% csrf_token %}
+    {% load static %}
+    {% load i18n %}
+    {% load tz %}
+</head>
+<body>
+    <div class="container">
+        <h1>Inicio de Sesión</h1>
+        {% if current_username %}
+        <p>Has iniciado sesión como <strong>{{ current_username }}</strong></p>
+        <form method="post" action="/api/auth/logout/">
+            {% csrf_token %}
+            <button type="submit" style="background:#ef4444">Cerrar sesión</button>
+        </form>
+        <hr />
+        {% endif %}
+        {% if error %}
+        <div class="error">{{ error }}</div>
+        {% endif %}
+        <form method="post">
+            {% csrf_token %}
+            <label for="username">Usuario</label>
+            <input type="text" id="username" name="username" required />
+
+            <label for="password">Contraseña</label>
+            <input type="password" id="password" name="password" required />
+
+            <button type="submit">Entrar</button>
+        </form>
+    </div>
+</body>
+</html>
+

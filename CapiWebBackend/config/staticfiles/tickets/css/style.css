@@ -1,0 +1,170 @@
+/* Reset básico */
+body, h1, h2, p, input, select, button {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: system-ui, sans-serif;
+}
+
+/* Header */
+.header {
+  background: #222;
+  color: #fff;
+  padding: 1rem;
+  text-align: center;
+}
+
+/* Contenedor principal */
+.container {
+  padding: 1rem;
+  max-width: 800px;
+  margin: auto;
+}
+
+/* Filtros */
+.filters {
+  display: flex;
+  gap: .5rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+.filters input,
+.filters select,
+.filters button {
+  padding: .5rem;
+}
+
+/* Botón crear */
+.create-btn {
+  background: #4caf50;
+  color: white;
+  padding: .6rem 1rem;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  margin-bottom: 1rem;
+}
+.create-btn:hover {
+  background: #43a047;
+}
+
+/* Tarjetas de tickets */
+.tickets {
+  display: flex;
+  flex-direction: column;
+  gap: .8rem;
+}
+.ticket-card {
+  border: 1px solid #e0e0e0;
+  padding: 1.2rem;
+  border-radius: 12px;
+  background: #fff;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition: all 0.2s ease;
+}
+.ticket-card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  transform: translateY(-1px);
+}
+.ticket-info {
+  flex-grow: 1;
+}
+.ticket-id {
+  font-size: .8rem;
+  color: #777;
+}
+.ticket-concept {
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+.ticket-datetime {
+  display: flex;
+  gap: 1rem;
+  font-size: .9rem;
+  margin-top: .3rem;
+}
+
+/* Botones de acción */
+.ticket-actions {
+  display: flex;
+  gap: .8rem;
+  align-items: center;
+}
+.action-btn {
+  padding: .5rem .8rem;
+  border: none;
+  cursor: pointer;
+  border-radius: 6px;
+  font-size: .85rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: .3rem;
+  min-width: 80px;
+  justify-content: center;
+}
+.edit-btn { 
+  background: linear-gradient(135deg, #2196f3, #1976d2);
+  color: #fff;
+  box-shadow: 0 2px 4px rgba(33, 150, 243, 0.3);
+}
+.edit-btn:hover {
+  background: linear-gradient(135deg, #1976d2, #1565c0);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(33, 150, 243, 0.4);
+}
+.delete-btn { 
+  background: linear-gradient(135deg, #f44336, #d32f2f);
+  color: #fff;
+  box-shadow: 0 2px 4px rgba(244, 67, 54, 0.3);
+}
+.delete-btn:hover {
+  background: linear-gradient(135deg, #d32f2f, #c62828);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(244, 67, 54, 0.4);
+}
+
+/* Modal */
+.modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.5);
+  justify-content: center;
+  align-items: center;
+}
+.modal.active {
+  display: flex;
+}
+.modal-content {
+  background: #fff;
+  padding: 1.5rem;
+  border-radius: 10px;
+  width: 90%;
+  max-width: 400px;
+}
+.modal-content label {
+  display: block;
+  margin-top: .5rem;
+  margin-bottom: .2rem;
+}
+.modal-content input {
+  width: 100%;
+  padding: .5rem;
+  margin-bottom: .5rem;
+}
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: .5rem;
+}
+.modal-actions button {
+  padding: .5rem 1rem;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}

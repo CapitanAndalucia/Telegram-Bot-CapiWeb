@@ -1,0 +1,582 @@
+html, body, div, span, applet, object, iframe,
+h1, h2, h3, h4, h5, h6, p, blockquote, pre,
+a, abbr, acronym, address, big, cite, code,
+del, dfn, em, img, ins, kbd, q, s, samp,
+small, strike, strong, sub, sup, tt, var,
+b, u, i, center,
+dl, dt, dd, ol, ul, li,
+fieldset, form, label, legend,
+table, caption, tbody, tfoot, thead, tr, th, td,
+article, aside, canvas, details, embed,
+figure, figcaption, footer, header, hgroup,
+menu, nav, output, ruby, section, summary,
+time, mark, audio, video {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  font: inherit;
+  font-size: 100%;
+  vertical-align: baseline;
+}
+
+html {
+  line-height: 1;
+}
+
+ol, ul {
+  list-style: none;
+}
+
+table {
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+
+caption, th, td {
+  text-align: left;
+  font-weight: normal;
+  vertical-align: middle;
+}
+
+q, blockquote {
+  quotes: none;
+}
+q:before, q:after, blockquote:before, blockquote:after {
+  content: "";
+  content: none;
+}
+
+a img {
+  border: none;
+}
+
+article, aside, details, figcaption, figure, footer, header, hgroup, main, menu, nav, section, summary {
+  display: block;
+}
+
+.app {
+  overflow: hidden;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: auto !important;
+  width: 100vw !important;
+  height: var(--vh, 100vh) !important;
+  z-index: -1;
+  transform: translateZ(0);
+  will-change: contents;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+.app .sky {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 40%;
+}
+.app .sky .background-left {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(135deg, black, #161256 30%, #F556FB);
+}
+.app .sky .background-right {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(-135deg, black, #161256 30%, #F556FB);
+}
+.app .sky .sun {
+  position: absolute;
+  bottom: 30%;
+  left: calc(50% - 10vw);
+  width: 20vw;
+  height: 20vw;
+  border-radius: 50%;
+  background: linear-gradient(to bottom, #FFFC3A, #FA1ABB);
+}
+.app .sky .buildings .building {
+  position: absolute;
+  bottom: 0;
+  border: solid 1px #f9a1fd;
+  border-bottom: 0;
+  box-shadow: 0 -1vw 10vw #F556FB;
+}
+.app .sky .buildings .building .top {
+  position: absolute;
+  bottom: 100%;
+  border: solid 1px #f9a1fd;
+  border-bottom: 0;
+}
+.app .sky .buildings .building-1 {
+  left: 11vw;
+  background-color: #1d011e;
+  width: 8vw;
+  height: 2vw;
+}
+.app .sky .buildings .building-1 .top {
+  left: 10%;
+  background-color: #1d011e;
+  width: 60%;
+  height: 8%;
+}
+.app .sky .buildings .building-2 {
+  left: 18vw;
+  background-color: #1d011e;
+  width: 7vw;
+  height: 3vw;
+}
+.app .sky .buildings .building-2 .top {
+  left: 40%;
+  background-color: #1d011e;
+  width: 50%;
+  height: 3%;
+}
+.app .sky .buildings .building-3 {
+  left: 34vw;
+  background-color: #1d011e;
+  width: 9vw;
+  height: 6vw;
+}
+.app .sky .buildings .building-3 .top {
+  left: 20%;
+  background-color: #1d011e;
+  width: 60%;
+  height: 3%;
+}
+.app .sky .buildings .building-4 {
+  left: 28vw;
+  background-color: #1d011e;
+  width: 10vw;
+  height: 4vw;
+}
+.app .sky .buildings .building-4 .top {
+  left: 40%;
+  background-color: #1d011e;
+  width: 40%;
+  height: 2%;
+}
+.app .sky .buildings .building-5 {
+  left: 46vw;
+  background-color: #1d011e;
+  width: 3.5vw;
+  height: 17vw;
+}
+.app .sky .buildings .building-5 .top {
+  left: 3%;
+  background-color: #1d011e;
+  width: 75%;
+  height: 2%;
+}
+.app .sky .buildings .building-6 {
+  left: 55vw;
+  background-color: #1d011e;
+  width: 2vw;
+  height: 9vw;
+}
+.app .sky .buildings .building-6 .top {
+  left: 10%;
+  background-color: #1d011e;
+  width: 60%;
+  height: 2%;
+}
+.app .sky .buildings .building-7 {
+  left: 53vw;
+  background-color: #1d011e;
+  width: 3vw;
+  height: 7vw;
+}
+.app .sky .buildings .building-7 .top {
+  left: 12%;
+  background-color: #1d011e;
+  width: 80%;
+  height: 3%;
+}
+.app .sky .buildings .building-8 {
+  left: 54vw;
+  background-color: #1d011e;
+  width: 9vw;
+  height: 3vw;
+}
+.app .sky .buildings .building-8 .top {
+  left: 10%;
+  background-color: #1d011e;
+  width: 60%;
+  height: 6%;
+}
+.app .sky .buildings .building-9 {
+  left: 65vw;
+  background-color: #1d011e;
+  width: 11vw;
+  height: 2vw;
+}
+.app .sky .buildings .building-9 .top {
+  left: 1%;
+  background-color: #1d011e;
+  width: 90%;
+  height: 6%;
+}
+.app .sky .buildings .building-10 {
+  left: 78vw;
+  background-color: #1d011e;
+  width: 2vw;
+  height: 5vw;
+}
+.app .sky .buildings .building-10 .top {
+  left: 10%;
+  background-color: #1d011e;
+  width: 60%;
+  height: 3%;
+}
+.app .sky .buildings .building-11 {
+  left: 21vw;
+  background-color: #300132;
+  width: 8vw;
+  height: 1.5vw;
+}
+.app .sky .buildings .building-11 .top {
+  left: 10%;
+  background-color: #300132;
+  width: 60%;
+  height: 8%;
+}
+.app .sky .buildings .building-12 {
+  left: 42vw;
+  background-color: #300132;
+  width: 5vw;
+  height: 2vw;
+}
+.app .sky .buildings .building-12 .top {
+  left: 40%;
+  background-color: #300132;
+  width: 50%;
+  height: 4%;
+}
+.app .sky .buildings .building-13 {
+  left: 49vw;
+  background-color: #300132;
+  width: 5vw;
+  height: 3vw;
+}
+.app .sky .buildings .building-13 .top {
+  left: 20%;
+  background-color: #300132;
+  width: 60%;
+  height: 5%;
+}
+.app .sky .buildings .building-14 {
+  left: 62vw;
+  background-color: #300132;
+  width: 4vw;
+  height: 0.5vw;
+}
+.app .sky .buildings .building-14 .top {
+  left: 10%;
+  background-color: #300132;
+  width: 40%;
+  height: 40%;
+}
+.app .sky .buildings .building-15 {
+  left: 75vw;
+  background-color: #300132;
+  width: 3.5vw;
+  height: 1vw;
+}
+.app .sky .buildings .building-15 .top {
+  left: 50%;
+  background-color: #300132;
+  width: 40%;
+  height: 15%;
+}
+.app .sky .buildings .building-21 {
+  left: 38vw;
+  background-color: #440246;
+  width: 4vw;
+  height: 12vw;
+}
+.app .sky .buildings .building-21 .top {
+  left: 10%;
+  background-color: #440246;
+  width: 60%;
+  height: 2%;
+}
+.app .sky .buildings .building-22 {
+  left: 36vw;
+  background-color: #440246;
+  width: 3vw;
+  height: 10vw;
+}
+.app .sky .buildings .building-22 .top {
+  left: 40%;
+  background-color: #440246;
+  width: 50%;
+  height: 1%;
+}
+.app .sky .buildings .building-23 {
+  left: 41vw;
+  background-color: #440246;
+  width: 5vw;
+  height: 8vw;
+}
+.app .sky .buildings .building-23 .top {
+  left: 5%;
+  background-color: #440246;
+  width: 80%;
+  height: 2%;
+}
+.app .sky .buildings .building-24 {
+  left: 48.5vw;
+  background-color: #440246;
+  width: 4vw;
+  height: 19vw;
+}
+.app .sky .buildings .building-24 .top {
+  left: 40%;
+  background-color: #440246;
+  width: 40%;
+  height: 1%;
+}
+.app .sky .buildings .building-25 {
+  left: 52vw;
+  background-color: #440246;
+  width: 14vw;
+  height: 4vw;
+}
+.app .sky .buildings .building-25 .top {
+  left: 50%;
+  background-color: #440246;
+  width: 40%;
+  height: 3%;
+}
+.app .ground {
+  z-index: 1;
+  position: absolute;
+  top: 35%;
+  left: 0%;
+  width: 100%;
+  height: 65%;
+  background: linear-gradient(to bottom, #161256, black);
+}
+.app .ground .road {
+  z-index: 2;
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform-origin: top left;
+}
+.app .ground .road.left, .app .ground .road.right {
+  width: 1px;
+  height: 200%;
+  background-color: #f9a1fd;
+}
+.app .ground .road.left {
+  transform: rotate(20deg);
+}
+.app .ground .road.right {
+  transform: rotate(-20deg);
+}
+.app .ground .road.left.bis {
+  transform: rotate(19.15deg);
+}
+.app .ground .road.right.bis {
+  transform: rotate(-19.15deg);
+}
+.app .ground .road.center {
+  width: 2px;
+  height: 0;
+  border: solid 1px #f9a1fd;
+  -webkit-animation: infinite road-animation 4s cubic-bezier(1, 0.01, 1, 0.9);
+          animation: infinite road-animation 4s cubic-bezier(1, 0.01, 1, 0.9);
+}
+.app .ground .road.center.road-0 {
+  -webkit-animation-delay: -0.66667s;
+          animation-delay: -0.66667s;
+}
+.app .ground .road.center.road-1 {
+  -webkit-animation-delay: -1.33333s;
+          animation-delay: -1.33333s;
+}
+.app .ground .road.center.road-2 {
+  -webkit-animation-delay: -2s;
+          animation-delay: -2s;
+}
+.app .ground .road.center.road-3 {
+  -webkit-animation-delay: -2.66667s;
+          animation-delay: -2.66667s;
+}
+.app .ground .road.center.road-4 {
+  -webkit-animation-delay: -3.33333s;
+          animation-delay: -3.33333s;
+}
+.app .ground .road.center.road-5 {
+  -webkit-animation-delay: -4s;
+          animation-delay: -4s;
+}
+.app .ground .wave {
+  background: #19EEFE;
+  box-shadow: 0 1px 10px 1px #19EEFE;
+}
+.app .ground .wave.vertical {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 1px;
+  height: 1000%;
+  transform-origin: top left;
+}
+.app .ground .wave.vertical.right.wave-0 {
+  transform: rotate(-38deg);
+}
+.app .ground .wave.vertical.right.wave-1 {
+  transform: rotate(-52deg);
+}
+.app .ground .wave.vertical.right.wave-2 {
+  transform: rotate(-63deg);
+}
+.app .ground .wave.vertical.right.wave-3 {
+  transform: rotate(-72deg);
+}
+.app .ground .wave.vertical.right.wave-4 {
+  transform: rotate(-79.5deg);
+}
+.app .ground .wave.vertical.right.wave-5 {
+  transform: rotate(-84.5deg);
+}
+.app .ground .wave.vertical.left.wave-0 {
+  transform: rotate(38deg);
+}
+.app .ground .wave.vertical.left.wave-1 {
+  transform: rotate(52deg);
+}
+.app .ground .wave.vertical.left.wave-2 {
+  transform: rotate(63deg);
+}
+.app .ground .wave.vertical.left.wave-3 {
+  transform: rotate(72deg);
+}
+.app .ground .wave.vertical.left.wave-4 {
+  transform: rotate(79.5deg);
+}
+.app .ground .wave.vertical.left.wave-5 {
+  transform: rotate(84.5deg);
+}
+.app .ground .wave.horizontal {
+  position: absolute;
+  top: 0;
+  width: 100%;
+  height: 1px;
+}
+.app .ground .wave.horizontal.left {
+  right: 50%;
+  -webkit-animation: infinite wave-left 9s cubic-bezier(1, 0.01, 1, 0.9);
+          animation: infinite wave-left 9s cubic-bezier(1, 0.01, 1, 0.9);
+}
+.app .ground .wave.horizontal.right {
+  left: calc(50% + 2px);
+  -webkit-animation: infinite wave-right 9s cubic-bezier(1, 0.01, 1, 0.9);
+          animation: infinite wave-right 9s cubic-bezier(1, 0.01, 1, 0.9);
+}
+.app .ground .wave.horizontal.wave-10 {
+  -webkit-animation-delay: -0.9s;
+          animation-delay: -0.9s;
+}
+.app .ground .wave.horizontal.wave-11 {
+  -webkit-animation-delay: -1.8s;
+          animation-delay: -1.8s;
+}
+.app .ground .wave.horizontal.wave-12 {
+  -webkit-animation-delay: -2.7s;
+          animation-delay: -2.7s;
+}
+.app .ground .wave.horizontal.wave-13 {
+  -webkit-animation-delay: -3.6s;
+          animation-delay: -3.6s;
+}
+.app .ground .wave.horizontal.wave-14 {
+  -webkit-animation-delay: -4.5s;
+          animation-delay: -4.5s;
+}
+.app .ground .wave.horizontal.wave-15 {
+  -webkit-animation-delay: -5.4s;
+          animation-delay: -5.4s;
+}
+.app .ground .wave.horizontal.wave-16 {
+  -webkit-animation-delay: -6.3s;
+          animation-delay: -6.3s;
+}
+.app .ground .wave.horizontal.wave-17 {
+  -webkit-animation-delay: -7.2s;
+          animation-delay: -7.2s;
+}
+.app .ground .wave.horizontal.wave-18 {
+  -webkit-animation-delay: -8.1s;
+          animation-delay: -8.1s;
+}
+.app .ground .wave.horizontal.wave-19 {
+  -webkit-animation-delay: -9s;
+          animation-delay: -9s;
+}
+
+@-webkit-keyframes wave-left {
+  100% {
+    transform: translate(-23.65807vh, 65vh);
+  }
+}
+
+@keyframes wave-left {
+  100% {
+    transform: translate(-23.65807vh, 65vh);
+  }
+}
+@-webkit-keyframes wave-right {
+  100% {
+    transform: translate(23.65807vh, 65vh);
+  }
+}
+@keyframes wave-right {
+  100% {
+    transform: translate(23.65807vh, 65vh);
+  }
+}
+@-webkit-keyframes road-animation {
+  100% {
+    transform: translate(0, 65vh);
+    height: 9vh;
+  }
+}
+@keyframes road-animation {
+  100% {
+    transform: translate(0, 65vh);
+    height: 9vh;
+  }
+}
+.author-container {
+  position: absolute;
+  width: 50%;
+  right: 21px;
+  bottom: 21px;
+  text-align: right;
+}
+.author-container .picture {
+  position: absolute;
+  right: 0;
+  top: -42px;
+  margin-top: -12px;
+  width: 42px;
+  height: 42px;
+  background-size: 42px;
+  background-position: center;
+  background-repeat-style: "no-repeat";
+  background-image: url(https://assets.codepen.io/595576/internal/avatars/users/default.png?format=auto&version=1689877807&width=80&height=80);
+}
+.author-container .title {
+  font-size: 16px;
+  letter-spacing: 2px;
+  color: white;
+}

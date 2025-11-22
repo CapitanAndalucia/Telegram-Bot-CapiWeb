@@ -1,0 +1,106 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestor de Tickets</title>
+    <link rel="stylesheet" href="{% static 'tickets/css/style.css' %}">
+</head>
+<body>
+    <div id="loadingScreen" style="display: flex; justify-content: center; align-items: center; height: 100vh; font-size: 1.5rem;">
+        <p>🔄 Verificando autenticación...</p>
+    </div>
+
+    <header class="header" id="mainHeader" style="display:none;">
+        <h1>📄 Gestor de Tickets</h1>
+        <div class="user-info">
+            <span>👤 <span id="username" onclick="openUserModal()" style="cursor: pointer; text-decoration: underline;" title="Click para editar tu perfil">Usuario</span></span>
+            <button onclick="logout()" class="logout-btn">🚪 Cerrar Sesión</button>
+        </div>
+    </header>
+
+    <main class="container" id="mainContent" style="display:none;">
+        <!-- Filtros -->
+        <section class="filters">
+            <input type="date" id="dateFrom">
+            <input type="date" id="dateTo">
+            <select id="sortOrder">
+                <option value="newest" selected>Más recientes</option>
+                <option value="oldest">Más antiguos</option>
+            </select>
+            <button onclick="clearFilters()">❌ Limpiar</button>
+        </section>
+
+        <!-- Contador -->
+        <section class="stats">
+            <p id="ticketCount">0 tickets</p>
+        </section>
+
+        <!-- Botón crear -->
+        <button class="create-btn" onclick="openModal()">➕ Crear Ticket</button>
+
+        <!-- Contenedor de tickets -->
+        <section id="ticketsContainer" class="tickets"></section>
+
+        <!-- Botón cargar más -->
+        <button id="loadMoreBtn" onclick="loadMore()" style="display:none;">⬇️ Cargar más</button>
+    </main>
+
+    <!-- Modal Ticket -->
+    <div id="ticketModal" class="modal">
+        <div class="modal-content">
+            <h2 id="modalTitle">Crear Nuevo Ticket</h2>
+            <form id="ticketForm">
+                {% csrf_token %}
+                <label>Concepto</label>
+                <input type="text" id="ticketConcept" required>
+
+                <label>Coste (€)</label>
+                <input type="number" step="0.01" id="ticketCoste" required>
+
+                <label>Fecha</label>
+                <input type="date" id="ticketFecha" required>
+
+                <div class="modal-actions">
+                    <button type="submit">💾 Guardar</button>
+                    <button type="button" onclick="closeModal()">❌ Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Usuario -->
+    <div id="userModal" class="modal">
+        <div class="modal-content">
+            <h2>👤 Editar Usuario</h2>
+            <form id="userForm">
+                {% csrf_token %}
+                <label>Nombre de usuario</label>
+                <input type="text" id="userUsername" required>
+
+                <label>Email</label>
+                <input type="email" id="userEmail" required>
+
+                <label>Telegram ID (opcional)</label>
+                <input type="number" id="userTelegramId" placeholder="Deja vacío si no tiene Telegram">
+                <small style="color: #888;">El ID de Telegram del usuario para usar el bot</small>
+
+                <label>Nueva contraseña (opcional)</label>
+                <input type="password" id="userPassword" placeholder="Deja vacío para no cambiar">
+                <small style="color: #888;">Solo completa si quieres cambiar la contraseña</small>
+
+                <div class="modal-actions">
+                    <button type="submit">💾 Guardar Cambios</button>
+                    <button type="button" onclick="closeUserModal()">❌ Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = "{{ api_url|escapejs }}";
+    </script>
+    <script src="{% static 'tickets/js/script.js' %}"></script>
+</body>
+</html>

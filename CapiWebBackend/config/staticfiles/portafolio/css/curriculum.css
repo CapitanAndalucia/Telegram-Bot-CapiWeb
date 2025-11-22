@@ -1,0 +1,162 @@
+/* Variables CSS para los colores */
+:root {
+    --bg-color: #1e1e1e; /* Fondo principal oscuro más parecido a la imagen */
+    --text-color: #d4d4d4; /* Color de texto general más claro */
+    --keyword-color: #569cd6; /* Azul para palabras clave (public, enum, class) */
+    --type-color: #4ec9b0; /* Verde azulado para tipos (INFORMATION, EXPERIENCE, etc) */
+    --modifier-color: #569cd6; /* Azul para modificadores (private, public, static) */
+    --string-color: #ce9178; /* Naranja/marrón para strings */
+    --function-color: #d7d77c; /* Amarillo claro para funciones/métodos */
+    --value-color: #9cdcfe; /* Azul claro para valores */
+    --comment-color: #6a9955; /* Verde para comentarios (//) */
+    --line-number-color: #3e4451; /* Gris oscuro para el fondo de los números de línea */
+    --border-color: #3e4451; /* Color de borde para bloques */
+    --font-family-code: 'Consolas', 'Monaco', 'Courier New', monospace;
+    --block-code-line: #6b6b6b;
+}
+
+/* Estilos globales y reseteo básico */
+body {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    font-family: var(--font-family-code);
+    margin: 0;
+    padding: 20px;
+    line-height: 1.6;
+}
+
+.portfolio-container {
+    display: flex; /* Habilita Flexbox para la distribución en 2 columnas */
+    max-width: 1200px;
+    margin: 0 auto;
+    background-color: #252526; /* Fondo del contenedor ligeramente más claro */
+    border: 1px solid var(--border-color);
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+    min-height: 90vh;
+}
+
+/* --- Estilos de las Columnas --- */
+
+.aside-left {
+    width: 30%; /* Columna de la izquierda más estrecha */
+    border-right: 1px solid var(--border-color);
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+.main-content {
+    width: 70%; /* Columna de la derecha más ancha */
+    padding: 20px 20px 20px 40px; /* Más padding a la izquierda para simular el espacio de número de línea */
+    box-sizing: border-box;
+}
+
+/* --- Estilos de los Bloques de Código --- */
+
+.code-block {
+    margin-bottom: 30px;
+    padding-left: 5px; /* Pequeño margen para separación visual */
+}
+
+/* Estilos de la foto de perfil */
+.profile-photo {
+    width: 250px;             /* Tamaño fijo cuadrado */
+    height: 250px;
+    display: block;
+    margin: 10px 5px 10px;
+    border-radius: 10px;
+    border: 2px solid var(--text-color);
+    object-fit: cover;        /* Recorta la imagen sin deformarla */
+    object-position: center;  /* Centra el recorte */
+    background-color: #1e1e1e; /* Color de fondo en caso de transparencia */
+}
+
+/* Contenedores de contenido (simula el cuerpo de un enum o class) */
+.code-body {
+    padding-left: 20px;
+    padding-top: 5px;
+    padding-bottom: 5px;
+    border-left: 1px solid var(--block-code-line); /* Línea vertical conectando las llaves */
+    margin-left: 10px;
+    margin-top: 0px;
+    position: relative;
+}
+
+.code-sub-body {
+    padding-left: 20px;
+    padding-top: 5px;
+    padding-bottom: 5px;
+    border-left: 1px solid var(--block-code-line); /* Línea vertical para bloques anidados */
+    margin-left: 10px;
+    margin-top: 0px;
+    position: relative;
+}
+
+/* Estilos para las llaves */
+.brace-open {
+    color: var(--text-color);
+    margin-left: 10px;
+    display: inline-block;
+}
+
+.brace-close {
+    color: var(--text-color);
+    margin-left: 10px;
+    display: inline-block;
+}
+
+/* --- Estilos de Sintaxis de Código (Clases específicas) --- */
+
+.code-keyword {
+    color: var(--keyword-color);
+    font-weight: bold;
+}
+
+.code-type {
+    color: var(--type-color);
+    font-style: italic;
+}
+
+.code-modifier {
+    color: var(--modifier-color);
+}
+
+.code-property {
+    color: #9cdcfe; /* Azul claro para propiedades */
+}
+
+.code-string {
+    color: var(--string-color);
+}
+
+.code-value {
+    color: var(--value-color);
+}
+
+.code-assignment {
+    color: var(--text-color); /* Carácter '=' */
+}
+
+.code-function {
+    color: var(--function-color);
+}
+
+.code-comment {
+    color: var(--comment-color);
+}
+
+.code-variable {
+    color: #9cdcfe; /* Azul claro para variables */
+}
+
+.summary-section p {
+    color: var(--text-color);
+    font-style: italic;
+    padding-left: 10px;
+    margin: 5px 0;
+}
+
+/* Estilo para los nombres de las secciones de la izquierda (enum) */
+.enum-section > .code-type {
+    font-weight: bold;
+    color: var(--type-color);
+}

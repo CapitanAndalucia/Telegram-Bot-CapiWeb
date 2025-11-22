@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    {% load static %}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>Portfolio - Fernando de la Rosa Moreno</title>
+    <link rel="stylesheet" href="{% static 'portafolio/css/curriculum.css' %}">
+</head>
+<body>
+    <main class="portfolio-container">
+        <aside class="aside-left">
+            <!-- <div class="code-block photo-section">
+                <span class="code-type">// &lt;img&gt;</span>
+                <img src="tu_foto.jpg" alt="Your Profile Photo" class="profile-photo"> 
+            </div> -->
+            <div class="code-block photo-section">
+                <span class="code-comment">// Profile Photo</span>
+                {% if foto_url %}
+                    <img src="{{ foto_url }}" alt="Profile Photo" class="profile-photo">
+                {% else %}
+                    <img src="{% static 'portafolio/img/default.jpg' %}" alt="Profile Photo" class="profile-photo">
+                {% endif %}
+            </div>
+            <div class="code-block enum-section">
+                <span class="code-keyword">public enum</span> <span class="code-type">PLATFORMS</span>
+                <br>
+                <span class="brace-open">{</span>
+                <div class="code-body">
+                    <span class="code-value">Linux</span>, <span class="code-comment">// Main Platform</span>
+                    <br>
+                    <span class="code-value">Windows</span>,
+                    <br>
+                    <span class="code-value">Docker</span>
+                </div>
+                <span class="brace-close">}</span>
+            </div>
+
+            <div class="code-block enum-section">
+                <span class="code-keyword">public enum</span> <span class="code-type">LANGUAGES</span>
+                <br>
+                <span class="brace-open">{</span>
+                <div class="code-body">
+                    <span class="code-value">Java</span>,
+                    <br>
+                    <span class="code-value">Python</span>,
+                    <br>
+                    <span class="code-value">JavaScript</span>,
+                    <br>
+                    <span class="code-value">HTML5, CSS3</span>
+                </div>
+                <span class="brace-close">}</span>
+            </div>
+            
+            <div class="code-block enum-section">
+                <span class="code-keyword">public enum</span> <span class="code-type">FRAMEWORKS_AND_TOOLS</span>
+                <br>
+                <span class="brace-open">{</span>
+                <div class="code-body">
+                    <span class="code-value">SpringBoot</span>,
+                    <br>
+                    <span class="code-value">Microservices</span>,
+                    <br>
+                    <span class="code-value">Angular</span>,
+                    <br>
+                    <span class="code-value">React</span>,
+                    <br>
+                    <span class="code-value">Django</span>,
+                    <br>
+                    <span class="code-value">Git</span>
+                </div>
+                <span class="brace-close">}</span>
+            </div>
+            
+            <div class="code-block enum-section">
+                <span class="code-keyword">public enum</span> <span class="code-type">APIS_AND_METHODS</span>
+                <br>
+                <span class="brace-open">{</span>
+                <div class="code-body">
+                    <span class="code-value">REST</span>,
+                    <br>
+                    <span class="code-value">SOAP</span>,
+                    <br>
+                    <span class="code-value">MIGRATIONS</span>
+                </div>
+                <span class="brace-close">}</span>
+            </div>
+
+             <div class="code-block enum-section">
+                <span class="code-keyword">public enum</span> <span class="code-type">SPOKEN_LANGUAGES</span>
+                <br>
+                <span class="brace-open">{</span>
+                <div class="code-body">
+                    <span class="code-value">Spanish</span><span class="code-function">(</span><span class="code-string">"Native"</span><span class="code-function">)</span>,
+                    <br>
+                    <span class="code-value">English</span><span class="code-function">(</span><span class="code-string">"B2"</span><span class="code-function">)</span>;
+                </div>
+                <span class="brace-close">}</span>
+            </div>
+        </aside>
+
+        <section class="main-content">
+            <div class="code-block summary-section">
+                <span class="code-comment">/**</span><br>
+                <span class="code-comment"> * Web Developer specialized in <b>Java</b> and <b>Python</b> technologies.</span><br>
+                <span class="code-comment"> * 2 years of experience in <b>microservices</b> environments and development of</span><br>
+                <span class="code-comment"> * <b>REST</b> and <b>SOAP</b> services.</span><br>
+                <span class="code-comment"> * Expertise in data <b>migrations</b> and <b>Full Stack</b> development with</span><br>
+                <span class="code-comment"> * <b>SpringBoot</b>, <b>Angular</b>, and <b>React</b>.</span><br>
+                <span class="code-comment"> */</span>
+            </div>
+
+            <div class="code-block information-section">
+                <span class="code-keyword">public class</span> <span class="code-type">INFORMATION</span>
+                <br>
+                <span class="brace-open">{</span>
+                <div class="code-body">
+                    <span class="code-modifier">public</span> <span class="code-type">String</span> <span class="code-property">NAME</span> <span class="code-assignment">=</span> <span class="code-string">"de la Rosa Moreno, Fernando"</span>;
+                    <br>
+                    <span class="code-modifier">public</span> <span class="code-type">String</span> <span class="code-property">TITLE</span> <span class="code-assignment">=</span> <span class="code-string">"Web Developer"</span>;
+                    <br>
+                    <span class="code-modifier">public</span> <span class="code-type">String</span> <span class="code-property">EMAIL</span> <span class="code-assignment">=</span> <span class="code-string">"fernandodelarosa005@gmail.com"</span>;
+                    <br>
+                    <span class="code-modifier">public</span> <span class="code-type">String</span> <span class="code-property">LOCATION</span> <span class="code-assignment">=</span> <span class="code-string">"Seville, Spain"</span>;
+                </div>
+                <span class="brace-close">}</span>
+            </div>
+            
+            <div class="code-block experience-section">
+                <span class="code-keyword">public static class</span> <span class="code-type">EXPERIENCE</span>
+                <br>
+                <span class="brace-open">{</span>
+                <div class="code-body">
+                    
+                    <span class="code-modifier">public void</span> <span class="code-function">Guadaltel</span>()
+                    <br>
+                    <span class="brace-open">{</span>
+                    <div class="code-sub-body">
+                        <span class="code-type">String</span> <span class="code-variable">Role</span> <span class="code-assignment">=</span> <span class="code-string">"Web Developer"</span>;
+                        <br>
+                        <span class="code-type">String</span> <span class="code-variable">Duration</span> <span class="code-assignment">=</span> <span class="code-string">"2 Years"</span>;
+                        <br>
+                        <span class="code-comment">// Development of REST and SOAP APIs using SpringBoot.</span>
+                        <br>
+                        <span class="code-comment">// Experience in data migrations and microservices.</span>
+                        <br>
+                    </div>
+                    <span class="brace-close">}</span>
+                    <br>
+                </div>
+                <span class="brace-close">}</span>
+            </div>
+
+            <div class="code-block education-section">
+                <span class="code-keyword">public class</span> <span class="code-type">HigherEducation</span> <span class="code-keyword">extends</span> <span class="code-type">EDUCATION</span>
+                <br>
+                <span class="brace-open">{</span>
+                <div class="code-body">
+                    
+                    <span class="code-modifier">private void</span> <span class="code-function">loadIesPoligonoSurDetails</span>()
+                    <br>
+                    <span class="brace-open">{</span>
+                    <div class="code-sub-body">
+                        <span class="code-type">String</span> <span class="code-variable">Level</span> <span class="code-assignment">=</span> <span class="code-string">"Higher Vocational Training"</span>; 
+                        <br>
+                        <span class="code-type">String</span> <span class="code-variable">Degree</span> <span class="code-assignment">=</span> <span class="code-string">"Web Application Development (DAW)"</span>;
+                        <br>
+                        <span class="code-type">String</span> <span class="code-variable">Location</span> <span class="code-assignment">=</span> <span class="code-string">"Seville"</span>;
+                    </div>
+                    <span class="brace-close">}</span>
+                    <br>
+                </div>
+                <span class="brace-close">}</span>
+            </div>
+            
+        </section>
+    </main>
+</body>
+</html>

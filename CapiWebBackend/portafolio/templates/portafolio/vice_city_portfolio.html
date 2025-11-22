@@ -1,0 +1,1060 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    {% load static %}
+    <meta charset="UTF-8">
+    <link rel="shortcut icon" href="{% static 'portafolio/icono/icono.png' %}" type="image/png">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Arte Neón - Vice City Portfolio</title>
+    <link rel="stylesheet" href="{% static 'portafolio/css/portfolio_arte.css' %}">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Audiowide&display=swap');
+        
+        :root {
+            --vh: 100vh;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: linear-gradient(180deg, #0a0a1f 0%, #1a0a2e 50%, #16001e 100%);
+            color: #fff;
+            font-family: 'Orbitron', sans-serif;
+            overflow-x: hidden;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* Animación de grid retro */
+        .grid-background {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            bottom: auto !important;
+            width: 100vw !important;
+            height: var(--vh, 100vh) !important;
+            /* background: 
+                linear-gradient(0deg, transparent 24%, rgba(255, 0, 255, 0.1) 25%, rgba(255, 0, 255, 0.1) 26%, transparent 27%, transparent 74%, rgba(255, 0, 255, 0.1) 75%, rgba(255, 0, 255, 0.1) 76%, transparent 77%, transparent),
+                linear-gradient(90deg, transparent 24%, rgba(0, 255, 255, 0.1) 25%, rgba(0, 255, 255, 0.1) 26%, transparent 27%, transparent 74%, rgba(0, 255, 255, 0.1) 75%, rgba(0, 255, 255, 0.1) 76%, transparent 77%, transparent);
+            background-size: 50px 50px;
+            animation: gridMove 20s linear infinite; */
+            z-index: 0;
+            pointer-events: none;
+            transform: translateZ(0);
+            will-change: contents;
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+        }
+        
+        @keyframes gridMove {
+            0% { transform: perspective(500px) rotateX(60deg) translateY(0); }
+            100% { transform: perspective(500px) rotateX(60deg) translateY(50px); }
+        }
+        
+        .container {
+            position: relative;
+            z-index: 1;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            flex: 1 0 auto;
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+        }
+        
+        /* Header con neón */
+        header {
+            text-align: center;
+            /* padding: 60px 20px;*/
+            position: relative;
+        }
+        
+        header img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            font-family: 'Audiowide', cursive;
+            font-size: 5em;
+            font-weight: 900;
+            text-transform: uppercase;
+            background: linear-gradient(45deg, #ff00ff, #00ffff, #ff00ff);
+            background-size: 200% 200%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: neonGlow 3s ease-in-out infinite, gradient 4s ease infinite;
+            text-shadow: 
+                0 0 10px rgba(255, 0, 255, 0.8),
+                0 0 20px rgba(255, 0, 255, 0.6),
+                0 0 40px rgba(255, 0, 255, 0.4);
+            filter: drop-shadow(0 0 30px rgba(0, 255, 255, 0.8));
+        }
+        
+        @keyframes neonGlow {
+            0%, 100% { 
+                filter: drop-shadow(0 0 30px rgba(0, 255, 255, 0.8)) 
+                        drop-shadow(0 0 60px rgba(255, 0, 255, 0.6));
+            }
+            50% { 
+                filter: drop-shadow(0 0 50px rgba(255, 0, 255, 0.9)) 
+                        drop-shadow(0 0 80px rgba(0, 255, 255, 0.8));
+            }
+        }
+        
+        @keyframes gradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        .tagline {
+            font-size: 1.3em;
+            color: #00ffff;
+            text-shadow: 0 0 10px #00ffff, 0 0 20px #00ffff;
+            margin-top: 20px;
+            letter-spacing: 3px;
+        }
+        
+        /* Navegación */
+        nav {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin: 0 0 40px 0;
+            flex-wrap: wrap;
+        }
+        
+        nav button {
+            background: transparent;
+            border: 2px solid #ffb300;
+            color: #ffb300;
+            padding: 12px 30px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1em;
+            cursor: pointer;
+            text-transform: uppercase;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s;
+            box-shadow: 0 0 20px 4px rgb(255 125 0);
+            text-shadow: 0px -1px 11px #ff0000;
+            backdrop-filter: blur(8px); /* 🔥 aquí ocurre la magia */
+            -webkit-backdrop-filter: blur(8px);
+        }
+        
+        nav button:hover {
+            background: #00d9ff;
+            color: #ffffff;
+            box-shadow: 0 0 40px rgba(255, 0, 255, 1);
+            transform: translateY(-3px);
+        }
+        
+        nav button.active {
+            background: linear-gradient(45deg, #ff00ff, #00ffff);
+            color: #000;
+            border-color: #00ffff;
+            box-shadow: 0 0 40px rgba(0, 255, 255, 1);
+            text-shadow: 0px -1px 11px #ff0000;
+        }
+        
+        /* Sección de arte */
+        .art-section {
+            display: none;
+            flex: 1 0 auto;
+        }
+        
+        .art-section.active {
+            display: block;
+            animation: fadeIn 0.5s;
+        }
+        
+        /* Pre-renderizar blur incluso cuando está oculto */
+        #about .about-content,
+        #contact .contact-content {
+            visibility: hidden;
+            position: absolute;
+            pointer-events: none;
+        }
+        
+        #about.active .about-content,
+        #contact.active .contact-content {
+            visibility: visible;
+            position: relative;
+            pointer-events: auto;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* Asegurar que el blur se aplique inmediatamente - sin animar opacidad del contenedor */
+        .about-content,
+        .contact-content {
+            animation: slideUp 0.5s ease-out;
+        }
+        
+        /* Animar solo el contenido interno, no el contenedor con blur */
+        .about-content > *,
+        .contact-content > * {
+            animation: fadeInContent 0.6s ease-out;
+        }
+        
+        @keyframes slideUp {
+            from { 
+                transform: translateY(20px);
+            }
+            to { 
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes fadeInContent {
+            from { 
+                opacity: 0;
+            }
+            to { 
+                opacity: 1;
+            }
+        }
+        
+        .gallery {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin: 40px 0;
+            min-height: 400px;
+        }
+        
+        .gallery .art-card:nth-child(1) {
+            grid-column: 1;
+            grid-row: 1 / 3;
+        }
+        
+        .gallery .art-card:nth-child(2) {
+            grid-column: 2;
+            grid-row: 1;
+        }
+        
+        .gallery .art-card:nth-child(3) {
+            grid-column: 3;
+            grid-row: 1 / 3;
+        }
+        
+        .gallery .art-card:nth-child(4) {
+            grid-column: 2;
+            grid-row: 2 / 4;
+        }
+        
+        .gallery .art-card:nth-child(5) {
+            grid-column: 1;
+            grid-row: 3;
+        }
+        
+        .gallery .art-card:nth-child(6) {
+            grid-column: 3;
+            grid-row: 3;
+        }
+        
+        .art-card {
+            background: rgba(26, 10, 46, 0.6);
+            border: 2px solid transparent;
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        
+        .art-card:hover {
+            transform: translateY(-10px) scale(1.02);
+            border-color: #00ffff;
+            box-shadow: 
+                0 0 40px rgba(0, 255, 255, 0.6),
+                0 0 60px rgba(255, 0, 255, 0.4);
+        }
+        .art-card img { display:block; width:100%; height:100%; object-fit: cover; opacity: 0; transform: scale(1.02); transition: opacity 1s ease, transform 3s ease; }
+        .art-card img.img-loaded { opacity: 1; transform: scale(1); }
+        /* Forzar altura fija de las tarjetas para que la imagen cubra el recuadro */
+        .gallery .art-card { height: 300px; }
+        @media (max-width: 768px) {
+            .gallery .art-card { height: 250px; }
+        }
+
+        /* Modal (lightbox) */
+        .lightbox {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.85);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity .25s ease;
+        }
+        .lightbox.open { opacity: 1; pointer-events: auto; }
+        .lightbox img {
+            max-width: 90vw;
+            max-height: 90vh;
+            object-fit: contain;
+            box-shadow: 0 0 40px rgba(0, 255, 255, 0.6), 0 0 60px rgba(255,0,255,0.4);
+            border-radius: 8px;
+            transform: scale(.94);
+            transition: transform .25s ease;
+        }
+        .lightbox-close {
+            position: fixed;
+            top: 16px;
+            left: 16px;
+            background: #ef4444;
+            color: #fff;
+            border: 0;
+            border-radius: 6px;
+            padding: 10px 14px;
+            font-weight: 700;
+            cursor: pointer;
+            z-index: 10000;
+            box-shadow: 0 0 20px rgba(255,0,0,0.6);
+        }
+
+        .lightbox.open img { transform: scale(1); }
+
+        /* Aparición progresiva de tarjetas */
+        .art-card { opacity: 0; transform: translateY(12px); transition: opacity .4s ease, transform .4s ease; }
+        .art-card.show { opacity: 1; transform: translateY(0); }
+        
+        .art-placeholder {
+            width: 100%;
+            height: 100%;
+            min-height: 250px;
+            background: linear-gradient(135deg, #ff00ff 0%, #00ffff 50%, #ff00ff 100%);
+            background-size: 200% 200%;
+            animation: gradient 3s ease infinite;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3em;
+            color: rgba(0, 0, 0, 0.5);
+        }
+        
+        .art-card:nth-child(1) .art-placeholder,
+        .art-card:nth-child(3) .art-placeholder {
+            min-height: 500px;
+        }
+        
+        .art-card:nth-child(4) .art-placeholder {
+            min-height: 500px;
+        }
+        
+        .art-info {
+            padding: 20px;
+        }
+        
+        .art-title {
+            font-size: 1.4em;
+            color: #ff00ff;
+            text-shadow: 0 0 10px #ff00ff;
+            margin-bottom: 10px;
+        }
+        
+        .art-description {
+            color: #00ffff;
+            line-height: 1.6;
+        }
+        
+        /* Sección Sobre Mí */
+        .about-content {
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 40px;
+            background: rgba(26, 10, 46, 0.6);
+            border: 2px solid #ff00ff;
+            border-radius: 15px;
+            box-shadow: 0 0 40px rgba(255, 0, 255, 0.4);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            will-change: transform;
+            transform: translate3d(0, 0, 0);
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+            contain: layout style paint;
+        }
+        
+        .about-content h2 {
+            color: #00ffff;
+            text-shadow: 0 0 15px #00ffff;
+            margin-bottom: 20px;
+            font-size: 2em;
+        }
+        
+        .about-content p {
+            color: #fff;
+            line-height: 1.8;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+        }
+        
+        /* Contacto */
+        .contact-content {
+            max-width: 600px;
+            margin: 40px auto;
+            padding: 40px;
+            background: rgba(26, 10, 46, 0.6);
+            border: 2px solid #00ffff;
+            border-radius: 15px;
+            box-shadow: 0 0 40px rgba(0, 255, 255, 0.4);
+            text-align: center;
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            will-change: transform;
+            transform: translate3d(0, 0, 0);
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+            contain: layout style paint;
+        }
+        
+        .contact-content h2 {
+            color: #ff00ff;
+            text-shadow: 0 0 15px #ff00ff;
+            margin-bottom: 30px;
+            font-size: 2em;
+        }
+        
+        .social-links {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 30px;
+        }
+        
+        .social-links a {
+            display: inline-block;
+            padding: 15px 30px;
+            background: transparent;
+            border: 2px solid #00ffff;
+            color: #00ffff;
+            text-decoration: none;
+            border-radius: 5px;
+            transition: all 0.3s;
+            text-shadow: 0 0 10px #00ffff;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+        }
+        
+        .social-links a:hover {
+            background: #00ffff;
+            color: #000;
+            box-shadow: 0 0 40px rgba(0, 255, 255, 0.8);
+            transform: scale(1.1);
+        }
+        
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 40px 20px;
+            margin-top: auto;
+            border-top: 2px solid rgba(255, 0, 255, 0.3);
+            flex-shrink: 0;
+        }
+        
+        footer p {
+            color: #ff00ff;
+            text-shadow: 0 0 10px #ff00ff;
+        }
+        
+        @media (max-width: 1413px) {
+            .gallery {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .gallery .art-card:nth-child(1) {
+                grid-column: 1;
+                grid-row: 1 / 3;
+            }
+            
+            .gallery .art-card:nth-child(2) {
+                grid-column: 2;
+                grid-row: 1;
+            }
+            
+            .gallery .art-card:nth-child(3) {
+                grid-column: 2;
+                grid-row: 2;
+            }
+            
+            .gallery .art-card:nth-child(4) {
+                grid-column: 2;
+                grid-row: 3 / 5;
+            }
+            
+            .gallery .art-card:nth-child(5) {
+                grid-column: 1;
+                grid-row: 3;
+            }
+            
+            .gallery .art-card:nth-child(6) {
+                grid-column: 1;
+                grid-row: 4;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            /* Prevenir reajustes del fondo en móvil */
+            html {
+                overflow-x: hidden;
+                width: 100vw;
+            }
+            
+            body {
+                overflow-x: hidden;
+                width: 100vw;
+                position: relative;
+            }
+            
+            .grid-background,
+            .app {
+                position: fixed !important;
+                top: 0 !important;
+                left: 0 !important;
+                width: 100vw !important;
+                overflow: hidden !important;
+            }
+            
+            .container {
+                padding: 15px;
+            }
+            
+            header img {
+                max-width: 80%;
+            }
+            
+            h1 {
+                font-size: 2.5em;
+            }
+            
+            .tagline {
+                font-size: 0.9em;
+                letter-spacing: 1px;
+            }
+            
+            nav {
+                gap: 10px;
+                margin: 0 0 30px 0;
+            }
+            
+            nav button {
+                padding: 10px 20px;
+                font-size: 0.85em;
+                box-shadow: 0 0 15px 2px rgb(255 125 0);
+            }
+            
+            .gallery {
+                grid-template-columns: 1fr !important;
+                gap: 15px;
+                margin: 30px 0;
+                min-height: calc(100vh - 500px);
+            }
+            
+            .gallery .art-card {
+                grid-column: 1 !important;
+                grid-row: auto !important;
+                height: 280px !important;
+            }
+            
+            .art-card .art-placeholder {
+                min-height: 250px !important;
+            }
+            
+            .art-card:hover {
+                transform: translateY(-5px) scale(1.01);
+            }
+            
+            /* Sección Sobre Mí - Móvil */
+            .about-content {
+                margin: 20px auto;
+                padding: 25px 20px;
+                border-radius: 10px;
+            }
+            
+            .about-content h2 {
+                font-size: 1.5em;
+                margin-bottom: 15px;
+            }
+            
+            .about-content p {
+                font-size: 0.95em;
+                line-height: 1.6;
+                margin-bottom: 12px;
+            }
+            
+            /* Contacto - Móvil */
+            .contact-content {
+                margin: 20px auto;
+                padding: 25px 20px;
+                border-radius: 10px;
+            }
+            
+            .contact-content h2 {
+                font-size: 1.5em;
+                margin-bottom: 20px;
+            }
+            
+            .contact-content p {
+                font-size: 1em !important;
+                margin-bottom: 20px !important;
+            }
+            
+            .social-links {
+                gap: 12px;
+                margin-top: 20px;
+            }
+            
+            .social-links a {
+                padding: 12px 20px;
+                font-size: 0.9em;
+            }
+            
+            /* Lightbox - Móvil */
+            .lightbox-close {
+                top: 10px;
+                left: 10px;
+                padding: 8px 12px;
+                font-size: 0.9em;
+            }
+            
+            /* Footer - Móvil */
+            footer {
+                padding: 30px 15px;
+                margin-top: auto;
+            }
+            
+            footer p {
+                font-size: 0.9em;
+            }
+        }
+        
+        /* Media query para pantallas muy pequeñas */
+        @media (max-width: 480px) {
+            header img {
+                max-width: 90%;
+            }
+            
+            h1 {
+                font-size: 2em;
+            }
+            
+            nav button {
+                padding: 8px 15px;
+                font-size: 0.8em;
+                flex: 1 1 auto;
+                min-width: 100px;
+            }
+            
+            .gallery .art-card {
+                height: 250px !important;
+            }
+            
+            .about-content,
+            .contact-content {
+                padding: 20px 15px;
+            }
+            
+            .about-content h2,
+            .contact-content h2 {
+                font-size: 1.3em;
+            }
+            
+            .social-links a {
+                padding: 10px 15px;
+                font-size: 0.85em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="grid-background">
+
+
+        <div class='app'>
+            <div class='sky'>
+              <div class='background-left'></div>
+              <div class='background-right'></div>
+              <div class='sun'></div>
+              <div class='buildings'>
+                <div class='building building-21'>
+                  <div class='top'></div>
+                </div>
+                <div class='building building-22'>
+                  <div class='top'></div>
+                </div>
+                <div class='building building-23'>
+                  <div class='top'></div>
+                </div>
+                <div class='building building-24'>
+                  <div class='top'></div>
+                </div>
+                <div class='building building-25'>
+                  <div class='top'></div>
+                </div>
+                <div class='building building-11'>
+                  <div class='top'></div>
+                </div>
+                <div class='building building-12'>
+                  <div class='top'></div>
+                </div>
+                <div class='building building-13'>
+                  <div class='top'></div>
+                </div>
+                <div class='building building-14'>
+                  <div class='top'></div>
+                </div>
+                <div class='building building-15'>
+                  <div class='top'></div>
+                </div>
+                <div class='building building-1'>
+                  <div class='top'></div>
+                </div>
+                <div class='building building-2'>
+                  <div class='top'></div>
+                </div>
+                <div class='building building-3'>
+                  <div class='top'></div>
+                </div>
+                <div class='building building-4'>
+                  <div class='top'></div>
+                </div>
+                <div class='building building-5'>
+                  <div class='top'></div>
+                </div>
+                <div class='building building-6'>
+                  <div class='top'></div>
+                </div>
+                <div class='building building-7'>
+                  <div class='top'></div>
+                </div>
+                <div class='building building-8'>
+                  <div class='top'></div>
+                </div>
+                <div class='building building-9'>
+                  <div class='top'></div>
+                </div>
+                <div class='building building-10'>
+                  <div class='top'></div>
+                </div>
+              </div>
+            </div>
+            <div class='ground'>
+              <div class='road left'></div>
+              <div class='road left bis'></div>
+              <div class='road right'></div>
+              <div class='road right bis'></div>
+              <div class='road center road-0'></div>
+              <div class='road center road-1'></div>
+              <div class='road center road-2'></div>
+              <div class='road center road-3'></div>
+              <div class='road center road-4'></div>
+              <div class='road center road-5'></div>
+              <div class='wave vertical left wave-0'></div>
+              <div class='wave vertical left wave-1'></div>
+              <div class='wave vertical left wave-2'></div>
+              <div class='wave vertical left wave-3'></div>
+              <div class='wave vertical left wave-4'></div>
+              <div class='wave vertical left wave-5'></div>
+              <div class='wave vertical right wave-0'></div>
+              <div class='wave vertical right wave-1'></div>
+              <div class='wave vertical right wave-2'></div>
+              <div class='wave vertical right wave-3'></div>
+              <div class='wave vertical right wave-4'></div>
+              <div class='wave vertical right wave-5'></div>
+              <div class='wave horizontal left wave-10'></div>
+              <div class='wave horizontal left wave-11'></div>
+              <div class='wave horizontal left wave-12'></div>
+              <div class='wave horizontal left wave-13'></div>
+              <div class='wave horizontal left wave-14'></div>
+              <div class='wave horizontal left wave-15'></div>
+              <div class='wave horizontal left wave-16'></div>
+              <div class='wave horizontal left wave-17'></div>
+              <div class='wave horizontal left wave-18'></div>
+              <div class='wave horizontal left wave-19'></div>
+              <div class='wave horizontal right wave-10'></div>
+              <div class='wave horizontal right wave-11'></div>
+              <div class='wave horizontal right wave-12'></div>
+              <div class='wave horizontal right wave-13'></div>
+              <div class='wave horizontal right wave-14'></div>
+              <div class='wave horizontal right wave-15'></div>
+              <div class='wave horizontal right wave-16'></div>
+              <div class='wave horizontal right wave-17'></div>
+              <div class='wave horizontal right wave-18'></div>
+              <div class='wave horizontal right wave-19'></div>
+            </div>
+          </div>
+          <!-- <div class='author-container'>
+            <div class='picture'></div>
+            <div class='title'>
+              @SylvainGarnot
+            </div>
+          </div> -->
+
+
+
+
+    </div>
+    
+    <div class="container">
+        <header>
+            <!-- <h1>Capitan Andalucia</h1> -->
+            <img src="{% static 'portafolio/images/Capitan-Andalucia_logoArt.png' %}" alt="Logo">
+
+            <!-- <p class="tagline">// NEON DREAMS IN THE NIGHT //</p> -->
+        </header>
+        
+        <nav>
+            <button class="nav-btn active" data-section="gallery">Galería</button>
+            <button class="nav-btn" data-section="about">Sobre Mí</button>
+            <button class="nav-btn" data-section="contact">Contacto</button>
+        </nav>
+        
+        <section id="gallery" class="art-section active">
+            <div class="gallery"></div>
+        </section>
+        
+        <section id="about" class="art-section">
+            <div class="about-content">
+                <h2>SOBRE MI</h2>
+                <p>¡Hola! Me llamo Capitan Andalucia y soy un artista ocasional. Mi trabajo explora varios temas, mezclando realidad con ficción, colocando a personajes ficticios en escenarios realistas. </p>
+                <p>Simpre he estado dibujando y es un pasatiempo que disfruto mucho pero no es ni el unico hobbie que tengo ni vivo de ello. he desarrollado un estilo único que fusiona degradados y sombras realistas con trazos sencillos. Mi inspiración viene de Kairoburogu, Suoiresnu y el estilo artistico de Kohei Horikoshi.</p>
+                <p>Cada obra me lleva cierto tiempo, ya que lo dejo macerar un poco para ver partes que seguramente con el tiempo me desagraden. En cada obra busco expresar y representar alguna idea, experimentar con técnicas y medios que me resulten interesantes. Por eso en cada dibujo el estilo varia en ciertos puntos</p>
+            </div>
+        </section>
+        
+        <section id="contact" class="art-section">
+            <div class="contact-content">
+                <h2>CONECTA CONMIGO</h2>
+                <p style="color: #00ffff; font-size: 1.2em; margin-bottom: 30px;">
+                    Aqui tienes mis redes sociales:
+                </p>
+                <div class="social-links">
+                    <!-- <a href="">EMAIL</a> -->
+                    <a href="https://instagram.com/capitan_andalucia" target="_blank">INSTAGRAM</a>
+                    <a href="https://twitter.com/Capi_Andalucia" target="_blank">TWITTER</a>
+                    <!-- <a href="" target="_blank">PORTFOLIO</a> -->
+                </div>
+            </div>
+        </section>
+        
+        <footer>
+            <p>&copy; 2025 CapitanAndalucia - Todos los derechos reservados</p>
+        </footer>
+    </div>
+
+    <!-- Lightbox -->
+    <div class="lightbox" id="lightbox">
+        <button class="lightbox-close" id="lightboxClose">✕ Cerrar</button>
+        <img id="lightboxImg" src="" alt="Imagen ampliada" />
+    </div>
+    
+    <script>
+        // Fijar altura del viewport en móviles para evitar reajustes del HUD
+        let initialViewportHeight = null;
+        let isFirstLoad = true;
+        
+        function setFixedViewportHeight() {
+            const gridBg = document.querySelector('.grid-background');
+            const app = document.querySelector('.app');
+            
+            // Solo capturar la altura inicial una vez al cargar la página
+            if (isFirstLoad) {
+                initialViewportHeight = window.innerHeight;
+                isFirstLoad = false;
+                console.log('Altura inicial capturada:', initialViewportHeight);
+            }
+            
+            // Aplicar la altura inicial fija SIEMPRE
+            if (gridBg && initialViewportHeight) {
+                gridBg.style.height = `${initialViewportHeight}px`;
+                gridBg.style.minHeight = `${initialViewportHeight}px`;
+                gridBg.style.maxHeight = `${initialViewportHeight}px`;
+            }
+            if (app && initialViewportHeight) {
+                app.style.height = `${initialViewportHeight}px`;
+                app.style.minHeight = `${initialViewportHeight}px`;
+                app.style.maxHeight = `${initialViewportHeight}px`;
+            }
+            
+            document.documentElement.style.setProperty('--vh', `${initialViewportHeight}px`);
+        }
+        
+        // Ejecutar inmediatamente al cargar
+        setFixedViewportHeight();
+        
+        // Solo recalcular en cambio de orientación (no en resize normal)
+        let currentOrientation = window.orientation;
+        window.addEventListener('orientationchange', function() {
+            if (window.orientation !== currentOrientation) {
+                currentOrientation = window.orientation;
+                isFirstLoad = true; // Permitir recapturar altura en nueva orientación
+                setTimeout(setFixedViewportHeight, 100);
+            }
+        });
+        
+        // Forzar altura fija durante el scroll
+        let ticking = false;
+        window.addEventListener('scroll', function() {
+            if (!ticking) {
+                window.requestAnimationFrame(function() {
+                    const gridBg = document.querySelector('.grid-background');
+                    const app = document.querySelector('.app');
+                    
+                    if (gridBg && initialViewportHeight) {
+                        gridBg.style.height = `${initialViewportHeight}px`;
+                    }
+                    if (app && initialViewportHeight) {
+                        app.style.height = `${initialViewportHeight}px`;
+                    }
+                    
+                    ticking = false;
+                });
+                ticking = true;
+            }
+        }, { passive: true });
+        
+        // Detectar cambios en el tamaño del viewport (cuando Chrome oculta/muestra la barra)
+        // pero mantener SIEMPRE la altura inicial
+        let resizeTimeout;
+        window.addEventListener('resize', function() {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(function() {
+                // NO recalcular, solo forzar la altura inicial
+                const gridBg = document.querySelector('.grid-background');
+                const app = document.querySelector('.app');
+                
+                if (gridBg && initialViewportHeight) {
+                    gridBg.style.height = `${initialViewportHeight}px`;
+                    gridBg.style.minHeight = `${initialViewportHeight}px`;
+                    gridBg.style.maxHeight = `${initialViewportHeight}px`;
+                }
+                if (app && initialViewportHeight) {
+                    app.style.height = `${initialViewportHeight}px`;
+                    app.style.minHeight = `${initialViewportHeight}px`;
+                    app.style.maxHeight = `${initialViewportHeight}px`;
+                }
+            }, 50);
+        }, { passive: true });
+        
+        const navButtons = document.querySelectorAll('.nav-btn');
+        const sections = document.querySelectorAll('.art-section');
+        
+        navButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const targetSection = button.getAttribute('data-section');
+                
+                navButtons.forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+                
+                sections.forEach(section => {
+                    section.classList.remove('active');
+                });
+                
+                document.getElementById(targetSection).classList.add('active');
+            });
+        });
+
+        // Cargar dibujos desde la API y mostrar solo la imagen
+        let nextUrl = '/api/dibujos/?page=1&page_size=6';
+        let loading = false;
+
+        function appendItems(items) {
+            const gallery = document.querySelector('#gallery .gallery');
+            items.forEach((item, idx) => {
+                const imgUrl = (item.imagen && item.imagen.startsWith('/')) ? (window.location.origin + item.imagen) : item.imagen;
+                if (!imgUrl) return;
+                const card = document.createElement('div');
+                card.className = 'art-card';
+                const img = document.createElement('img');
+                img.src = imgUrl;
+                img.alt = 'Dibujo';
+                img.addEventListener('click', () => openLightbox(imgUrl));
+                // Animación al cargar la imagen
+                img.addEventListener('load', () => { img.classList.add('img-loaded'); });
+                if (img.complete) { img.classList.add('img-loaded'); }
+                card.appendChild(img);
+                gallery.appendChild(card);
+                // Staggered reveal
+                setTimeout(() => { card.classList.add('show'); }, 50 * idx);
+            });
+        }
+
+        async function loadDrawings(initial=false) {
+            if (loading || !nextUrl) return;
+            loading = true;
+            try {
+                const res = await fetch(nextUrl);
+                if (!res.ok) return;
+                const data = await res.json();
+                const items = Array.isArray(data) ? data : (Array.isArray(data.results) ? data.results : []);
+                if (initial) {
+                    document.querySelector('#gallery .gallery').innerHTML = '';
+                }
+                appendItems(items);
+                // DRF pagination: 'next' puede ser URL absoluta
+                nextUrl = data.next ? (new URL(data.next, window.location.origin)).pathname + (new URL(data.next, window.location.origin)).search : null;
+            } catch (e) {
+                console.error('Error cargando dibujos', e);
+            }
+            loading = false;
+        }
+
+        // Lightbox
+        const lightbox = document.getElementById('lightbox');
+        const lightboxImg = document.getElementById('lightboxImg');
+        const lightboxClose = document.getElementById('lightboxClose');
+
+        function openLightbox(src) {
+            // Ocultar imagen hasta que cargue
+            lightboxImg.style.opacity = '0';
+            lightbox.classList.add('open');
+            // Asignar src y esperar a que cargue para mostrar
+            lightboxImg.onload = () => { lightboxImg.style.opacity = '1'; };
+            lightboxImg.src = src;
+        }
+        function closeLightbox() {
+            // Ocultar primero para evitar texto de imagen rota
+            lightboxImg.style.opacity = '0';
+            lightbox.classList.remove('open');
+            // Limpieza del src tras un frame
+            requestAnimationFrame(() => { lightboxImg.src = ''; });
+        }
+        lightboxClose.addEventListener('click', closeLightbox);
+        lightbox.addEventListener('click', (e) => {
+            if (e.target === lightbox) closeLightbox();
+        });
+
+        // Infinite scroll
+        window.addEventListener('scroll', () => {
+            const nearBottom = window.innerHeight + window.scrollY >= document.body.offsetHeight - 200;
+            if (nearBottom) {
+                loadDrawings(false);
+            }
+        });
+
+        // Inicial
+        loadDrawings(true);
+    </script>
+</body>
+</html>

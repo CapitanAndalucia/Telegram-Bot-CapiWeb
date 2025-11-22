@@ -1,0 +1,137 @@
+/* Reset básico */
+body, h1, h2, p, input, select, button {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: system-ui, sans-serif;
+}
+
+/* Header */
+.header {
+  background: #222;
+  color: #fff;
+  padding: 1rem;
+  text-align: center;
+}
+
+/* Contenedor principal */
+.container {
+  padding: 1rem;
+  max-width: 800px;
+  margin: auto;
+}
+
+/* Filtros */
+.filters {
+  display: flex;
+  gap: .5rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+.filters input,
+.filters select,
+.filters button {
+  padding: .5rem;
+}
+
+/* Botón crear */
+.create-btn {
+  background: #4caf50;
+  color: white;
+  padding: .6rem 1rem;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  margin-bottom: 1rem;
+}
+.create-btn:hover {
+  background: #43a047;
+}
+
+/* Tarjetas de tickets */
+.tickets {
+  display: flex;
+  flex-direction: column;
+  gap: .8rem;
+}
+.ticket-card {
+  border: 1px solid #ddd;
+  padding: 1rem;
+  border-radius: 8px;
+  background: #fafafa;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.ticket-info {
+  flex-grow: 1;
+}
+.ticket-id {
+  font-size: .8rem;
+  color: #777;
+}
+.ticket-concept {
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+.ticket-datetime {
+  display: flex;
+  gap: 1rem;
+  font-size: .9rem;
+  margin-top: .3rem;
+}
+
+/* Botones de acción */
+.ticket-actions {
+  display: flex;
+  gap: .5rem;
+}
+.action-btn {
+  padding: .3rem .6rem;
+  border: none;
+  cursor: pointer;
+  border-radius: 4px;
+}
+.edit-btn { background: #2196f3; color: #fff; }
+.delete-btn { background: #f44336; color: #fff; }
+
+/* Modal */
+.modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.5);
+  justify-content: center;
+  align-items: center;
+}
+.modal.active {
+  display: flex;
+}
+.modal-content {
+  background: #fff;
+  padding: 1.5rem;
+  border-radius: 10px;
+  width: 90%;
+  max-width: 400px;
+}
+.modal-content label {
+  display: block;
+  margin-top: .5rem;
+  margin-bottom: .2rem;
+}
+.modal-content input {
+  width: 100%;
+  padding: .5rem;
+  margin-bottom: .5rem;
+}
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: .5rem;
+}
+.modal-actions button {
+  padding: .5rem 1rem;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
