@@ -1,118 +1,143 @@
-import { useEffect } from 'react'
+import { useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import './hub.css'
+import { motion } from 'framer-motion'
+import styles from './Hub.module.css'
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      delayChildren: 0.2
+    }
+  }
+}
+
+const itemVariants = {
+  hidden: { y: 30, opacity: 0 },
+  visible: (i) => ({
+    y: 0,
+    opacity: 1,
+    transition: {
+      delay: i * 0.15,
+      type: "spring",
+      stiffness: 50,
+      damping: 20
+    }
+  })
+}
 
 export default function Hub() {
   const navigate = useNavigate()
+  const containerRef = useRef(null)
 
-  useEffect(() => {
-    const particlesContainer = document.getElementById('particles')
-    const isMobile = window.innerWidth <= 768
-
-    const created = []
-    if (!isMobile && particlesContainer) {
-      const particleCount = 15
-      for (let i = 0; i < particleCount; i++) {
-        const particle = document.createElement('div')
-        particle.className = 'particle'
-        const size = Math.random() * 60 + 20
-        particle.style.width = size + 'px'
-        particle.style.height = size + 'px'
-        particle.style.left = Math.random() * 100 + '%'
-        particle.style.animationDelay = Math.random() * 15 + 's'
-        particle.style.animationDuration = (Math.random() * 10 + 10) + 's'
-        particlesContainer.appendChild(particle)
-        created.push(particle)
-      }
+  const handleMouseMove = (e) => {
+    if (!containerRef.current) return
+    const cards = containerRef.current.getElementsByClassName(styles.card)
+    for (const card of cards) {
+      const rect = card.getBoundingClientRect()
+      const x = e.clientX - rect.left
+      const y = e.clientY - rect.top
+      card.style.setProperty('--mouse-x', `${x}px`)
+      card.style.setProperty('--mouse-y', `${y}px`)
     }
-
-    const cards = Array.from(document.querySelectorAll('.app-card:not(.add-app-card)'))
-
-    const handlers = cards.map(card => {
-      const onTouchStart = () => { card.style.transform = 'scale(0.98)' }
-      const onTouchEnd = () => { card.style.transform = 'scale(1)' }
-      const onTouchCancel = () => { card.style.transform = 'scale(1)' }
-      card.addEventListener('touchstart', onTouchStart)
-      card.addEventListener('touchend', onTouchEnd)
-      card.addEventListener('touchcancel', onTouchCancel)
-
-      let onMouseMove
-      if (!isMobile) {
-        onMouseMove = (e) => {
-          const rect = card.getBoundingClientRect()
-          const x = e.clientX - rect.left
-          const y = e.clientY - rect.top
-          card.style.setProperty('--mouse-x', x + 'px')
-          card.style.setProperty('--mouse-y', y + 'px')
-        }
-        card.addEventListener('mousemove', onMouseMove)
-      }
-
-      return { card, onTouchStart, onTouchEnd, onTouchCancel, onMouseMove }
-    })
-
-    // iOS scroll tweak
-    let lastTouchY = 0
-    const onDocTouchStart = (e) => { lastTouchY = e.touches[0].clientY }
-    document.addEventListener('touchstart', onDocTouchStart, { passive: true })
-    if (isMobile) document.body.style.overflow = 'auto'
-
-    return () => {
-      created.forEach(el => el.remove())
-      handlers.forEach(h => {
-        h.card.removeEventListener('touchstart', h.onTouchStart)
-        h.card.removeEventListener('touchend', h.onTouchEnd)
-        h.card.removeEventListener('touchcancel', h.onTouchCancel)
-        if (h.onMouseMove) h.card.removeEventListener('mousemove', h.onMouseMove)
-      })
-      document.removeEventListener('touchstart', onDocTouchStart)
-    }
-  }, [])
+  }
 
   return (
-    <>
-      <div className="background-animation" id="particles" />
-      <div className="hub-wrapper">
-        <div className="container">
-          <header>
-            <h1>Mi Plataforma</h1>
-            <p className="subtitle">Selecciona una aplicación para comenzar</p>
-          </header>
-          <div className="apps-grid">
-            <div className="app-card" onClick={() => navigate('/portafolio/curriculum')}>
-              <div className="app-icon">👤</div>
-              <h2>Portfolio</h2>
-              <p>Explora mis proyectos, experiencia profesional y habilidades técnicas</p>
-            </div>
-
-            <div className="app-card" onClick={() => navigate('/portafolio/portfolio_arte')}>
-              <div className="app-icon">🎨</div>
-              <h2>Portfolio Arte</h2>
-              <p>Explora mis proyectos artisticos</p>
-            </div>
-
-            <div className="app-card" onClick={() => navigate('/api')}>
-              <div className="app-icon">🔗</div>
-              <h2>API</h2>
-              <p>API que utilizo para las llamadas de otras aplicaciones</p>
-            </div>
-
-            <div className="app-card" onClick={() => navigate('/tickets')}>
-              <div className="app-icon">🎫</div>
-              <h2>Tickets</h2>
-              <p>Gestión de TICKETS</p>
-            </div>
-
-            <div className="app-card add-app-card">
-              <div className="add-icon">+</div>
-              <div className="add-text">Próximamente</div>
-            </div>
-          </div>
-          <footer>
-            <p>© 2025 Mi Plataforma. Todos los derechos reservados.</p>
-          </footer>
-        </div>
+    <div className={styles.hubContainer} onMouseMove={handleMouseMove} ref={containerRef}>
+      <div className={styles.backgroundEffects}>
+        <div className={`${styles.gradientOrb} ${styles.orb1}`} />
+        <div className={`${styles.gradientOrb} ${styles.orb2}`} />
       </div>
-    </>
+
+      <motion.div
+        className={styles.content}
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        viewport={{ once: true }}
+      >
+        <header className={styles.header}>
+          <motion.h1 className={styles.title} variants={itemVariants} custom={0}>
+            Capitán Andalucía Hud
+          </motion.h1>
+          <motion.p className={styles.subtitle} variants={itemVariants} custom={1}>
+            Aplicaciones para probar
+          </motion.p>
+        </header>
+
+        <div className={styles.grid}>
+          <AppCard
+            title="Portfolio"
+            description="Explora mis proyectos, experiencia profesional y habilidades técnicas"
+            icon="👤"
+            onClick={() => navigate('/portafolio/curriculum')}
+            variants={itemVariants}
+            custom={2}
+          />
+
+          <AppCard
+            title="Portfolio Arte"
+            description="Explora mis proyectos artísticos y creativos"
+            icon="🎨"
+            onClick={() => navigate('/portafolio/portfolio_arte')}
+            variants={itemVariants}
+            custom={3}
+          />
+
+          <AppCard
+            title="API"
+            description="Documentación y estado de la API REST del sistema"
+            icon="🔗"
+            onClick={() => navigate('/api')}
+            variants={itemVariants}
+            custom={4}
+          />
+
+          <AppCard
+            title="Tickets"
+            description="Sistema completo de gestión de incidencias y soporte"
+            icon="🎫"
+            onClick={() => navigate('/tickets')}
+            variants={itemVariants}
+            custom={5}
+          />
+
+          <motion.div
+            className={styles.card}
+            variants={itemVariants}
+            custom={6}
+            style={{ opacity: 0.5, cursor: 'default' }}
+          >
+            <div className={styles.cardContent}>
+              <div className={styles.iconWrapper}>+</div>
+              <h2 className={styles.cardTitle}>Próximamente</h2>
+              <p className={styles.cardDescription}>Nuevas aplicaciones en desarrollo</p>
+            </div>
+          </motion.div>
+        </div>
+      </motion.div>
+    </div>
   )
 }
+
+function AppCard({ title, description, icon, onClick, variants, custom }) {
+  return (
+    <motion.div
+      className={styles.card}
+      onClick={onClick}
+      variants={variants}
+      custom={custom}
+      whileHover={{ y: -8, transition: { duration: 0.2 } }}
+      whileTap={{ scale: 0.98 }}
+    >
+      <div className={styles.cardContent}>
+        <div className={styles.iconWrapper}>{icon}</div>
+        <h2 className={styles.cardTitle}>{title}</h2>
+        <p className={styles.cardDescription}>{description}</p>
+      </div>
+      <div className={styles.arrow}>→</div>
+    </motion.div>
+  )
+}
+
