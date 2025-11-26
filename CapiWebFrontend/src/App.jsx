@@ -4,9 +4,10 @@ import MainIndex from './pages/hub/MainIndex.jsx' // Moved to hub as it's part o
 import PortfolioCurriculum from './pages/portfolio/PortfolioCurriculum.jsx'
 import PortfolioArte from './pages/portfolio/PortfolioArte.jsx'
 import TicketsIndex from './pages/tickets/TicketsIndex.jsx'
-import TicketsLogin from './pages/tickets/TicketsLogin.jsx'
-import TicketsRegister from './pages/tickets/TicketsRegister.jsx'
+import Login from './pages/auth/Login.jsx'
+import Register from './pages/auth/Register.jsx'
 import Api from './pages/api/Api.jsx'
+import FileShareDashboard from './pages/fileshare/FileShareDashboard.jsx'
 import './App.css'
 
 export default function App() {
@@ -18,9 +19,10 @@ export default function App() {
         <Route path="/portafolio/curriculum" element={<PortfolioCurriculum />} />
         <Route path="/portafolio/portfolio_arte" element={<PortfolioArte />} />
         <Route path="/tickets" element={<TicketsIndex />} />
-        <Route path="/tickets/login" element={<TicketsLogin />} />
-        <Route path="/tickets/register" element={<TicketsRegister />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
         <Route path="/api" element={<Api />} />
+        <Route path="/fileshare" element={<FileShareDashboard />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </div>

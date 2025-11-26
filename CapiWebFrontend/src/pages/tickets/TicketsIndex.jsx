@@ -169,8 +169,8 @@ export default function TicketsIndex() {
   const handleLogout = async () => {
     try {
       await apiClient.logout()
-    } catch {
-      // ignore
+    } catch (error) {
+      console.error('Error al cerrar sesión:', error)
     } finally {
       navigate('/tickets/login', { replace: true })
     }

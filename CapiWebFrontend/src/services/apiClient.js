@@ -1,3 +1,5 @@
+import axios from 'axios'
+
 const DEFAULT_HEADERS = {
   'Content-Type': 'application/json',
 }
@@ -48,9 +50,34 @@ class ApiClient {
       : `${this.baseUrl}${normalizedPath}`
   }
 
-  async request(path, { method = 'GET', data, headers, params, formData, signal } = {}) {
+  async request(path, { method = 'GET', data, headers, params, formData, signal, responseType, onUploadProgress } = {}) {
     const url = this.buildUrl(path, params)
 
+    // Use axios for file uploads with progress tracking
+    if (formData && onUploadProgress) {
+      try {
+        const response = await axios({
+          method,
+          url,
+          data: formData,
+          headers: headers || {},
+          withCredentials: true,
+          onUploadProgress,
+        })
+        return response.data
+      } catch (error) {
+        if (error.response) {
+          throw new ApiError(
+            error.response.data?.error || error.response.statusText || 'Error en la solicitud',
+            error.response.status,
+            error.response.data
+          )
+        }
+        throw error
+      }
+    }
+
+    // Use fetch for regular requests
     const isFormData = formData instanceof FormData
     const body = isFormData
       ? formData
@@ -69,6 +96,7 @@ class ApiClient {
         },
       body,
       signal,
+      responseType,
     }
 
     if (isFormData) {
@@ -78,6 +106,16 @@ class ApiClient {
 
     const response = await fetch(url, config)
     const contentType = response.headers.get('Content-Type') || ''
+
+    // Handle blob response explicitly if requested or if content type is binary
+    if (config.responseType === 'blob' ||
+      contentType.includes('application/octet-stream') ||
+      contentType.includes('image/') ||
+      contentType.includes('application/pdf')) {
+      if (!response.ok) throw new Error(response.statusText)
+      return response.blob()
+    }
+
     const isJson = contentType.includes('application/json')
     const payload = isJson ? await response.json().catch(() => null) : await response.text()
 
@@ -213,6 +251,78 @@ class ApiClient {
       }
     })
     return form
+  }
+  // ---- Social --------------------------------------------------------------
+  listFriends() {
+    return this.request('/friends/', { method: 'GET' })
+  }
+
+  searchUsers(query) {
+    return this.request('/friends/search_users/', { method: 'GET', params: { q: query } })
+  }
+
+  sendFriendRequest(username) {
+    return this.request('/friends/send_request/', { method: 'POST', data: { username } })
+  }
+
+  removeFriend(username) {
+    return this.request('/friends/remove_friend/', { method: 'POST', data: { username } })
+  }
+
+  listFriendRequests() {
+    return this.request('/friends/requests/', { method: 'GET' })
+  }
+
+  acceptFriendRequest(id) {
+    return this.request(`/friends/${id}/accept_request/`, { method: 'POST' })
+  }
+
+  rejectFriendRequest(id) {
+    return this.request(`/friends/${id}/reject_request/`, { method: 'POST' })
+  }
+
+  // ---- Transfers -----------------------------------------------------------
+  listFiles() {
+    return this.request('/transfers/', { method: 'GET' })
+  }
+
+  uploadFile(formData, onUploadProgress) {
+    return this.request('/transfers/', {
+      method: 'POST',
+      formData,
+      onUploadProgress
+    })
+  }
+
+  downloadFile(id) {
+    return this.request(`/transfers/${id}/download/`, { method: 'GET', responseType: 'blob' })
+  }
+
+  markFileViewed(id) {
+    return this.request(`/transfers/${id}/mark_viewed/`, {
+      method: 'POST'
+    })
+  }
+
+  deleteFile(id) {
+    return this.request(`/transfers/${id}/delete_file/`, {
+      method: 'DELETE'
+    })
+  }
+
+  checkArchive(id) {
+    return this.request(`/transfers/${id}/check_archive/`, {
+      method: 'GET'
+    })
+  }
+
+  // ---- Notifications -------------------------------------------------------
+  listNotifications() {
+    return this.request('/notifications/', { method: 'GET' })
+  }
+
+  markNotificationRead(id) {
+    return this.request(`/notifications/${id}/mark_read/`, { method: 'POST' })
   }
 }
 

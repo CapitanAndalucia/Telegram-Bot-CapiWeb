@@ -18,10 +18,17 @@ from .auth_views import (
     check_auth_view
 )
 
+from social.views import FriendViewSet
+from transfers.views import FileTransferViewSet
+from notifications.views import NotificationViewSet
+
 router = DefaultRouter()
-router.register(r'tickets', TicketViewSet, basename="tickets")
-router.register(r"portfolio-photo", PortfolioPhotoViewSet, basename="portfolio-photo")
+router.register(r'tickets', TicketViewSet, basename='ticket')
+router.register(r'portfolio-photos', PortfolioPhotoViewSet, basename='portfolio-photo')
 router.register(r'dibujos', DibujosViewSet, basename='dibujos')
+router.register(r'friends', FriendViewSet, basename='friend')
+router.register(r'transfers', FileTransferViewSet, basename='transfer')
+router.register(r'notifications', NotificationViewSet, basename='notification')
 
 urlpatterns = [
     # Página HTML de login para la API

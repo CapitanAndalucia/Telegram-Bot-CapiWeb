@@ -64,6 +64,9 @@ INSTALLED_APPS = [
     "core", # HUB principal de la pagina web
     "portafolio",  # app del portafolio
     "tickets",  # app de tickets
+    "social",
+    "transfers",
+    "notifications",
 ]
 
 MIDDLEWARE = [
@@ -80,6 +83,19 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'api.middleware.ApiLoginRedirectMiddleware',
 ]
+
+# Session settings
+SESSION_COOKIE_AGE = 60 * 60 * 24 * 30  # 30 days in seconds
+SESSION_SAVE_EVERY_REQUEST = True  # Extend session on every request
+SESSION_COOKIE_HTTPONLY = True  # Security: prevent JavaScript access
+SESSION_COOKIE_SAMESITE = 'Lax'  # CSRF protection
+
+# File Upload Settings
+DATA_UPLOAD_MAX_MEMORY_SIZE = 30 * 1024 * 1024 * 1024  # 30 GB
+FILE_UPLOAD_MAX_MEMORY_SIZE = 30 * 1024 * 1024 * 1024  # 30 GB
+
+# VirusTotal Configuration (optional)
+VIRUSTOTAL_API_KEY = env('VIRUSTOTAL_API_KEY', default=None)
 
 ROOT_URLCONF = 'urls'
 

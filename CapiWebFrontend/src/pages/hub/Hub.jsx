@@ -103,10 +103,19 @@ export default function Hub() {
             custom={5}
           />
 
+          <AppCard
+            title="Archivos"
+            description="Comparte archivos con tus amigos de forma segura"
+            icon="📁"
+            onClick={() => navigate('/fileshare')}
+            variants={itemVariants}
+            custom={6}
+          />
+
           <motion.div
             className={styles.card}
             variants={itemVariants}
-            custom={6}
+            custom={7}
             style={{ opacity: 0.5, cursor: 'default' }}
           >
             <div className={styles.cardContent}>

@@ -1,0 +1,108 @@
+{
+    "file_validation": {
+        "max_file_size_gb": 30,
+        "allowed_extensions": {
+            "images": [
+                ".jpg",
+                ".jpeg",
+                ".png",
+                ".gif",
+                ".bmp",
+                ".webp",
+                ".svg",
+                ".ico"
+            ],
+            "audio": [
+                ".mp3",
+                ".wav",
+                ".ogg",
+                ".m4a",
+                ".flac",
+                ".aac",
+                ".wma"
+            ],
+            "video": [
+                ".mp4",
+                ".avi",
+                ".mkv",
+                ".mov",
+                ".wmv",
+                ".flv",
+                ".webm",
+                ".m4v"
+            ],
+            "archives": [
+                ".zip",
+                ".rar",
+                ".7z",
+                ".tar",
+                ".gz",
+                ".bz2"
+            ],
+            "documents": [
+                ".pdf",
+                ".txt",
+                ".doc",
+                ".docx",
+                ".xls",
+                ".xlsx",
+                ".ppt",
+                ".pptx"
+            ]
+        },
+        "blocked_extensions": [
+            ".exe",
+            ".bat",
+            ".cmd",
+            ".sh",
+            ".ps1",
+            ".msi",
+            ".app",
+            ".deb",
+            ".rpm",
+            ".jar",
+            ".vbs",
+            ".js",
+            ".wsf",
+            ".scr",
+            ".com",
+            ".pif"
+        ],
+        "dangerous_in_archives": [
+            ".exe",
+            ".bat",
+            ".cmd",
+            ".sh",
+            ".ps1",
+            ".msi",
+            ".vbs",
+            ".js",
+            ".wsf",
+            ".scr",
+            ".com",
+            ".pif"
+        ]
+    },
+    "rate_limiting": {
+        "large_file_threshold_gb": 100,
+        "large_file_cooldown_seconds": 300,
+        "normal_file_cooldown_seconds": 60
+    },
+    "malware_scanning": {
+        "enabled": true,
+        "scanner": "virustotal",
+        "virustotal": {
+            "enabled": true,
+            "max_file_size_mb": 650
+        },
+        "clamav": {
+            "enabled": false,
+            "socket_path": "/var/run/clamav/clamd.ctl"
+        }
+    },
+    "archive_scanning": {
+        "enabled": true,
+        "warn_on_executables": true,
+        "max_files_to_scan": 1000
+    }
+}

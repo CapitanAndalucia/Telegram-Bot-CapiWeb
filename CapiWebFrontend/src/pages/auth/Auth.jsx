@@ -1,30 +1,31 @@
 import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { apiClient, ApiError } from '../../services/apiClient'
-import styles from './TicketsAuth.module.css'
+import styles from './Auth.module.css'
 
 const TITLES = {
   login: {
-    heading: '📄 Gestor de Tickets',
-    subheading: 'Inicia sesión para continuar',
+    heading: 'Iniciar Sesión',
+    subheading: 'Bienvenido de nuevo',
     button: 'Iniciar sesión',
     linkText: '¿No tienes cuenta?',
-    linkHref: '/tickets/register',
+    linkHref: '/register',
     linkCta: 'Regístrate aquí',
   },
   register: {
-    heading: '📄 Gestor de Tickets',
-    subheading: 'Crea tu cuenta para comenzar',
+    heading: 'Crear Cuenta',
+    subheading: 'Únete a nosotros',
     button: 'Crear cuenta',
     linkText: '¿Ya tienes cuenta?',
-    linkHref: '/tickets/login',
+    linkHref: '/login',
     linkCta: 'Inicia sesión aquí',
   },
 }
 
-export default function TicketsAuth({ mode = 'login' }) {
+export default function Auth({ mode = 'login', redirectPath = '/', title }) {
   const navigate = useNavigate()
   const meta = TITLES[mode]
+  const displayTitle = title || meta.heading
   const [form, setForm] = useState({
     username: '',
     email: '',
@@ -76,7 +77,7 @@ export default function TicketsAuth({ mode = 'login' }) {
         setStatus({ loading: false, error: '', success: 'Registro exitoso. Redirigiendo...' })
       }
 
-      setTimeout(() => navigate('/tickets', { replace: true }), 600)
+      setTimeout(() => navigate(redirectPath, { replace: true }), 600)
     } catch (error) {
       const message =
         error instanceof ApiError
@@ -90,7 +91,7 @@ export default function TicketsAuth({ mode = 'login' }) {
     <div className={styles.page}>
       <div className={styles.card}>
         <header className={styles.header}>
-          <h1>{meta.heading}</h1>
+          <h1>{displayTitle}</h1>
           <p>{meta.subheading}</p>
         </header>
 
