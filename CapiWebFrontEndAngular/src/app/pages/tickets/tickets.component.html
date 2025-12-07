@@ -1,0 +1,112 @@
+<div class="page" *ngIf="authStatus === 'ready'; else loadingOrRedirect">
+    <header class="header">
+        <div>
+            <h1>📄 Gestor de Tickets</h1>
+            <p class="subtitle" *ngIf="user">Bienvenido, {{ user.username }}</p>
+        </div>
+        <button (click)="handleLogout()" class="logout">
+            🚪 Cerrar sesión
+        </button>
+    </header>
+
+    <main class="main">
+        <section class="filters">
+            <label>
+                Desde
+                <input type="date" name="from" [(ngModel)]="filters.from">
+            </label>
+            <label>
+                Hasta
+                <input type="date" name="to" [(ngModel)]="filters.to">
+            </label>
+            <label>
+                Orden
+                <select name="ordering" [(ngModel)]="filters.ordering">
+                    <option value="-fecha">Más recientes</option>
+                    <option value="fecha">Más antiguos</option>
+                    <option value="coste">Coste asc</option>
+                    <option value="-coste">Coste desc</option>
+                </select>
+            </label>
+            <div class="filterActions">
+                <button (click)="applyFilters()">Aplicar</button>
+                <button (click)="clearFilters()" class="ghost">
+                    Limpiar
+                </button>
+            </div>
+        </section>
+
+        <section class="actions">
+            <div class="counter">
+                {{ loadingTickets ? 'Cargando...' : filteredTickets.length + ' ticket(s)' }}
+            </div>
+            <button class="primary" (click)="openModal()">
+                ➕ Crear ticket
+            </button>
+        </section>
+
+        <div class="error" *ngIf="error">{{ error }}</div>
+        <div class="success" *ngIf="info">{{ info }}</div>
+
+        <section class="list">
+            <div class="placeholder" *ngIf="loadingTickets">Cargando tickets...</div>
+
+            <div class="placeholder" *ngIf="!loadingTickets && filteredTickets.length === 0">
+                No hay tickets. ¡Crea el primero!
+            </div>
+
+            <article *ngFor="let ticket of filteredTickets" class="card">
+                <div>
+                    <h3>{{ ticket.titulo }}</h3>
+                    <p class="date">{{ formatDate(ticket.fecha) }}</p>
+                    <p class="amount">{{ formatCurrency(ticket.coste, ticket.moneda) }}</p>
+                </div>
+                <div class="cardActions">
+                    <button (click)="openModal(ticket)">✏️ Editar</button>
+                    <button (click)="handleDelete(ticket.id)" class="danger">
+                        🗑️ Eliminar
+                    </button>
+                </div>
+            </article>
+        </section>
+    </main>
+
+    <div class="modalBackdrop" *ngIf="modalOpen" (click)="closeModal()">
+        <div class="modal" (click)="$event.stopPropagation()">
+            <h2>{{ editingTicket ? 'Editar ticket' : 'Crear ticket' }}</h2>
+            <form class="modalForm" (submit)="handleSubmit(); $event.preventDefault()">
+                <label>
+                    Concepto
+                    <input name="titulo" [(ngModel)]="form.titulo" required>
+                </label>
+                <label>
+                    Fecha
+                    <input type="datetime-local" name="fecha" [(ngModel)]="form.fecha" required>
+                </label>
+                <label>
+                    Coste
+                    <input type="number" step="0.01" name="coste" [(ngModel)]="form.coste" required>
+                </label>
+                <label>
+                    Moneda
+                    <input name="moneda" maxlength="3" [(ngModel)]="form.moneda">
+                </label>
+
+                <div class="modalActions">
+                    <button type="submit" class="primary">
+                        {{ editingTicket ? 'Guardar cambios' : 'Crear ticket' }}
+                    </button>
+                    <button type="button" class="ghost" (click)="closeModal()">
+                        Cancelar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<ng-template #loadingOrRedirect>
+    <div class="fullscreen" *ngIf="authStatus === 'checking'">
+        <p>🔄 Verificando autenticación...</p>
+    </div>
+</ng-template>

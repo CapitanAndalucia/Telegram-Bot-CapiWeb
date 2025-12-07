@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Script para iniciar el entorno de desarrollo completo
-# Docker Compose + Django Backend + React Frontend
+# Docker Compose + Django Backend + Angular Frontend
 
 echo "🚀 Iniciando entorno de desarrollo..."
 echo ""
@@ -99,26 +99,27 @@ fi
 
 cd ..
 
-# Iniciar React Frontend
-echo -e "${GREEN}⚛️  Iniciando React Frontend...${NC}"
-cd CapiWebFrontend
+
+# Iniciar Angular Frontend
+echo -e "${GREEN}🅰️  Iniciando Angular Frontend...${NC}"
+cd CapiWebFrontEndAngular
 
 # Verificar si node_modules existe
 if [ ! -d "node_modules" ]; then
-    echo -e "${BLUE}📦 Instalando dependencias de React...${NC}"
-    npm install
+    echo -e "${BLUE}📦 Instalando dependencias de Angular...${NC}"
+    corepack pnpm install
 fi
 
-# Verificar si el puerto 5173 está en uso
-if check_port 5173; then
-    echo -e "${RED}⚠️  El puerto 5173 ya está en uso${NC}"
-    echo "React Frontend probablemente ya está corriendo"
+# Verificar si el puerto 4200 está en uso
+if check_port 4200; then
+    echo -e "${RED}⚠️  El puerto 4200 ya está en uso${NC}"
+    echo "Angular Frontend probablemente ya está corriendo"
 else
-    # Iniciar React en segundo plano
-    echo -e "${GREEN}✅ Iniciando React en http://localhost:5173${NC}"
-    npm run dev > /tmp/react.log 2>&1 &
-    REACT_PID=$!
-    echo "React PID: $REACT_PID"
+    # Iniciar Angular en segundo plano
+    echo -e "${GREEN}✅ Iniciando Angular en http://localhost:4200${NC}"
+    corepack pnpm run hmr > /tmp/angular.log 2>&1 &
+    ANGULAR_PID=$!
+    echo "Angular PID: $ANGULAR_PID"
 fi
 
 cd ..
@@ -127,13 +128,13 @@ echo ""
 echo -e "${GREEN}✅ Entorno de desarrollo iniciado correctamente${NC}"
 echo ""
 echo "📍 URLs disponibles:"
-echo "   - Frontend (React): http://localhost:5173"
+echo "   - Frontend (Angular): http://localhost:4200"
 echo "   - Backend (Django): http://localhost:8000"
 echo "   - Admin Django: http://localhost:8000/admin"
 echo ""
 echo "📝 Logs:"
 echo "   - Django: /tmp/django.log"
-echo "   - React: /tmp/react.log"
+echo "   - Angular: /tmp/angular.log"
 echo ""
 echo "🛑 Para detener los servidores:"
 echo "   - Ejecuta: ./stop-dev.sh"

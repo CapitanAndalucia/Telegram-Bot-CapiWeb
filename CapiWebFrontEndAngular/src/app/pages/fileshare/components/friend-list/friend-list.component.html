@@ -1,0 +1,51 @@
+<div class="friendList">
+    <h3>Amigos</h3>
+
+    <div class="addFriendForm" #dropdownRef>
+        <input type="text" [value]="newFriend()" (input)="onSearchChange($any($event.target).value)"
+            placeholder="Buscar usuario..." class="input" [disabled]="loading()" />
+
+        @if (showDropdown() && searchResults().length > 0) {
+        <div class="autocompleteDropdown">
+            @for (user of searchResults(); track user.id) {
+            <div class="autocompleteItem" (click)="handleSelectUser(user.username)">
+                <div class="autocompleteAvatar">{{ user.username[0].toUpperCase() }}</div>
+                <span>{{ user.username }}</span>
+            </div>
+            }
+        </div>
+        }
+
+        @if (searching()) {
+        <div class="searchingIndicator">Buscando...</div>
+        }
+
+        @if (showDropdown() && !searching() && searchResults().length === 0 && newFriend().trim().length > 0) {
+        <div class="noResults">No se encontraron usuarios</div>
+        }
+    </div>
+
+    <ul class="list">
+        @if (friends().length === 0) {
+        <li class="emptyText">No tienes amigos aún</li>
+        } @else {
+        @for (friend of friends(); track friend.id) {
+        <li class="friendItem">
+            <div class="friendInfo">
+                <div class="avatar">{{ friend.username[0].toUpperCase() }}</div>
+                <span>{{ friend.username }}</span>
+            </div>
+            <div class="friendActions">
+                <button class="selectBtn" (click)="handleSelectFriend(friend.username)"
+                    title="Seleccionar para enviar archivo">
+                    📤
+                </button>
+                <button class="removeBtn" (click)="handleRemoveFriend(friend.username)" title="Eliminar amigo">
+                    🗑️
+                </button>
+            </div>
+        </li>
+        }
+        }
+    </ul>
+</div>

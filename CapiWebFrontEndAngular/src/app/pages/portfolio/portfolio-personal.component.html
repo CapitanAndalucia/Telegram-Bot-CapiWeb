@@ -1,0 +1,174 @@
+<div class="portfolio-container">
+    <div class="noise-overlay"></div>
+
+    <!-- Header / Navigation -->
+    <header class="header">
+        <div class="header-content">
+            <div class="logo">
+                <span class="logo-text">PORTFOLIO<span class="accent">.</span></span>
+            </div>
+
+            <!-- Desktop Nav -->
+            <nav class="nav desktop-nav">
+                <a (click)="scrollToSection('hero')" [class.active]="activeSection() === 'hero'" class="nav-link">01.
+                    INICIO</a>
+                <a (click)="scrollToSection('portfolio')" [class.active]="activeSection() === 'portfolio'"
+                    class="nav-link">02. PROYECTOS</a>
+                <a (click)="scrollToSection('contact')" [class.active]="activeSection() === 'contact'"
+                    class="nav-link">03. CONTACTO</a>
+            </nav>
+
+            <!-- Mobile Menu Button -->
+            <button class="menu-btn" [class.open]="isMenuOpen()" (click)="toggleMenu()">
+                <span class="menu-btn-line"></span>
+                <span class="menu-btn-line"></span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Mobile Navigation Overlay -->
+    <div class="mobile-nav-overlay" [class.open]="isMenuOpen()">
+        <nav class="mobile-nav">
+            <a (click)="scrollToSection('hero')" [class.active]="activeSection() === 'hero'" class="mobile-nav-link">
+                <span class="nav-number">01</span>
+                <span class="nav-text">INICIO</span>
+            </a>
+            <a (click)="scrollToSection('portfolio')" [class.active]="activeSection() === 'portfolio'"
+                class="mobile-nav-link">
+                <span class="nav-number">02</span>
+                <span class="nav-text">PROYECTOS</span>
+            </a>
+            <a (click)="scrollToSection('contact')" [class.active]="activeSection() === 'contact'"
+                class="mobile-nav-link">
+                <span class="nav-number">03</span>
+                <span class="nav-text">CONTACTO</span>
+            </a>
+        </nav>
+    </div>
+
+    <!-- Hero Section -->
+    <section id="hero" class="hero">
+        <div class="hero-content">
+            <div class="hero-text-wrapper">
+                <span class="hero-intro">HOLA, SOY</span>
+                <h1 class="hero-title">
+                    <div class="line">FULL STACK</div>
+                    <div class="line outline">DEVELOPER</div>
+                    <div class="line">& DESIGNER<span class="accent">.</span></div>
+                </h1>
+            </div>
+
+            <p class="hero-description">
+                Creando experiencias digitales que fusionan <span class="highlight">código limpio</span> con <span
+                    class="highlight">diseño radical</span>.
+            </p>
+
+            <div class="hero-buttons">
+                <button (click)="scrollToSection('portfolio')" class="btn btn-primary">
+                    VER TRABAJOS
+                </button>
+            </div>
+        </div>
+
+        <div class="scroll-indicator">
+            <span>SCROLL</span>
+            <div class="line"></div>
+        </div>
+    </section>
+
+    <!-- Marquee Section -->
+    <div class="marquee-container">
+        <div class="marquee-content">
+            <div class="marquee-track">
+                @for (i of [1, 2, 3, 4]; track i) {
+                <span>{{ marqueeText }}</span>
+                }
+            </div>
+            <div class="marquee-track" aria-hidden="true">
+                @for (i of [1, 2, 3, 4]; track i) {
+                <span>{{ marqueeText }}</span>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- Portfolio Section -->
+    <section id="portfolio" class="portfolio-section">
+        <div class="section-header">
+            <span class="section-number">02</span>
+            <h2 class="section-title">PROYECTOS<span class="accent">.</span></h2>
+        </div>
+
+        <!-- Filter Buttons -->
+        <!-- <div class="filter-container">
+            @for (category of categories; track category) {
+            <button (click)="setFilter(category)" [class.active]="activeFilter() === category" class="filter-btn">
+                {{ category }}
+            </button>
+            } @empty {
+            <button disabled class="filter-btn">No categories</button>
+            }
+        </div> -->
+
+        <!-- Projects Grid -->
+        <div class="projects-grid">
+            @for (project of projects; track project.id) {
+            <div class="project-card">
+                <div class="card-inner">
+                    <div class="project-image-container">
+                        <img [src]="project.imagen" [alt]="project.titulo" class="project-image">
+                        <div class="project-overlay"></div>
+                    </div>
+                    <div class="project-content">
+                        <div class="project-header">
+                            <h3 class="project-title">{{ project.titulo }}</h3>
+                            <span class="project-arrow">↗</span>
+                        </div>
+                        <p class="project-description">{{ project.descripcion }}</p>
+                        <div class="project-technologies">
+                            @for (tech of project.tecnologias; track tech) {
+                            <span class="tech-tag">
+                                {{ tech.nombre }}
+                            </span>
+                            } @empty {
+                            <span class="tech-tag">No tech</span>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+            }
+        </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section id="contact" class="contact-section">
+        <div class="contact-content">
+            <div class="section-header">
+                <span class="section-number">03</span>
+                <h2 class="section-title">HABLEMOS<span class="accent">.</span></h2>
+            </div>
+            <p class="contact-description">
+                ¿Tienes un proyecto en mente? Creemos algo extraordinario.
+            </p>
+            <div class="contact-actions">
+                <a href="mailto:contact@example.com" class="email-link">
+                    contact@example.com
+                    <span class="underline"></span>
+                </a>
+                <div class="social-links">
+                    <a href="https://github.com" target="_blank" class="social-link">GITHUB</a>
+                    <a href="https://linkedin.com" target="_blank" class="social-link">LINKEDIN</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <p class="footer-text">© 2024 PORTFOLIO</p>
+            <p class="footer-text">DESIGNED & BUILT WITH PASSION</p>
+        </div>
+    </footer>
+</div>

@@ -1,0 +1,42 @@
+<div class="notificationCenter">
+    <button class="bellButton" (click)="toggleDropdown()">
+        🔔
+        @if (totalCount > 0) {
+        <span class="badge">{{ totalCount }}</span>
+        }
+    </button>
+
+    @if (isOpen()) {
+    <div class="dropdown">
+        <h4>Solicitudes de Amistad</h4>
+        @if (!requests() || requests().length === 0) {
+        <p class="empty">No hay solicitudes pendientes</p>
+        } @else {
+        <ul class="notifList">
+            @for (req of requests(); track req.id) {
+            <li class="requestItem">
+                <span>{{ req.from_user_username }} quiere ser tu amigo</span>
+                <div class="requestActions">
+                    <button (click)="handleAccept(req.id)" class="acceptBtn">✓</button>
+                    <button (click)="handleReject(req.id)" class="rejectBtn">✕</button>
+                </div>
+            </li>
+            }
+        </ul>
+        }
+
+        <h4 style="margin-top: 1rem">Notificaciones</h4>
+        @if (!notifications() || notifications().length === 0) {
+        <p class="empty">No hay notificaciones</p>
+        } @else {
+        <ul class="notifList">
+            @for (notif of notifications(); track notif.id) {
+            <li class="notifItem" [class.unread]="!notif.is_read">
+                {{ notif.message }}
+            </li>
+            }
+        </ul>
+        }
+    </div>
+    }
+</div>

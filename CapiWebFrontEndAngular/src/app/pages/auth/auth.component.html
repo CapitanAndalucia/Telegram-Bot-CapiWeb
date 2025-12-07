@@ -1,0 +1,73 @@
+<div class="page">
+    <button class="back-button" (click)="goBack()">
+        ← Volver
+    </button>
+    <div class="card">
+        <header class="header">
+            <h1>{{ displayTitle() }}</h1>
+            <p>{{ meta().subheading }}</p>
+        </header>
+
+        @if (status().error) {
+        <div class="error">{{ status().error }}</div>
+        }
+        @if (status().success) {
+        <div class="success">{{ status().success }}</div>
+        }
+
+        <form class="form" (ngSubmit)="handleSubmit()">
+            <div class="formGroup">
+                <label for="username">Usuario</label>
+                <input id="username" name="username" type="text" autocomplete="username" [value]="form().username"
+                    (input)="updateForm('username', $any($event.target).value)" required />
+            </div>
+
+            @if (mode() === 'register') {
+            <div class="formGroup">
+                <label for="email">Email (opcional)</label>
+                <input id="email" name="email" type="email" autocomplete="email" [value]="form().email"
+                    (input)="updateForm('email', $any($event.target).value)" />
+            </div>
+            }
+
+            <div class="formGroup">
+                <label for="password">Contraseña</label>
+                <input id="password" name="password" type="password"
+                    [autocomplete]="mode() === 'login' ? 'current-password' : 'new-password'" [value]="form().password"
+                    (input)="updateForm('password', $any($event.target).value)" required />
+                @if (mode() === 'register' && form().password) {
+                <div class="strength">
+                    <div class="strengthBar" [attr.data-strength]="passwordStrength().level"
+                        [style.width]="passwordStrength().width"></div>
+                </div>
+                <p [class]="'strengthText-' + passwordStrength().level">{{ passwordStrength().label }}</p>
+                }
+            </div>
+
+            @if (mode() === 'register') {
+            <div class="formGroup">
+                <label for="confirmPassword">Confirmar contraseña</label>
+                <input id="confirmPassword" name="confirmPassword" type="password" autocomplete="new-password"
+                    [value]="form().confirmPassword" (input)="updateForm('confirmPassword', $any($event.target).value)"
+                    required />
+            </div>
+            }
+
+            <button type="submit" class="submit" [disabled]="status().loading">
+                @if (status().loading) {
+                <span class="loader"></span>
+                } @else {
+                {{ meta().button }}
+                }
+            </button>
+        </form>
+
+        <div class="divider">
+            <span>o</span>
+        </div>
+
+        <p class="link">
+            {{ meta().linkText }} <a [routerLink]="meta().linkHref">{{ meta().linkCta }}</a>
+        </p>
+    </div>
+</div>

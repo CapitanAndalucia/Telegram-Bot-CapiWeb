@@ -1,0 +1,154 @@
+<div class="incomingFiles" [class.dragging]="isDragging()" (dragover)="handleDragOver($event)"
+    (dragleave)="handleDragLeave($event)" (drop)="handleDrop($event)"
+    (contextmenu)="handleContextMenu($event, 'background')">
+    <div class="filesHeader">
+        <div class="breadcrumbs">
+            @for (crumb of breadcrumbs(); track crumb.id; let last = $last; let index = $index) {
+            <span class="crumb" (click)="handleBreadcrumbClick(index)" [class.active]="last"
+                [class.clickable]="!last" [class.dropTarget]="hoveredBreadcrumbKey() === breadcrumbKey(crumb)"
+                (dragenter)="handleBreadcrumbDragEnter($event, crumb)" (dragover)="handleBreadcrumbDragOver($event, crumb)"
+                (dragleave)="handleBreadcrumbDragLeave($event, crumb)" (drop)="handleBreadcrumbDrop($event, crumb)">
+                {{ crumb.name }}
+            </span>
+            @if (!last) {
+            <span class="separator">/</span>
+            }
+            }
+            @if (uploading()) {
+            <span class="uploadingBadge">Subiendo...</span>
+            }
+        </div>
+        <div class="viewToggle">
+            <button class="toggleBtn" [class.active]="viewMode() === 'list'" (click)="viewMode.set('list')"
+                title="Lista">
+                ☰
+            </button>
+            <button class="toggleBtn" [class.active]="viewMode() === 'grid'" (click)="viewMode.set('grid')"
+                title="Cuadrícula">
+                ⊞
+            </button>
+        </div>
+    </div>
+
+    @if (loading()) {
+    <p>Cargando...</p>
+    } @else if (files().length === 0 && folders().length === 0) {
+    <div class="emptyState">
+        <p>Carpeta vacía</p>
+        <p class="dragHint">Arrastra archivos aquí o click derecho para crear carpeta</p>
+    </div>
+    } @else {
+    <div class="incomingContent" [class.listMode]="viewMode() === 'list'">
+        <!-- Folders -->
+        @for (folder of folders(); track folder.id) {
+        <div class="folderCard" [class.listMode]="viewMode() === 'list'"
+            [class.dropTarget]="hoveredFolderId() === folder.id" (dblclick)="navigateToFolder(folder)"
+            (contextmenu)="handleContextMenu($event, 'folder', folder)" (drop)="handleFileDrop($event, folder)"
+            (dragover)="$event.preventDefault()" (dragenter)="handleFolderDragEnter($event, folder)"
+            (dragleave)="handleFolderDragLeave($event, folder)">
+            <div class="folderIcon">📁</div>
+            <div class="folderName">{{ folder.name }}</div>
+        </div>
+        }
+
+        <!-- Files -->
+        @for (file of files(); track file.id) {
+        <div class="fileCard" [class.listMode]="viewMode() === 'list'" (mouseenter)="handleFileHover(file)"
+            (click)="handleFileClick(file)" (contextmenu)="handleContextMenu($event, 'file', file)" draggable="true"
+            (dragstart)="handleDragStart($event, file)" (dragend)="handleDragEnd()" style="cursor: pointer">
+            <!-- New indicator for list view -->
+            @if (viewMode() === 'list' && !file.is_viewed) {
+            <div class="newIndicatorList">
+                <span class="newDot"></span>
+            </div>
+            }
+
+            <!-- New indicator for grid view -->
+            @if (viewMode() === 'grid' && !file.is_viewed) {
+            <div class="newIndicatorGrid">NUEVO</div>
+            }
+
+            <div class="previewContainer">
+                @if (isImage(file.filename)) {
+                <img [src]="getFileUrl(file.id)" [alt]="file.filename" class="fileImage" />
+                } @else {
+                <div class="fileIconPlaceholder">📄</div>
+                }
+                @if (viewMode() === 'grid') {
+                <div class="fileOverlay">
+                    <span class="fileNameOverlay">{{ file.filename }}</span>
+                </div>
+                }
+            </div>
+
+            @if (viewMode() === 'list') {
+            <div class="fileInfoList">
+                <span class="fileNameList">{{ file.filename }}</span>
+                <span class="fileSizeList">{{ (file.size / 1024).toFixed(1) }} KB</span>
+            </div>
+            }
+
+            <button (click)="handleDownload(file.id, file.filename); $event.stopPropagation()" class="downloadIconBtn"
+                title="Descargar">
+                ⬇
+            </button>
+        </div>
+        }
+    </div>
+    }
+
+    <!-- Context Menu -->
+    @if (contextMenu()) {
+    <div class="contextMenu" [style.left.px]="contextMenu()!.x" [style.top.px]="contextMenu()!.y"
+        (click)="$event.stopPropagation()">
+        @if (contextMenu()!.type === 'background') {
+        <button (click)="createFolder(); closeContextMenu()">Nueva carpeta</button>
+        }
+        @if (contextMenu()!.type === 'folder') {
+        <button (click)="navigateToFolder($any(contextMenu()!.item)); closeContextMenu()">Abrir</button>
+        <button (click)="renameItem(); closeContextMenu()">Renombrar</button>
+        <button (click)="deleteItem(); closeContextMenu()">Eliminar</button>
+        }
+        @if (contextMenu()!.type === 'file') {
+        <button
+            (click)="handleDownload($any(contextMenu()!.item).id, $any(contextMenu()!.item).filename); closeContextMenu()">Descargar</button>
+        <button (click)="openMoveDialog($any(contextMenu()!.item)); closeContextMenu()">Mover a carpeta</button>
+        <button (click)="deleteItem(); closeContextMenu()">Eliminar</button>
+        }
+    </div>
+    }
+</div>
+
+@if (selectedFile()) {
+<app-file-preview-modal [file]="selectedFile()!" (close)="closeModal()"
+    (download)="handleDownload($event.id, $event.filename)" (delete)="handleDelete($event)"></app-file-preview-modal>
+}
+
+@if (moveDialogOpen()) {
+<div class="moveDialogOverlay" (click)="closeMoveDialog()">
+    <div class="moveDialog" (click)="$event.stopPropagation()">
+        <header class="moveDialogHeader">
+            <h3>Mover "{{ moveTargetFile()?.filename }}"</h3>
+            <button class="moveDialogClose" (click)="closeMoveDialog()" [disabled]="moveDialogBusy()">✕</button>
+        </header>
+        <div class="moveDialogBody">
+            @if (moveDialogLoading()) {
+            <div class="moveDialogLoading">Cargando carpetas...</div>
+            } @else {
+            <div class="moveDialogList">
+                @for (option of moveOptions(); track option.id) {
+                <button class="moveOptionButton" [disabled]="moveDialogBusy()"
+                    [class.active]="moveTargetFile()?.folder === option.id" (click)="confirmMove(option.id)">
+                    <span class="moveOptionIndent" [style.width.rem]="option.depth * 0.8"></span>
+                    <span>{{ option.name }}</span>
+                </button>
+                }
+            </div>
+            }
+        </div>
+        <footer class="moveDialogFooter">
+            <button class="secondaryBtn" (click)="closeMoveDialog()" [disabled]="moveDialogBusy()">Cancelar</button>
+        </footer>
+    </div>
+</div>
+}

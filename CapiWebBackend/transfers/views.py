@@ -6,8 +6,8 @@ from rest_framework import serializers
 from django.http import FileResponse
 from django.utils import timezone
 from datetime import timedelta
-from .models import FileTransfer
-from .serializers import FileTransferSerializer
+from .models import FileTransfer, Folder
+from .serializers import FileTransferSerializer, FolderSerializer
 from django.db.models import Q
 from django.core.cache import cache
 from .security_utils import (
@@ -20,6 +20,22 @@ import os
 # Load security configuration
 SECURITY_CONFIG = load_security_config()
 
+class FolderViewSet(viewsets.ModelViewSet):
+    serializer_class = FolderSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_queryset(self):
+        queryset = Folder.objects.filter(owner=self.request.user)
+        parent_id = self.request.query_params.get('parent')
+        if parent_id == 'null':
+            queryset = queryset.filter(parent__isnull=True)
+        elif parent_id:
+            queryset = queryset.filter(parent_id=parent_id)
+        return queryset
+        
+    def perform_create(self, serializer):
+        serializer.save(owner=self.request.user)
+
 class FileTransferViewSet(viewsets.ModelViewSet):
     serializer_class = FileTransferSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -31,7 +47,13 @@ class FileTransferViewSet(viewsets.ModelViewSet):
         """
         user = self.request.user
         if user.is_authenticated:
-            return FileTransfer.objects.filter(recipient=user).order_by('-created_at')
+            queryset = FileTransfer.objects.filter(recipient=user).order_by('-created_at')
+            folder_id = self.request.query_params.get('folder')
+            if folder_id == 'null':
+                queryset = queryset.filter(folder__isnull=True)
+            elif folder_id:
+                queryset = queryset.filter(folder_id=folder_id)
+            return queryset
         return FileTransfer.objects.none()
 
     def check_rate_limit(self, user, file_size):
@@ -165,3 +187,23 @@ class FileTransferViewSet(viewsets.ModelViewSet):
             instance.delete()
             return Response({'status': 'deleted'}, status=status.HTTP_204_NO_CONTENT)
         return Response({'status': 'unauthorized'}, status=status.HTTP_403_FORBIDDEN)
+
+    @action(detail=True, methods=['post'])
+    def move(self, request, pk=None):
+        instance = self.get_object()
+        folder_id = request.data.get('folder_id')
+        
+        if request.user != instance.recipient:
+             return Response({'status': 'unauthorized'}, status=status.HTTP_403_FORBIDDEN)
+             
+        if folder_id:
+            try:
+                folder = Folder.objects.get(id=folder_id, owner=request.user)
+                instance.folder = folder
+            except Folder.DoesNotExist:
+                return Response({'error': 'Folder not found'}, status=status.HTTP_404_NOT_FOUND)
+        else:
+            instance.folder = None
+            
+        instance.save()
+        return Response({'status': 'moved'})

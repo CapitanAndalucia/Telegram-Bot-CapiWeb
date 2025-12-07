@@ -82,3 +82,53 @@ class UserTelegramSerializer(serializers.ModelSerializer):
             profile.save()
         
         return instance
+
+from rest_framework import serializers
+from .models import Tecnologia, Proyecto
+
+class TecnologiaSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Tecnologia
+        fields = ['id', 'nombre', 'icono']
+
+
+class ProyectoSerializer(serializers.ModelSerializer):
+    # 👇 Devuelve la información completa de cada tecnología
+    tecnologias = TecnologiaSerializer(many=True, read_only=True)
+
+    # 👇 Para enviar IDs al crear/actualizar
+    tecnologias_ids = serializers.PrimaryKeyRelatedField(
+        queryset=Tecnologia.objects.all(),
+        many=True,
+        write_only=True
+    )
+
+    class Meta:
+        model = Proyecto
+        fields = [
+            'id',
+            'titulo',
+            'descripcion',
+            'imagen',
+            'tecnologias',      # lectura (nested)
+            'tecnologias_ids',  # escritura
+        ]
+
+    def create(self, validated_data):
+        tecnologias = validated_data.pop('tecnologias_ids')
+        proyecto = Proyecto.objects.create(**validated_data)
+        proyecto.tecnologias.set(tecnologias)
+        return proyecto
+
+    def update(self, instance, validated_data):
+        tecnologias = validated_data.pop('tecnologias_ids', None)
+
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+
+        instance.save()
+
+        if tecnologias is not None:
+            instance.tecnologias.set(tecnologias)
+
+        return instance

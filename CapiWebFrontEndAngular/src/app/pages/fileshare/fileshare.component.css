@@ -1,0 +1,1411 @@
+.dashboardContainer {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    height: 100vh;
+    background: var(--bg-dark);
+    color: var(--text-primary);
+}
+
+.sidebar {
+    background: rgba(255, 255, 255, 0.02);
+    border-right: 1px solid var(--glass-border);
+    padding: 1.5rem;
+    overflow-y: auto;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.mainContent {
+    padding: 2rem;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.header h1 {
+    font-family: var(--font-display);
+    font-size: 2rem;
+    margin: 0;
+}
+
+.tabs {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    border-bottom: 1px solid var(--glass-border);
+    padding-bottom: 1rem;
+}
+
+.tab {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    font-family: var(--font-body);
+    font-size: 1.1rem;
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border-radius: 8px;
+}
+
+.tab:hover {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.tab.active {
+    color: var(--accent-primary);
+    background: rgba(0, 242, 255, 0.1);
+}
+
+.menuBtn,
+.closeSidebarBtn,
+.sidebarOverlay {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    .dashboardContainer {
+        grid-template-columns: 1fr;
+        height: auto;
+        min-height: 100vh;
+    }
+
+    .sidebar {
+        display: block;
+        /* Show it but position it off-screen */
+        position: fixed;
+        top: 0;
+        left: -100%;
+        width: 80%;
+        max-width: 300px;
+        height: 100vh;
+        background: #1a1a1a;
+        z-index: 1000;
+        transition: left 0.3s ease;
+        box-shadow: 10px 0 30px rgba(0, 0, 0, 0.5);
+        border-right: 1px solid var(--glass-border);
+    }
+
+    .sidebar.open {
+        left: 0;
+    }
+
+    .menuBtn {
+        display: block;
+        /* Visible on mobile */
+        background: transparent;
+        border: none;
+        color: var(--text-primary);
+        font-size: 1.5rem;
+        cursor: pointer;
+        padding: 0.5rem;
+    }
+
+    .closeSidebarBtn {
+        display: block;
+        background: transparent;
+        border: none;
+        color: var(--text-secondary);
+        font-size: 1.5rem;
+        cursor: pointer;
+    }
+
+    .sidebarOverlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.7);
+        z-index: 999;
+        backdrop-filter: blur(2px);
+    }
+
+    .mainContent {
+        padding: 1rem;
+        padding-bottom: 80px;
+        /* Space for potential bottom nav or just extra scroll */
+    }
+
+    .header {
+        margin-bottom: 1.5rem;
+    }
+
+    .tabs {
+        gap: 0.5rem;
+        margin-bottom: 1.5rem;
+        background: rgba(255, 255, 255, 0.02);
+        padding: 0.5rem;
+        border-radius: 12px;
+        border: 1px solid var(--glass-border);
+    }
+
+    .tab {
+        flex: 1;
+        text-align: center;
+        padding: 0.8rem 0.5rem;
+        font-size: 0.95rem;
+        border-radius: 8px;
+    }
+
+    .tab.active {
+        background: var(--accent-primary);
+        color: #000;
+        font-weight: bold;
+    }
+
+    .filesList {
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        gap: 0.8rem;
+    }
+
+    .fileCard {
+        border-radius: 8px;
+    }
+
+    .uploadForm {
+        padding: 1.2rem;
+    }
+}
+
+/* FriendList Styles */
+.friendList h3 {
+    font-family: var(--font-display);
+    margin-bottom: 1rem;
+    color: var(--accent-primary);
+}
+
+.addFriendForm {
+    position: relative;
+    margin-bottom: 1.5rem;
+}
+
+.autocompleteDropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: rgba(20, 20, 20, 0.98);
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    margin-top: 0.5rem;
+    max-height: 300px;
+    overflow-y: auto;
+    z-index: 1000;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(10px);
+}
+
+.autocompleteItem {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.autocompleteItem:last-child {
+    border-bottom: none;
+}
+
+.autocompleteItem:hover {
+    background-color: rgba(0, 242, 255, 0.1);
+}
+
+.autocompleteAvatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 0.9rem;
+    color: #000;
+}
+
+.searchingIndicator,
+.noResults {
+    padding: 0.75rem;
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    margin-top: 0.5rem;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+}
+
+.input {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--glass-border);
+    padding: 0.5rem;
+    border-radius: 8px;
+    color: var(--text-primary);
+    width: 100%;
+}
+
+.addButton {
+    background: var(--accent-primary);
+    color: #000;
+    border: none;
+    border-radius: 8px;
+    width: 36px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.friendItem {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.8rem;
+    border-radius: 12px;
+    transition: background 0.2s;
+}
+
+.friendItem:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.friendInfo {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+}
+
+.friendActions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.selectBtn,
+.removeBtn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--glass-border);
+    padding: 0.4rem 0.6rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 1.1rem;
+    transition: all 0.2s ease;
+}
+
+.selectBtn:hover {
+    background: rgba(0, 242, 255, 0.2);
+    border-color: var(--accent-primary);
+    transform: scale(1.1);
+}
+
+.removeBtn:hover {
+    background: rgba(255, 51, 102, 0.2);
+    border-color: #FF3366;
+    transform: scale(1.1);
+}
+
+.avatar {
+    width: 32px;
+    height: 32px;
+    background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    color: #fff;
+    font-size: 0.9rem;
+}
+
+/* NotificationCenter Styles */
+.notificationCenter {
+    position: relative;
+}
+
+.bellButton {
+    background: transparent;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    position: relative;
+    padding: 0.5rem;
+}
+
+.badge {
+    position: absolute;
+    top: 0;
+    right: 0;
+    background: var(--accent-secondary);
+    color: white;
+    font-size: 0.7rem;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+}
+
+.dropdown {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    width: 300px;
+    background: #1a1a1a;
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    padding: 1rem;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    z-index: 100;
+}
+
+.dropdown h4 {
+    margin: 0 0 1rem 0;
+    font-family: var(--font-display);
+}
+
+.notifList {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.notifItem {
+    padding: 0.8rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.notifItem.unread {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.02);
+}
+
+/* FileUpload Styles */
+.uploadContainer {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.uploadForm {
+    background: rgba(255, 255, 255, 0.02);
+    padding: 2rem;
+    border-radius: 16px;
+    border: 1px solid var(--glass-border);
+}
+
+.formGroup {
+    margin-bottom: 1.5rem;
+}
+
+.formGroup label {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: var(--text-secondary);
+}
+
+.select,
+.textarea {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--glass-border);
+    padding: 0.8rem;
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-family: inherit;
+}
+
+.fileInputWrapper {
+    position: relative;
+    height: 100px;
+}
+
+.fileInput {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+    z-index: 2;
+}
+
+.fileDropZone {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: 2px dashed var(--glass-border);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+    transition: all 0.3s ease;
+}
+
+.fileInput:hover+.fileDropZone {
+    border-color: var(--accent-primary);
+    color: var(--accent-primary);
+}
+
+.submitButton {
+    width: 100%;
+    background: var(--accent-primary);
+    color: #000;
+    border: none;
+    padding: 1rem;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: opacity 0.3s;
+}
+
+.submitButton:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* IncomingFiles Styles */
+.filesList {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 1rem;
+    margin-top: 1.5rem;
+    padding: 0;
+    list-style: none;
+}
+
+.fileCard {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    overflow: hidden;
+    position: relative;
+    aspect-ratio: 1;
+    transition: transform 0.2s;
+}
+
+.fileCard:hover {
+    transform: translateY(-2px);
+    border-color: var(--accent-primary);
+}
+
+.previewContainer {
+    width: 100%;
+    height: 100%;
+    position: relative;
+}
+
+.fileImage {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.fileIconPlaceholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 3rem;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.downloadIconBtn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: rgba(0, 0, 0, 0.6);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    z-index: 2;
+}
+
+.downloadIconBtn:hover {
+    background: var(--accent-primary);
+    color: black;
+    transform: scale(1.1);
+}
+
+.fileOverlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    padding: 1rem;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.9), transparent);
+    transform: translateY(100%);
+    transition: transform 0.3s ease;
+    display: flex;
+    align-items: flex-end;
+}
+
+.fileCard:hover .fileOverlay {
+    transform: translateY(0);
+}
+
+.fileNameOverlay {
+    color: white;
+    font-size: 0.9rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    width: 100%;
+}
+
+/* UserIcon Styles */
+.userIconContainer {
+    position: relative;
+    margin-left: 1rem;
+}
+
+.userButton {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+}
+
+.avatarSmall {
+    width: 40px;
+    height: 40px;
+    background: var(--accent-primary);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    color: #000;
+    font-size: 1.2rem;
+}
+
+.avatarPlaceholder {
+    width: 40px;
+    height: 40px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: var(--text-secondary);
+    border: 1px solid var(--glass-border);
+}
+
+.menu {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.userInfo {
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    margin-bottom: 0.5rem;
+}
+
+.userName {
+    margin: 0;
+    font-weight: bold;
+    color: var(--text-primary);
+}
+
+.menuTitle {
+    margin: 0 0 0.5rem 0;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.menuItem {
+    background: transparent;
+    border: none;
+    color: var(--text-primary);
+    text-align: left;
+    padding: 0.5rem;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: background 0.2s;
+}
+
+.menuItem:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.loginPrompt {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 60vh;
+    text-align: center;
+    color: var(--text-secondary);
+}
+
+.errorText {
+    color: #ff4d4d;
+    font-size: 0.8rem;
+    margin-bottom: 1rem;
+}
+
+.successText {
+    color: #00ff88;
+    font-size: 0.8rem;
+    margin-bottom: 1rem;
+}
+
+.requestItem {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.8rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    font-size: 0.9rem;
+}
+
+.requestActions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.acceptBtn,
+.rejectBtn {
+    border: none;
+    border-radius: 4px;
+    width: 24px;
+    height: 24px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+}
+
+.acceptBtn {
+    background: #00ff88;
+    color: #000;
+}
+
+.recipientHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.checkboxLabel {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    cursor: pointer;
+    color: var(--text-secondary);
+}
+
+.incomingFiles {
+    min-height: 300px;
+    border: 2px dashed transparent;
+    border-radius: 12px;
+    transition: all 0.3s ease;
+}
+
+.incomingFiles.dragging {
+    border-color: var(--accent-primary);
+    background: rgba(0, 242, 255, 0.15);
+    box-shadow: 0 0 20px rgba(0, 242, 255, 0.2);
+    transform: scale(1.01);
+}
+
+.dragHint {
+    margin-top: 1rem;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    opacity: 0.7;
+}
+
+.uploadingBadge {
+    font-size: 0.8rem;
+    background: var(--accent-primary);
+    color: white;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-left: 0.5rem;
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        opacity: 0.6;
+    }
+
+    50% {
+        opacity: 1;
+    }
+
+    100% {
+        opacity: 0.6;
+    }
+}
+
+/* View Toggle Styles */
+.filesHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.viewToggle {
+    display: flex;
+    gap: 0.5rem;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 4px;
+    border-radius: 8px;
+    border: 1px solid var(--glass-border);
+}
+
+.toggleBtn {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    padding: 4px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 1.2rem;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.toggleBtn:hover {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.toggleBtn.active {
+    background: var(--accent-primary);
+    color: #000;
+}
+
+/* List View Styles */
+.filesList.listMode {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    grid-template-columns: none;
+}
+
+.fileCard.listMode {
+    display: flex;
+    align-items: center;
+    aspect-ratio: auto;
+    height: 70px;
+    padding: 0.5rem;
+    gap: 1rem;
+}
+
+.fileCard.listMode .previewContainer {
+    width: 50px;
+    height: 50px;
+    flex-shrink: 0;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.fileCard.listMode .fileIconPlaceholder {
+    font-size: 1.5rem;
+}
+
+.fileCard.listMode .downloadIconBtn {
+    position: static;
+    width: 36px;
+    height: 36px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--glass-border);
+    margin-left: auto;
+    /* Push to right */
+}
+
+.fileCard.listMode .downloadIconBtn:hover {
+    background: var(--accent-primary);
+    color: #000;
+    transform: none;
+}
+
+.fileInfoList {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    overflow: hidden;
+}
+
+.fileNameList {
+    color: var(--text-primary);
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.fileSizeList {
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+}
+
+/* Tab Notification Dot */
+.tabNotificationDot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    background: #ff6b35;
+    border-radius: 50%;
+    margin-left: 0.5rem;
+    animation: pulse 2s infinite;
+}
+
+/* New File Indicators */
+.newIndicatorGrid {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    background: #ff6b35;
+    color: white;
+    font-size: 0.65rem;
+    font-weight: bold;
+    padding: 2px 6px;
+    border-radius: 4px;
+    z-index: 3;
+    pointer-events: none;
+}
+
+.fileCard:hover .newIndicatorGrid {
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.newIndicatorList {
+    display: flex;
+    align-items: center;
+    margin-right: 0.5rem;
+}
+
+.newDot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    background: #ff6b35;
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+}
+
+/* File Preview Modal */
+.modalOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.85);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    backdrop-filter: blur(4px);
+}
+
+.modalContent {
+    background: #1a1a1a;
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    max-width: 90vw;
+    max-height: 90vh;
+    width: 800px;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+}
+
+.closeModalBtn {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: rgba(0, 0, 0, 0.6);
+    border: 1px solid var(--glass-border);
+    color: white;
+    font-size: 1.5rem;
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    min-height: 36px;
+    border-radius: 50%;
+    cursor: pointer;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    flex-shrink: 0;
+    aspect-ratio: 1;
+    padding: 0;
+}
+
+.closeModalBtn:hover {
+    background: var(--accent-primary);
+    color: #000;
+}
+
+.previewHeader {
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--glass-border);
+}
+
+.previewHeader h3 {
+    margin: 0 0 0.5rem 0;
+    color: var(--text-primary);
+    font-family: var(--font-display);
+}
+
+.previewMeta {
+    display: flex;
+    gap: 0.5rem;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.separator {
+    color: var(--text-secondary);
+}
+
+.previewBody {
+    flex: 1;
+    overflow: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    background: rgba(0, 0, 0, 0.3);
+}
+
+.modalImage {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    border-radius: 8px;
+}
+
+.genericPreview {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    color: var(--text-secondary);
+}
+
+.genericIcon {
+    font-size: 4rem;
+}
+
+.previewFooter {
+    padding: 1rem 1.5rem;
+    border-top: 1px solid var(--glass-border);
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+}
+
+.deleteBtn {
+    background: #ff4d4d;
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: opacity 0.3s;
+}
+
+.deleteBtn:hover {
+    opacity: 0.9;
+}
+
+.downloadBtn {
+    background: var(--accent-primary);
+    color: #000;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: opacity 0.3s;
+}
+
+.downloadBtn:hover {
+    opacity: 0.9;
+}
+
+/* Folder System Styles */
+.breadcrumbs {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1.1rem;
+    color: var(--text-secondary);
+}
+
+.crumb {
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.crumb.clickable {
+    color: var(--accent-primary);
+}
+
+.crumb.dropTarget {
+    color: var(--accent-primary);
+    text-decoration: underline;
+}
+
+.crumb:hover {
+    color: var(--text-primary);
+    text-decoration: underline;
+}
+
+.crumb.active {
+    color: var(--text-primary);
+    font-weight: bold;
+    cursor: default;
+    text-decoration: none;
+}
+
+.separator {
+    color: var(--text-secondary);
+    opacity: 0.5;
+}
+
+.contentArea {
+    display: flex;
+    flex-direction: column;
+    margin-top: 1rem;
+    width: 100%;
+    flex: 1;
+}
+
+.tabContent {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    flex: 1;
+}
+
+.tabContent app-incoming-files,
+.tabContent app-file-upload {
+    display: block;
+    width: 100%;
+}
+
+.incomingFiles {
+    width: 100%;
+}
+
+.incomingContent {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 1.2rem;
+    width: 100%;
+}
+
+.incomingContent.listMode {
+    display: flex;
+    flex-direction: column;
+}
+
+.folderCard {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    aspect-ratio: 1;
+}
+
+.folderCard.listMode {
+    flex-direction: row;
+    aspect-ratio: auto;
+    justify-content: flex-start;
+    gap: 1rem;
+    padding: 0.8rem;
+}
+
+.folderCard:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: var(--accent-primary);
+    transform: translateY(-2px);
+}
+
+.folderCard.dropTarget {
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 3px rgba(0, 242, 255, 0.2);
+}
+
+.dragPreview {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.55rem 0.85rem;
+    background: rgba(0, 0, 0, 0.6);
+    border-radius: 9px;
+    border: 1px solid rgba(0, 242, 255, 0.25);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+    pointer-events: none;
+    backdrop-filter: blur(4px);
+    color: white;
+    font-size: 0.9rem;
+    max-width: 260px;
+    overflow: hidden;
+    opacity: 0.85;
+}
+
+.dragPreview img {
+    width: 100px;
+    height: 100px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.dragPreviewIcon {
+    font-size: 2.2rem;
+}
+
+.dragPreviewLabel {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.folderIcon {
+    font-size: 3rem;
+    margin-bottom: 0.5rem;
+}
+
+.folderCard.listMode .folderIcon {
+    font-size: 1.5rem;
+    margin-bottom: 0;
+}
+
+.folderName {
+    font-weight: bold;
+    text-align: center;
+    word-break: break-word;
+}
+
+.contextMenu {
+    position: fixed;
+    background: #1a1a1a;
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    padding: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    min-width: 150px;
+}
+
+.contextMenu button {
+    background: transparent;
+    border: none;
+    color: var(--text-primary);
+    padding: 0.5rem 1rem;
+    text-align: left;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background 0.2s;
+}
+
+.contextMenu button:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.moveDialogOverlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1500;
+    backdrop-filter: blur(4px);
+}
+
+.moveDialog {
+    background: #1a1a1a;
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    width: min(420px, 90vw);
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+}
+
+.moveDialogHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--glass-border);
+}
+
+.moveDialogHeader h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    color: var(--text-primary);
+}
+
+.moveDialogClose {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 1.2rem;
+    cursor: pointer;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+}
+
+.moveDialogClose:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
+}
+
+.moveDialogClose:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.moveDialogBody {
+    padding: 1rem 1.25rem;
+    overflow-y: auto;
+}
+
+.moveDialogLoading {
+    color: var(--text-secondary);
+    text-align: center;
+    padding: 1rem 0;
+}
+
+.moveDialogList {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.moveOptionButton {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--glass-border);
+    color: var(--text-primary);
+    padding: 0.6rem 0.8rem;
+    border-radius: 8px;
+    text-align: left;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.2s ease;
+}
+
+.moveOptionButton:hover:not(:disabled) {
+    border-color: var(--accent-primary);
+    background: rgba(0, 242, 255, 0.1);
+}
+
+.moveOptionButton.active {
+    border-color: var(--accent-primary);
+    background: rgba(0, 242, 255, 0.18);
+    color: var(--accent-primary);
+}
+
+.moveOptionButton:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.moveOptionIndent {
+    display: inline-block;
+    width: 0;
+    height: 1px;
+    flex-shrink: 0;
+}
+
+.moveDialogFooter {
+    padding: 0.75rem 1.25rem;
+    border-top: 1px solid var(--glass-border);
+    display: flex;
+    justify-content: flex-end;
+}
+
+.secondaryBtn {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--glass-border);
+    color: var(--text-primary);
+    padding: 0.5rem 1.2rem;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.secondaryBtn:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.14);
+}
+
+.secondaryBtn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}

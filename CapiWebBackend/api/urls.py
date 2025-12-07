@@ -8,7 +8,9 @@ from .views import (
     api_login_page,
     get_telegram_id_by_username,
     UserDetailView,
-    TelegramProfileListView
+    TelegramProfileListView,
+    ProyectoViewSet,
+    TecnologiaViewSet
 )
 from .auth_views import (
     register_view,
@@ -19,7 +21,7 @@ from .auth_views import (
 )
 
 from social.views import FriendViewSet
-from transfers.views import FileTransferViewSet
+from transfers.views import FileTransferViewSet, FolderViewSet
 from notifications.views import NotificationViewSet
 
 router = DefaultRouter()
@@ -28,7 +30,11 @@ router.register(r'portfolio-photos', PortfolioPhotoViewSet, basename='portfolio-
 router.register(r'dibujos', DibujosViewSet, basename='dibujos')
 router.register(r'friends', FriendViewSet, basename='friend')
 router.register(r'transfers', FileTransferViewSet, basename='transfer')
+router.register(r'folders', FolderViewSet, basename='folder')
 router.register(r'notifications', NotificationViewSet, basename='notification')
+router.register(r'tecnologias', TecnologiaViewSet, basename='tecnologia')
+router.register('proyectos', ProyectoViewSet, basename='proyecto')
+
 
 urlpatterns = [
     # Página HTML de login para la API

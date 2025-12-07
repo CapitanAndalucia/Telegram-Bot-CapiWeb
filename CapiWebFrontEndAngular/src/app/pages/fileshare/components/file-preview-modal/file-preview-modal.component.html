@@ -1,0 +1,30 @@
+<div class="modalOverlay" (click)="onOverlayClick($event)">
+    <div class="modalContent" (click)="$event.stopPropagation()">
+        <button class="closeModalBtn" (click)="onClose()">✕</button>
+
+        <div class="previewHeader">
+            <h3>{{ file().filename }}</h3>
+            <div class="previewMeta">
+                <span>{{ (file().size / 1024).toFixed(1) }} KB</span>
+                <span class="separator">•</span>
+                <span>{{ file().created_at | date: 'short' }}</span>
+            </div>
+        </div>
+
+        <div class="previewBody">
+            @if (isImage) {
+            <img [src]="downloadUrl" [alt]="file().filename" class="modalImage" />
+            } @else {
+            <div class="genericPreview">
+                <div class="genericIcon">📄</div>
+                <p>No hay vista previa disponible</p>
+            </div>
+            }
+        </div>
+
+        <div class="previewFooter">
+            <button class="deleteBtn" (click)="onDelete()">Eliminar</button>
+            <button class="downloadBtn" (click)="onDownload()">Descargar</button>
+        </div>
+    </div>
+</div>

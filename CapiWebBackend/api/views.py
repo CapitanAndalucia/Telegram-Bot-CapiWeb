@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect
 
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
-from .models import Ticket
+from .models import Ticket, Tecnologia, Proyecto
 from .serializers import TicketSerializer
 from django.views.generic import TemplateView
 
@@ -27,7 +27,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import api_view, permission_classes
 
 from .models import Dibujos
-from .serializers import DibujosSerializer
+from .serializers import DibujosSerializer, TecnologiaSerializer, ProyectoSerializer
 from .permissions import IsAdminOrReadOnly
 
 class TicketViewSet(viewsets.ModelViewSet):
@@ -209,6 +209,14 @@ def api_login_page(request):
         ctx['current_username'] = user.username
     return render(request, 'api/login.html', ctx)
 
+class TecnologiaViewSet(viewsets.ModelViewSet):
+    queryset = Tecnologia.objects.all()
+    serializer_class = TecnologiaSerializer
+
+
+class ProyectoViewSet(viewsets.ModelViewSet):
+    queryset = Proyecto.objects.all()
+    serializer_class = ProyectoSerializer
 
 # ==================== TELEGRAM PROFILE API ====================
 from rest_framework import generics

@@ -1,0 +1,31 @@
+<div class="app">
+  <div class="sky">
+    <div class="background-left"></div>
+    <div class="background-right"></div>
+    <div class="sun"></div>
+    <div class="buildings">
+      @for (num of buildings; track num) {
+        <div [class]="'building building-' + num">
+          <div class="top"></div>
+        </div>
+      }
+    </div>
+  </div>
+  <div class="ground">
+    <div class="road left"></div>
+    <div class="road left bis"></div>
+    <div class="road right"></div>
+    <div class="road right bis"></div>
+    @for (i of roadLines; track i) {
+      <div [class]="'road center road-' + i"></div>
+    }
+    @for (i of verticalWaves; track i) {
+      <div [class]="'wave vertical left wave-' + i"></div>
+      <div [class]="'wave vertical right wave-' + i"></div>
+    }
+    @for (i of horizontalWaves; track i) {
+      <div [class]="'wave horizontal left wave-' + i"></div>
+      <div [class]="'wave horizontal right wave-' + i"></div>
+    }
+  </div>
+</div>

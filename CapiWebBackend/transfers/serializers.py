@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import FileTransfer
+from .models import FileTransfer, Folder
 from django.contrib.auth.models import User
 import os
 import re
@@ -91,6 +91,16 @@ def validate_file(value):
     
     return value
 
+class FolderSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Folder
+        fields = ['id', 'name', 'owner', 'parent', 'created_at']
+        read_only_fields = ['owner', 'created_at']
+        
+    def create(self, validated_data):
+        validated_data['owner'] = self.context['request'].user
+        return super().create(validated_data)
+
 class FileTransferSerializer(serializers.ModelSerializer):
     sender_username = serializers.ReadOnlyField(source='sender.username')
     recipient_username = serializers.CharField(write_only=True)
@@ -98,11 +108,12 @@ class FileTransferSerializer(serializers.ModelSerializer):
     file = serializers.FileField(validators=[validate_file])
     has_executables = serializers.BooleanField(read_only=True, required=False)
     executable_files = serializers.ListField(read_only=True, required=False)
+    folder = serializers.PrimaryKeyRelatedField(queryset=Folder.objects.all(), required=False, allow_null=True)
 
     class Meta:
         model = FileTransfer
         fields = ['id', 'sender', 'sender_username', 'recipient', 'recipient_username', 'recipient_username_display',
-                  'file', 'filename', 'size', 'description', 
+                  'file', 'filename', 'size', 'description', 'folder',
                   'created_at', 'expires_at', 'is_downloaded', 'is_viewed',
                   'has_executables', 'executable_files']
         read_only_fields = ['sender', 'recipient', 'size', 'filename', 'created_at', 'is_downloaded']

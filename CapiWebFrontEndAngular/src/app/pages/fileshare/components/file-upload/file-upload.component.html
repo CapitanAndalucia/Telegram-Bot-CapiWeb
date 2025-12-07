@@ -1,0 +1,40 @@
+<div class="uploadContainer">
+    <h2>Enviar Archivo</h2>
+    <form (submit)="handleSubmit($event)" class="uploadForm">
+        <div class="formGroup">
+            <div class="recipientHeader">
+                <label>Destinatario</label>
+                <label class="checkboxLabel">
+                    <input type="checkbox" [checked]="sendToSelf()" (change)="handleSelfToggle($event)" />
+                    Enviarme a mí mismo
+                </label>
+            </div>
+            <input type="text" [value]="recipient()" (input)="handleRecipientChange($any($event.target).value)"
+                class="input" placeholder="Escribe el nombre de usuario..." required [disabled]="sendToSelf()" />
+        </div>
+
+        <div class="formGroup">
+            <label>Archivo</label>
+            <div class="fileInputWrapper">
+                <input type="file" (change)="handleFileChange($event)" class="fileInput" required />
+                <div class="fileDropZone">
+                    {{ file() ? file()!.name : 'Arrastra un archivo o haz clic aquí' }}
+                </div>
+            </div>
+        </div>
+
+        <div class="formGroup">
+            <label>Descripción (Opcional)</label>
+            <textarea [value]="description()" (input)="description.set($any($event.target).value)" class="textarea"
+                rows="3"></textarea>
+        </div>
+
+        @if (error()) {
+        <p class="errorText">{{ error() }}</p>
+        }
+
+        <button type="submit" class="submitButton" [disabled]="uploading()">
+            {{ uploading() ? 'Enviando...' : 'Enviar Archivo' }}
+        </button>
+    </form>
+</div>

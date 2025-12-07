@@ -1,0 +1,28 @@
+<div class="userIconContainer">
+    <button class="userButton" (click)="toggleDropdown()">
+        @if (user()) {
+        <div class="avatarSmall">{{ user()!.username[0].toUpperCase() }}</div>
+        } @else {
+        <div class="avatarPlaceholder">👤</div>
+        }
+    </button>
+
+    @if (isOpen()) {
+    <div class="dropdown">
+        @if (user()) {
+        <div class="menu">
+            <div class="userInfo">
+                <p class="userName">{{ user()!.username }}</p>
+            </div>
+            <button (click)="handleLogoutClick()" class="menuItem">Cerrar Sesión</button>
+        </div>
+        } @else {
+        <div class="menu">
+            <p class="menuTitle">Cuenta</p>
+            <button (click)="navigateToLogin()" class="menuItem">Iniciar Sesión</button>
+            <button (click)="navigateToRegister()" class="menuItem">Registrarse</button>
+        </div>
+        }
+    </div>
+    }
+</div>

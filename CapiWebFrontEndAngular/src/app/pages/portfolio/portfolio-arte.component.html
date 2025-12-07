@@ -1,0 +1,167 @@
+<div class="portfolio-container">
+    <div class="grid-background">
+        <app-vice-city-background />
+    </div>
+
+    <div class="container">
+        <header class="header">
+            <img src="/assets/Capitan-Andalucia_logoArt.png" alt="Logo" />
+        </header>
+
+        <nav class="menu-nav">
+            <button [class.active]="activeSection === 'gallery'" (click)="handleSectionChange('gallery')">
+                Galería
+            </button>
+            <button [class.active]="activeSection === 'about'" (click)="handleSectionChange('about')">
+                Sobre Mí
+            </button>
+            <button [class.active]="activeSection === 'contact'" (click)="handleSectionChange('contact')">
+                Contacto
+            </button>
+        </nav>
+
+        <!-- Botón para crear nuevo dibujo - solo para staff -->
+        @if (activeSection === 'gallery' && isStaff) {
+        <div class="add-button-container">
+            <button class="add-button" (click)="openModal()">
+                <span class="plus-icon">+</span>
+                <span>Nuevo Dibujo</span>
+            </button>
+        </div>
+        }
+
+        <!-- Gallery Section -->
+        <section class="art-section" [class.active]="activeSection === 'gallery'">
+            <div class="gallery">
+                @for (item of drawings; track trackByDrawingId($index, item); let idx = $index) {
+                <div class="art-card show" [style.animation-delay]="(50 * idx) + 'ms'">
+                    <img [src]="item.imagen" [alt]="item.descripcion || 'Dibujo'" (load)="onImageLoad($event)"
+                        (click)="openLightbox(item.imagen)" />
+
+                    <!-- Badge de pin visible para todos -->
+                    @if (item.pin) {
+                    <div class="pin-badge">
+                        📌
+                    </div>
+                    }
+
+                    <!-- Botones de acción solo para staff -->
+                    @if (isStaff) {
+                    <div class="card-actions">
+                        <button class="edit-btn" (click)="openModal(item); $event.stopPropagation()" title="Editar">
+                            ✏️
+                        </button>
+                        <button class="delete-btn" (click)="handleDelete(item.id); $event.stopPropagation()"
+                            title="Eliminar">
+                            🗑️
+                        </button>
+                        <button class="pin-btn" [class.active]="item.pin"
+                            (click)="handleTogglePin(item.id, item.pin); $event.stopPropagation()"
+                            [title]="item.pin ? 'Desfijar' : 'Fijar'">
+                            📌
+                        </button>
+                    </div>
+                    }
+                </div>
+                }
+            </div>
+        </section>
+
+        <!-- About Section -->
+        <section class="art-section" [class.active]="activeSection === 'about'">
+            <div class="about-content">
+                <h2>SOBRE MI</h2>
+                <p>¡Hola! Me llamo Capitan Andalucia y soy un artista ocasional. Mi trabajo explora varios temas,
+                    mezclando realidad con ficción, colocando a personajes ficticios en escenarios realistas.</p>
+                <p>Siempre he estado dibujando y es un pasatiempo que disfruto mucho pero no es ni el único hobbie que
+                    tengo ni vivo de ello. He desarrollado un estilo único que fusiona degradados y sombras realistas
+                    con trazos sencillos. Mi inspiración viene de Kairoburogu, Suoiresnu y el estilo artístico de Kohei
+                    Horikoshi.</p>
+                <p>Cada obra me lleva cierto tiempo, ya que lo dejo macerar un poco para ver partes que seguramente con
+                    el tiempo me desagraden. En cada obra busco expresar y representar alguna idea, experimentar con
+                    técnicas y medios que me resulten interesantes. Por eso en cada dibujo el estilo varía en ciertos
+                    puntos</p>
+            </div>
+        </section>
+
+        <!-- Contact Section -->
+        <section class="art-section" [class.active]="activeSection === 'contact'">
+            <div class="contact-content">
+                <h2>CONECTA CONMIGO</h2>
+                <p class="contact-intro">
+                    Aquí tienes mis redes sociales:
+                </p>
+                <div class="social-links">
+                    <a href="https://instagram.com/capitan_andalucia" target="_blank"
+                        rel="noopener noreferrer">INSTAGRAM</a>
+                    <a href="https://twitter.com/Capi_Andalucia" target="_blank" rel="noopener noreferrer">TWITTER</a>
+                </div>
+            </div>
+        </section>
+
+        <footer class="footer">
+            <p>&copy; 2025 CapitanAndalucia - Todos los derechos reservados</p>
+        </footer>
+    </div>
+
+    <!-- Lightbox -->
+    <div class="lightbox" [class.open]="lightboxOpen" (click)="handleLightboxClick($event)">
+        <button class="lightbox-close" (click)="closeLightbox()">
+            ✕ Cerrar
+        </button>
+        @if (lightboxImage) {
+        <img [src]="lightboxImage" alt="Imagen ampliada" />
+        }
+    </div>
+
+    <!-- Modal para crear/editar dibujo -->
+    @if (modalOpen) {
+    <div class="modal-backdrop" (click)="closeModal()">
+        <div class="modal-content" (click)="$event.stopPropagation()">
+            <h2>{{ editingDrawing ? 'Editar Dibujo' : 'Nuevo Dibujo' }}</h2>
+            <form class="modal-form" (submit)="handleSubmit($event)">
+                <div class="form-group">
+                    <label for="descripcion">Descripción</label>
+                    <textarea id="descripcion" name="descripcion" [(ngModel)]="formData.descripcion" required rows="4"
+                        placeholder="Describe tu dibujo..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>Imagen</label>
+                    @if (imagePreview) {
+                    <div class="image-preview-container" (click)="triggerFileInput()">
+                        <img [src]="imagePreview" alt="Vista previa" class="image-preview" />
+                        <div class="image-overlay">
+                            <span class="edit-icon">✏️</span>
+                            <span>Click para cambiar</span>
+                        </div>
+                    </div>
+                    } @else {
+                    <div class="image-upload-placeholder" (click)="triggerFileInput()">
+                        <span class="upload-icon">📷</span>
+                        <span>Click para seleccionar imagen</span>
+                    </div>
+                    }
+                    <input #fileInput id="imagen" type="file" name="imagen" accept="image/*"
+                        (change)="onFileChange($event)" [required]="!editingDrawing" style="display: none" />
+                </div>
+
+                <div class="form-group">
+                    <label for="palabras_clave">Palabras Clave</label>
+                    <input id="palabras_clave" type="text" name="palabras_clave" [(ngModel)]="formData.palabras_clave"
+                        placeholder="arte, digital, retrato..." />
+                </div>
+
+                <div class="modal-actions">
+                    <button type="submit" class="submit-btn">
+                        {{ editingDrawing ? 'Guardar Cambios' : 'Crear Dibujo' }}
+                    </button>
+                    <button type="button" class="cancel-btn" (click)="closeModal()">
+                        Cancelar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    }
+</div>

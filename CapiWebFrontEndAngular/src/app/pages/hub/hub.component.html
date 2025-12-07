@@ -1,0 +1,122 @@
+<div class="hub-container" #container [@containerAnimation]>
+  <div class="app-container">
+    <!-- MOBILE VIEW -->
+    <div class="mobile-status-bar">
+      <!-- Hidden as per CSS -->
+    </div>
+
+    <div class="mobile-header">
+      <div class="header-top">
+        <div>
+          <div class="mobile-time">{{ currentTime() }}</div>
+          <div class="mobile-date">{{ currentDate() }}</div>
+        </div>
+        <div class="user-section mobile">
+          @if (user()) {
+          <div class="user-avatar" [class.active]="showUserMenu()" (click)="toggleUserMenu()">
+            {{ user().username.substring(0, 2).toUpperCase() }}
+            @if (showUserMenu()) {
+            <div class="user-dropdown" (click)="$event.stopPropagation()">
+              <div class="dropdown-item" (click)="logout()">Cerrar sesión</div>
+            </div>
+            }
+          </div>
+          } @else {
+          <div class="user-avatar guest" [class.active]="showUserMenu()" (click)="toggleUserMenu()">
+            👤
+            @if (showUserMenu()) {
+            <div class="user-dropdown" (click)="$event.stopPropagation()">
+              <div class="dropdown-item" (click)="navigateToLogin()">Iniciar sesión</div>
+              <div class="dropdown-item" (click)="navigateToRegister()">Registrarse</div>
+            </div>
+            }
+          </div>
+          }
+        </div>
+      </div>
+      <div class="mobile-search">
+        <span class="mobile-search-icon">🔍</span>
+        <input type="text" placeholder="Buscar apps" [value]="searchTerm()"
+          (input)="updateSearch($any($event.target).value)">
+      </div>
+    </div>
+
+    <div class="mobile-apps">
+      <div class="mobile-page">
+        <div class="mobile-grid">
+          @for (app of filteredApps(); track app.route) {
+          <div class="mobile-app" (click)="navigateTo(app.route)">
+            <div class="mobile-app-icon">
+              {{ app.icon }}
+            </div>
+            <div class="mobile-app-name">{{ app.title }}</div>
+          </div>
+          }
+        </div>
+      </div>
+    </div>
+
+    <div class="mobile-dock">
+      <!-- Hidden as per CSS -->
+    </div>
+
+    <!-- DESKTOP VIEW -->
+    <div class="desktop-layout">
+      <nav class="nav-bar">
+        <div class="brand">
+          <!-- <div class="brand-icon">A</div> -->
+          <div class="brand-name">HUB</div>
+        </div>
+        <div class="user-section">
+          <div class="search-box">
+            <span class="search-icon">🔍</span>
+            <input type="text" class="search-input" placeholder="Buscar aplicaciones..." [value]="searchTerm()"
+              (input)="updateSearch($any($event.target).value)">
+          </div>
+
+          @if (user()) {
+          <div class="user-avatar" [class.active]="showUserMenu()" (click)="toggleUserMenu()">
+            {{ user().username.substring(0, 2).toUpperCase() }}
+            @if (showUserMenu()) {
+            <div class="user-dropdown" (click)="$event.stopPropagation()">
+              <div class="dropdown-item" (click)="logout()">Cerrar sesión</div>
+            </div>
+            }
+          </div>
+          } @else {
+          <div class="user-avatar guest" [class.active]="showUserMenu()" (click)="toggleUserMenu()">
+            👤
+            @if (showUserMenu()) {
+            <div class="user-dropdown" (click)="$event.stopPropagation()">
+              <div class="dropdown-item" (click)="navigateToLogin()">Iniciar sesión</div>
+              <div class="dropdown-item" (click)="navigateToRegister()">Registrarse</div>
+            </div>
+            }
+          </div>
+          }
+        </div>
+      </nav>
+
+      <header class="main-header">
+        <h1 class="greeting">{{ greeting() }}</h1>
+        <p class="subheading">Aquí están tus aplicaciones disponibles</p>
+      </header>
+
+      <section class="category-section">
+        <div class="apps-grid">
+          @for (app of filteredApps(); track app.route) {
+          <div class="app-item" (click)="navigateTo(app.route)">
+            <div class="app-content">
+              <div class="app-icon-wrapper">{{ app.icon }}</div>
+              <div class="app-info">
+                <h3>{{ app.title }}</h3>
+                <p>{{ app.description }}</p>
+              </div>
+            </div>
+          </div>
+          }
+        </div>
+      </section>
+    </div>
+  </div>
+</div>

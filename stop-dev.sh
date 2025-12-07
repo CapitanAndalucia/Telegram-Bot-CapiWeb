@@ -29,6 +29,15 @@ else
     echo "⚠️  React no está corriendo"
 fi
 
+# Detener Angular (puerto 4200)
+if lsof -Pi :4200 -sTCP:LISTEN -t >/dev/null ; then
+    echo -e "${GREEN}🅰️  Deteniendo Angular Frontend...${NC}"
+    kill $(lsof -t -i:4200) 2>/dev/null
+    echo "✅ Angular detenido"
+else
+    echo "⚠️  Angular no está corriendo"
+fi
+
 # source CapiWebBackend/botTelegram/bin/activate # No es necesario para detener
 
 # Detener Docker Compose (desde la carpeta del backend)

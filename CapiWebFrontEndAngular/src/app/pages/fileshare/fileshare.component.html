@@ -1,0 +1,66 @@
+<div class="dashboardContainer">
+    <!-- Mobile Sidebar Overlay -->
+    @if (isSidebarOpen()) {
+    <div class="sidebarOverlay" (click)="closeSidebar()"></div>
+    }
+
+    <div class="sidebar" [class.open]="isSidebarOpen()">
+        <div class="header">
+            <h1>Centro de Archivos</h1>
+            <button class="closeSidebarBtn" (click)="closeSidebar()">✕</button>
+        </div>
+        @if (user()) {
+        <app-friend-list (selectFriend)="handleSelectFriend($event)"></app-friend-list>
+        }
+    </div>
+
+    <div class="mainContent">
+        <header class="header" style="justify-content: space-between">
+            <button class="menuBtn" (click)="toggleSidebar()">☰</button>
+
+            <div style="display: flex; align-items: center; gap: 1rem; margin-left: auto">
+                @if (user()) {
+                <app-notification-center></app-notification-center>
+                }
+                <app-user-icon [user]="user()" (logout)="handleLogout()"></app-user-icon>
+            </div>
+        </header>
+
+        @if (loading()) {
+        <div class="dashboardContainer" style="display: flex; justify-content: center; align-items: center">
+            <div class="spinner">Cargando...</div>
+        </div>
+        } @else if (!user()) {
+        <div class="loginPrompt">
+            <h2>Inicia sesión para compartir archivos</h2>
+            <p>Necesitas una cuenta para enviar y recibir archivos con tus amigos.</p>
+        </div>
+        } @else {
+        <div class="tabs">
+            <button class="tab" [class.active]="activeTab() === 'files'" (click)="setActiveTab('files')">
+                Mis Archivos
+                @if (unreadCount() > 0) {
+                <span class="tabNotificationDot"></span>
+                }
+            </button>
+            <button class="tab" [class.active]="activeTab() === 'upload'" (click)="setActiveTab('upload')">
+                Enviar Archivo
+            </button>
+        </div>
+
+        <div class="contentArea">
+            <div class="tabContent">
+                @if (activeTab() === 'files') {
+                <app-incoming-files [user]="user()" [refreshTrigger]="refreshTrigger()"
+                    (unreadCountChange)="onUnreadCountChange($event)"></app-incoming-files>
+                }
+                @if (activeTab() === 'upload') {
+                <app-file-upload [user]="user()" [selectedRecipient]="selectedRecipient()"
+                    (uploadSuccess)="handleUploadSuccess()"
+                    (recipientChange)="onRecipientChange($event)"></app-file-upload>
+                }
+            </div>
+        </div>
+        }
+    </div>
+</div>
