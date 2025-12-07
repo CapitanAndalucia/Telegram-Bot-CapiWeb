@@ -48,10 +48,18 @@ export class HubComponent implements AfterViewInit, OnDestroy {
 
     filteredApps = computed(() => {
         const term = this.searchTerm().toLowerCase();
-        return this.apps.filter(app =>
-            app.title.toLowerCase().includes(term) ||
-            app.description.toLowerCase().includes(term)
-        );
+        const userData = this.user();
+        const isStaff = userData?.is_staff || false;
+
+        return this.apps.filter(app => {
+            // Filter out Admin and API for non-staff users
+            if ((app.route === '/admin' || app.route === '/api') && !isStaff) {
+                return false;
+            }
+
+            return app.title.toLowerCase().includes(term) ||
+                app.description.toLowerCase().includes(term);
+        });
     });
 
     apps = [
@@ -78,13 +86,19 @@ export class HubComponent implements AfterViewInit, OnDestroy {
             description: 'Intercambio seguro de archivos',
             icon: '📁',
             route: '/fileshare'
+        },
+        {
+            title: 'Django Admin',
+            description: 'Panel de administración del backend',
+            icon: '⚙️',
+            route: '/admin'
+        },
+        {
+            title: 'Django API',
+            description: 'Documentación y endpoints de la API',
+            icon: '🔌',
+            route: '/api'
         }
-        // {
-        //     title: 'API Docs',
-        //     description: 'Documentación de la API del sistema',
-        //     icon: '🔌',
-        //     route: '/api'
-        // }
     ];
 
     updateSearch(term: string) {
@@ -127,7 +141,13 @@ export class HubComponent implements AfterViewInit, OnDestroy {
     }
 
     navigateTo(route: string) {
-        this.router.navigate([route]);
+        if (route.startsWith('/admin')) {
+            window.location.href = route;
+        } else if (route.startsWith('/api')) {
+            window.open(route, '_blank');
+        } else {
+            this.router.navigate([route]);
+        }
     }
 
     toggleUserMenu() {

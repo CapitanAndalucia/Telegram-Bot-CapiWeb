@@ -174,9 +174,23 @@ def logout_view(request):
     except Exception:
         pass
 
-    # Eliminar cookies
-    response.delete_cookie('access_token')
-    response.delete_cookie('refresh_token')
+    # Eliminar cookies JWT
+    response.delete_cookie(
+        'access_token',
+        samesite=settings.SIMPLE_JWT['AUTH_COOKIE_SAMESITE'],
+    )
+    response.delete_cookie(
+        'refresh_token',
+        samesite=settings.SIMPLE_JWT['AUTH_COOKIE_SAMESITE'],
+    )
+
+    # Eliminar cookies de sesión de Django (Admin)
+    response.delete_cookie('sessionid')
+    response.delete_cookie('csrftoken')
+    
+    # Cerrar sesión de Django (limpia la sesión del lado del servidor)
+    from django.contrib.auth import logout
+    logout(request)
     
     return response
 

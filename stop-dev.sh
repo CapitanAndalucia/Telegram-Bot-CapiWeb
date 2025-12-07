@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Script para detener el entorno de desarrollo
-# Docker Compose + Django Backend + React Frontend
+# Docker Compose + Django Backend + Angular Frontend
 
 echo "🛑 Deteniendo entorno de desarrollo..."
 
@@ -18,15 +18,6 @@ if lsof -Pi :8000 -sTCP:LISTEN -t >/dev/null ; then
     echo "✅ Django detenido"
 else
     echo "⚠️  Django no está corriendo"
-fi
-
-# Detener React (puerto 5173)
-if lsof -Pi :5173 -sTCP:LISTEN -t >/dev/null ; then
-    echo -e "${GREEN}⚛️  Deteniendo React Frontend...${NC}"
-    kill $(lsof -t -i:5173) 2>/dev/null
-    echo "✅ React detenido"
-else
-    echo "⚠️  React no está corriendo"
 fi
 
 # Detener Angular (puerto 4200)

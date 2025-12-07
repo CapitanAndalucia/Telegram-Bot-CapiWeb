@@ -47,6 +47,31 @@ Asistente personal inteligente.
 
 ---
 
+## 🌐 Configuración de Red y Proxy (Nuevo)
+
+Para simplificar el desarrollo y evitar problemas de CORS, el sistema utiliza un **Proxy Inverso** configurado en Angular.
+
+### Unificación de Puertos
+Aunque internamente corren dos servidores:
+-   **Angular:** `http://localhost:4200`
+-   **Django:** `http://localhost:8000`
+
+**Todo el tráfico se canaliza a través del puerto 4200.**
+-   Las peticiones a `/api/...`, `/admin/...` y `/static/...` son interceptadas por Angular y reenvíadas transparentemente a Django.
+-   Esto permite que la aplicación se comporte como un monolito en un solo dominio, facilitando la gestión de cookies y autenticación.
+
+### Integración en el Hub
+El Hub central detecta el rol del usuario:
+-   **Usuarios Staff/Superusuarios:** Ven accesos directos al **Panel de Administración** y a la **API Root** de Django directamente en el Hub.
+-   **Usuarios Normales:** Estos accesos permanecen ocultos.
+
+### Gestión de Sesiones
+El sistema maneja una doble capa de limpieza al cerrar sesión:
+1.  **JWT:** Elimina las cookies `access_token` y `refresh_token`.
+2.  **Django Session:** Elimina las cookies `sessionid` y `csrftoken` y cierra la sesión del lado del servidor, asegurando que al salir del Hub también se cierre el acceso al Admin.
+
+---
+
 ## 🚀 Instalación y Despliegue
 
 Para poner en marcha el proyecto desde cero, consulta la guía detallada:

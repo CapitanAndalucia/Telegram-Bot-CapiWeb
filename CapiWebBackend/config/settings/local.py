@@ -23,5 +23,17 @@ SECURE_HSTS_SECONDS = 0
 SECURE_HSTS_INCLUDE_SUBDOMAINS = False
 SECURE_HSTS_PRELOAD = False
 
+# CSRF Trusted Origins for Angular Dev Server
+CSRF_TRUSTED_ORIGINS = [
+    'http://localhost:4200',
+    'http://127.0.0.1:4200',
+]
+
 # JWT Configuration para desarrollo local
 SIMPLE_JWT['AUTH_COOKIE_SECURE'] = False
+
+# CORS Configuration for Angular Dev Server
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:4200",
+    "http://127.0.0.1:4200",
+]
