@@ -60,7 +60,8 @@ export class PortfolioPersonalComponent implements OnInit {
                         descripcion: p.descripcion,
                         imagen: p.imagen,
                         tecnologias: p.tecnologias,
-                        categoria: p.categoria || ''
+                        categoria: p.categoria || '',
+                        link: p.enlace
                     }));
 
                 } else if (data && typeof data === 'object' && 'results' in data) {
@@ -126,6 +127,12 @@ export class PortfolioPersonalComponent implements OnInit {
             this.setActiveSection(sectionId);
             this.isMenuOpen.set(false);
             document.body.style.overflow = '';
+        }
+    }
+
+    openLink(url?: string): void {
+        if (url) {
+            window.open(url, '_blank');
         }
     }
 }

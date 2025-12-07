@@ -50,11 +50,11 @@
     <section id="hero" class="hero">
         <div class="hero-content">
             <div class="hero-text-wrapper">
-                <span class="hero-intro">HOLA, SOY</span>
+                <span class="hero-intro">HOLA, SOY FERNANDO</span>
                 <h1 class="hero-title">
-                    <div class="line">FULL STACK</div>
-                    <div class="line outline">DEVELOPER</div>
-                    <div class="line">& DESIGNER<span class="accent">.</span></div>
+                    <div class="line">FULL</div>
+                    <div class="line">STACK</div>
+                    <div class="line">DEVELOPER</div>
                 </h1>
             </div>
 
@@ -113,7 +113,7 @@
         <!-- Projects Grid -->
         <div class="projects-grid">
             @for (project of projects; track project.id) {
-            <div class="project-card">
+            <div class="project-card" (click)="openLink(project.link)">
                 <div class="card-inner">
                     <div class="project-image-container">
                         <img [src]="project.imagen" [alt]="project.titulo" class="project-image">
@@ -153,12 +153,13 @@
             </p>
             <div class="contact-actions">
                 <a href="mailto:contact@example.com" class="email-link">
-                    contact@example.com
+                    fernandodelarosa005@gmail.com
                     <span class="underline"></span>
                 </a>
                 <div class="social-links">
-                    <a href="https://github.com" target="_blank" class="social-link">GITHUB</a>
-                    <a href="https://linkedin.com" target="_blank" class="social-link">LINKEDIN</a>
+                    <a href="https://github.com/CapitanAndalucia" target="_blank" class="social-link">GITHUB</a>
+                    <a href="https://www.linkedin.com/in/fernando-de-la-rosa-moreno-2a549223b/" target="_blank"
+                        class="social-link">LINKEDIN</a>
                 </div>
             </div>
         </div>

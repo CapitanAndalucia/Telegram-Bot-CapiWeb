@@ -226,7 +226,7 @@ body {
 
 /* Hero Section */
 .hero {
-    min-height: 100vh;
+    /* min-height: 100vh; */
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -253,7 +253,7 @@ body {
 
 .hero-title {
     font-family: var(--font-display);
-    font-size: clamp(3.5rem, 11vw, 10rem);
+    font-size: clamp(3rem, 9vw, 9rem);
     font-weight: 800;
     line-height: 0.85;
     text-transform: uppercase;
@@ -425,6 +425,7 @@ body {
     0% {
         transform: translateX(0);
     }
+
     100% {
         transform: translateX(-50%);
     }
@@ -432,7 +433,7 @@ body {
 
 /* Portfolio Section */
 .portfolio-section {
-    padding: var(--spacing-xl) 2rem;
+    padding: 0 2rem;
     max-width: 1600px;
     margin: 0 auto;
     margin-bottom: 100px;
@@ -577,6 +578,7 @@ body {
     margin-bottom: 1rem;
     border-bottom: 1px solid var(--border-color);
     padding-bottom: 1rem;
+    align-items: center;
 }
 
 .project-title {
@@ -621,7 +623,7 @@ body {
 
 /* Contact Section */
 .contact-section {
-    padding: var(--spacing-xl) 2rem;
+    padding: 0 2rem;
     background: #000;
     padding-top: 100px;
 }
@@ -634,14 +636,14 @@ body {
 .contact-description {
     font-size: 1.5rem;
     color: var(--text-dim);
-    margin-bottom: 4rem;
-    margin-top: 100px;
+    /* margin-bottom: 4rem;
+    margin-top: 100px; */
     max-width: 600px;
 }
 
 .email-link {
     font-family: var(--font-display);
-    font-size: clamp(2rem, 6vw, 5rem);
+    font-size: clamp(1.5rem, 4vw, 4rem);
     font-weight: 800;
     color: var(--text-color);
     text-decoration: none;
@@ -738,7 +740,7 @@ body {
     }
 
     .hero-title {
-        font-size: clamp(3rem, 9vw, 7rem);
+        font-size: clamp(2.5rem, 8vw, 6rem);
     }
 
     .hero-description {
@@ -813,7 +815,7 @@ body {
     .hero {
         padding: 0 1rem;
         padding-top: 5rem;
-        min-height: 90vh;
+        /* min-height: 90vh; */
         justify-content: center;
     }
 
@@ -823,8 +825,8 @@ body {
     }
 
     .hero-title {
-        font-size: clamp(2.5rem, 12vw, 4.5rem);
-        margin-bottom: 1.5rem;
+        font-size: clamp(2rem, 10vw, 4rem);
+        margin-bottom: 0.5rem;
         line-height: 0.9;
     }
 
@@ -832,12 +834,12 @@ body {
         text-align: left;
         margin-left: 0;
         font-size: clamp(0.9rem, 3vw, 1.1rem);
-        margin-bottom: 2rem;
+        margin-bottom: 1rem;
         max-width: 100%;
     }
 
     .hero-buttons {
-        justify-content: flex-start;
+        display: none;
     }
 
     .btn {
@@ -866,8 +868,8 @@ body {
     }
 
     .section-header {
-        flex-direction: column;
-        align-items: flex-start;
+        flex-direction: row;
+        align-items: center;
         gap: 1rem;
         margin-bottom: 2.5rem;
         padding-bottom: 1.5rem;
@@ -987,7 +989,7 @@ body {
     .hero {
         padding: 0 0.75rem;
         padding-top: 4.5rem;
-        min-height: 85vh;
+        /* min-height: 85vh; */
     }
 
     .hero-intro {
@@ -996,14 +998,14 @@ body {
     }
 
     .hero-title {
-        font-size: clamp(2rem, 14vw, 3rem);
-        margin-bottom: 1.25rem;
+        font-size: clamp(1.5rem, 8.5vw, 2.5rem);
+        margin-bottom: 0.5rem;
     }
 
     .hero-description {
         font-size: 0.875rem;
         line-height: 1.5;
-        margin-bottom: 1.75rem;
+        margin-bottom: 1rem;
     }
 
     .btn {
@@ -1015,7 +1017,7 @@ body {
 
     .marquee-container {
         padding: 2rem 0;
-        margin: 2rem 0;
+        margin: 1rem 0;
         transform: rotate(-0.5deg) scale(1.02);
     }
 
@@ -1025,7 +1027,7 @@ body {
     }
 
     .portfolio-section {
-        padding: 2.5rem 0.75rem;
+        padding: 2.5rem 1.5rem;
     }
 
     .section-header {
@@ -1038,7 +1040,7 @@ body {
     }
 
     .section-title {
-        font-size: clamp(1.75rem, 9vw, 2.25rem);
+        font-size: clamp(1.25rem, 6vw, 1.75rem);
     }
 
     .filter-container {
@@ -1063,7 +1065,7 @@ body {
     }
 
     .contact-section {
-        padding: 2.5rem 0.75rem;
+        padding: 2.5rem 1.5rem;
         padding-top: 40px;
     }
 
@@ -1123,7 +1125,7 @@ body {
 /* Orientación horizontal en móviles */
 @media (max-width: 768px) and (orientation: landscape) {
     .hero {
-        min-height: 100vh;
+        /* min-height: 100vh; */
         padding-top: 4rem;
     }
 

@@ -48,6 +48,7 @@ class Proyecto(models.Model):
     titulo = models.CharField(max_length=200)
     descripcion = models.TextField()
     imagen = models.FileField(upload_to='proyectos/')
+    enlace = models.URLField(blank=True, null=True)
     tecnologias = models.ManyToManyField(Tecnologia, related_name='proyectos')
 
     def __str__(self):
