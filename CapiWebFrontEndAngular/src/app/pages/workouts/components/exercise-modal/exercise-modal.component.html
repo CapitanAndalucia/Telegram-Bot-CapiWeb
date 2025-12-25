@@ -1,0 +1,79 @@
+<div class="modal">
+  <div class="panel">
+    <button class="close" (click)="close.emit()">✕</button>
+
+    <div class="media" *ngIf="exercise.exercise_detail.media.length">
+      <ng-container *ngIf="exercise.exercise_detail.media[activeMediaIndex()] as media">
+        <img
+          *ngIf="media.media_type === 'image'"
+          [src]="media.file"
+          alt="imagen ejercicio"
+        />
+        <video
+          *ngIf="media.media_type === 'video'"
+          controls
+          playsinline
+          [src]="media.file"
+          type="video/mp4"
+        ></video>
+      </ng-container>
+      <div class="media-nav" *ngIf="exercise.exercise_detail.media.length > 1">
+        <button (click)="changeMedia(-1)">‹</button>
+        <span>{{ activeMediaIndex() + 1 }} / {{ exercise.exercise_detail.media.length }}</span>
+        <button (click)="changeMedia(1)">›</button>
+      </div>
+    </div>
+
+    <div class="info">
+      <p class="eyebrow" *ngIf="exercise.day_label">{{ exercise.day_label }}</p>
+      <h2>{{ exercise.exercise_detail.name }}</h2>
+      <p class="muted" *ngIf="exercise.exercise_detail.description">
+        {{ exercise.exercise_detail.description }}
+      </p>
+      <div class="pill-row">
+        <span>{{ exercise.target_sets }} x {{ exercise.target_reps }} reps</span>
+        <span>Peso objetivo: {{ exercise.target_weight }} kg</span>
+        <span>Descanso: {{ exercise.rest_seconds }}s</span>
+      </div>
+    </div>
+
+    <div class="form">
+      <h3>Añadir serie</h3>
+      <div class="form-group">
+        <label>Reps</label>
+        <input type="number" [ngModel]="reps()" (ngModelChange)="reps.set($event)" min="1" />
+      </div>
+      <div class="form-group">
+        <label>Peso (kg)</label>
+        <input type="number" [ngModel]="weight()" (ngModelChange)="weight.set($event)" min="0" step="0.5" />
+      </div>
+      <div class="form-group">
+        <label>Nota (opcional)</label>
+        <input type="text" [ngModel]="note()" (ngModelChange)="note.set($event)" />
+      </div>
+      <div class="form-group">
+        <label>Media (opcional)</label>
+        <input type="file" (change)="onFileSelected($event)" accept="image/*,video/*" />
+      </div>
+      <button class="cta" (click)="addSet()" [disabled]="submitting()">
+        {{ submitting() ? 'Guardando...' : 'Añadir serie' }}
+      </button>
+    </div>
+
+    <div class="history" *ngIf="exercise.sets?.length">
+      <h3>Histórico</h3>
+      <div class="set-row" *ngFor="let set of exercise.sets">
+        <div>
+          <strong>{{ set.reps }} reps</strong> · {{ set.weight }} kg
+          <p class="muted">{{ set.performed_at | date: 'short' }}</p>
+        </div>
+        <span *ngIf="set.media" class="badge">media</span>
+      </div>
+    </div>
+
+    <div class="chart" *ngIf="progress && progress.length > 0">
+      <h3>Progreso</h3>
+      <canvas baseChart [data]="chartConfig().data" [type]="'line'" [options]="chartConfig().options"></canvas>
+    </div>
+  </div>
+</div>

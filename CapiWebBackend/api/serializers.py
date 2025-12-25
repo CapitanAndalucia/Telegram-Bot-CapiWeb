@@ -53,16 +53,32 @@ class UserTelegramSerializer(serializers.ModelSerializer):
         allow_null=True
     )
     password = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    old_password = serializers.CharField(write_only=True, required=False, allow_blank=True)
     
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'telegram_id', 'password']
-        read_only_fields = ['id']
+        fields = ['id', 'username', 'email', 'telegram_id', 'password', 'old_password']
+        read_only_fields = ['id', 'old_password']
+    
+    def validate(self, attrs):
+        password = attrs.get('password')
+        old_password = attrs.get('old_password')
+
+        # Si se quiere cambiar la contraseña, la antigua es obligatoria
+        if password:
+            if not old_password:
+                raise serializers.ValidationError("Debes indicar tu contraseña actual.")
+            user = self.instance
+            if user and not user.check_password(old_password):
+                raise serializers.ValidationError("La contraseña actual no es correcta.")
+
+        return super().validate(attrs)
     
     def update(self, instance, validated_data):
         # Extraer datos del perfil de Telegram si existen
         telegram_data = validated_data.pop('telegram_profile', {})
         password = validated_data.pop('password', None)
+        validated_data.pop('old_password', None)
         
         # Actualizar usuario
         instance.username = validated_data.get('username', instance.username)

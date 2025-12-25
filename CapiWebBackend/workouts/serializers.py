@@ -1,0 +1,167 @@
+from rest_framework import serializers
+from .models import Exercise, ExerciseMedia, Routine, RoutineDay, RoutineExercise, ExerciseSet
+
+
+class ExerciseMediaSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ExerciseMedia
+        fields = ["id", "media_type", "file", "order"]
+
+
+class ExerciseSerializer(serializers.ModelSerializer):
+    media = ExerciseMediaSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Exercise
+        fields = [
+            "id",
+            "name",
+            "description",
+            "default_sets",
+            "default_reps",
+            "default_weight",
+            "media",
+        ]
+
+
+class RoutineExerciseSerializer(serializers.ModelSerializer):
+    exercise_detail = ExerciseSerializer(source="exercise", read_only=True)
+
+    class Meta:
+        model = RoutineExercise
+        fields = [
+            "id",
+            "exercise",
+            "exercise_detail",
+            "order",
+            "target_sets",
+            "target_reps",
+            "target_weight",
+            "rest_seconds",
+            "note",
+        ]
+
+
+class RoutineDaySerializer(serializers.ModelSerializer):
+    routine_exercises = RoutineExerciseSerializer(many=True)
+    day_label = serializers.CharField(source="get_day_of_week_display", read_only=True)
+
+    class Meta:
+        model = RoutineDay
+        fields = [
+            "id",
+            "day_of_week",
+            "day_label",
+            "title",
+            "order",
+            "is_completed",
+            "routine_exercises",
+        ]
+
+    def create(self, validated_data):
+        exercises_data = validated_data.pop("routine_exercises", [])
+        day = RoutineDay.objects.create(**validated_data)
+        for idx, exercise_data in enumerate(exercises_data):
+            RoutineExercise.objects.create(
+                routine_day=day,
+                order=exercise_data.get("order", idx),
+                **{k: v for k, v in exercise_data.items() if k != "order"},
+            )
+        return day
+
+
+class RoutineSerializer(serializers.ModelSerializer):
+    days = RoutineDaySerializer(many=True, required=False)
+
+    class Meta:
+        model = Routine
+        fields = ["id", "title", "goal", "created_at", "updated_at", "days"]
+        read_only_fields = ["created_at", "updated_at"]
+
+    def create(self, validated_data):
+        days_data = validated_data.pop("days", [])
+        routine = Routine.objects.create(**validated_data)
+        for idx, day_data in enumerate(days_data):
+            exercises = day_data.pop("routine_exercises", [])
+            day = RoutineDay.objects.create(
+                routine=routine,
+                order=day_data.get("order", idx),
+                **{k: v for k, v in day_data.items() if k != "order"},
+            )
+            for ex_idx, exercise_data in enumerate(exercises):
+                RoutineExercise.objects.create(
+                    routine_day=day,
+                    order=exercise_data.get("order", ex_idx),
+                    **{k: v for k, v in exercise_data.items() if k != "order"},
+                )
+        return routine
+
+    def update(self, instance, validated_data):
+        days_data = validated_data.pop("days", None)
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+
+        if days_data is not None:
+            instance.days.all().delete()
+            for idx, day_data in enumerate(days_data):
+                exercises = day_data.pop("routine_exercises", [])
+                day = RoutineDay.objects.create(
+                    routine=instance,
+                    order=day_data.get("order", idx),
+                    **{k: v for k, v in day_data.items() if k != "order"},
+                )
+                for ex_idx, exercise_data in enumerate(exercises):
+                    RoutineExercise.objects.create(
+                        routine_day=day,
+                        order=exercise_data.get("order", ex_idx),
+                        **{k: v for k, v in exercise_data.items() if k != "order"},
+                    )
+        return instance
+
+
+class ExerciseSetSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ExerciseSet
+        fields = [
+            "id",
+            "routine_exercise",
+            "reps",
+            "weight",
+            "note",
+            "media",
+            "performed_at",
+        ]
+        read_only_fields = ["performed_at"]
+
+    def create(self, validated_data):
+        user = self.context["request"].user
+        return ExerciseSet.objects.create(user=user, **validated_data)
+
+
+class RoutineExerciseDetailSerializer(serializers.ModelSerializer):
+    exercise_detail = ExerciseSerializer(source="exercise", read_only=True)
+    sets = ExerciseSetSerializer(many=True, read_only=True)
+    routine_id = serializers.IntegerField(source="routine_day.routine.id", read_only=True)
+    day_label = serializers.CharField(source="routine_day.get_day_of_week_display", read_only=True)
+
+    class Meta:
+        model = RoutineExercise
+        fields = [
+            "id",
+            "routine_id",
+            "day_label",
+            "exercise",
+            "exercise_detail",
+            "order",
+            "target_sets",
+            "target_reps",
+            "target_weight",
+            "rest_seconds",
+            "note",
+            "sets",
+        ]
+
+
+
+

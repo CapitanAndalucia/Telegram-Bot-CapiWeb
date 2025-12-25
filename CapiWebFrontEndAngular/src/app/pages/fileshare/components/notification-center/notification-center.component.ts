@@ -1,4 +1,4 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, signal, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ApiClientService } from '../../../../services/api-client.service';
 
@@ -20,13 +20,17 @@ interface FriendRequest {
     styleUrls: ['../../fileshare.component.css'],
 })
 export class NotificationCenterComponent implements OnInit {
+    accepted = output<void>();
+
     notifications = signal<Notification[]>([]);
     requests = signal<FriendRequest[]>([]);
     isOpen = signal(false);
 
     constructor(private apiClient: ApiClientService) { }
 
-    ngOnInit(): void { }
+    ngOnInit(): void {
+        void this.fetchData();
+    }
 
     async fetchData(): Promise<void> {
         try {
@@ -34,8 +38,18 @@ export class NotificationCenterComponent implements OnInit {
                 this.apiClient.listNotifications(),
                 this.apiClient.listFriendRequests(),
             ]);
-            this.notifications.set(notifsData);
-            this.requests.set(requestsData);
+
+            // Normalize paginated or flat array responses
+            const notifications = Array.isArray(notifsData)
+                ? notifsData
+                : (notifsData?.results && Array.isArray(notifsData.results) ? notifsData.results : []);
+
+            const requests = Array.isArray(requestsData)
+                ? requestsData
+                : (requestsData?.results && Array.isArray(requestsData.results) ? requestsData.results : []);
+
+            this.notifications.set(notifications);
+            this.requests.set(requests);
         } catch (error) {
             console.error('Error fetching notifications', error);
         }
@@ -51,6 +65,7 @@ export class NotificationCenterComponent implements OnInit {
     async handleAccept(id: number): Promise<void> {
         try {
             await this.apiClient.acceptFriendRequest(id);
+            this.accepted.emit();
             this.fetchData();
         } catch (error) {
             console.error('Error accepting request', error);
@@ -63,6 +78,23 @@ export class NotificationCenterComponent implements OnInit {
             this.fetchData();
         } catch (error) {
             console.error('Error rejecting request', error);
+        }
+    }
+
+    async markAllAsRead(): Promise<void> {
+        const unread = this.notifications().filter((n) => !n.is_read);
+        if (unread.length === 0) return;
+
+        try {
+            await Promise.all(unread.map((n) => this.apiClient.markNotificationRead(n.id)));
+            // Update local state instead of re-fetching everything
+            this.notifications.update((notifs) =>
+                notifs.map((n) => ({ ...n, is_read: true }))
+            );
+        } catch (error) {
+            console.error('Error marking notifications as read', error);
+            // Fallback to fetch
+            void this.fetchData();
         }
     }
 

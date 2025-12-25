@@ -9,11 +9,29 @@ def create_file_transfer_notification(sender, instance, created, **kwargs):
         # Suppress notification if sending to self
         if instance.sender == instance.recipient:
             return
-            
+
+        sender_username = instance.sender.username if instance.sender else "Alguien"
+
+        if instance.is_shared_copy and instance.folder:
+            folder_name = instance.folder.name
+            message = f"{sender_username} te ha compartido la carpeta \"{folder_name}\""
+
+            already_notified = Notification.objects.filter(
+                recipient=instance.recipient,
+                sender=instance.sender,
+                notification_type='file_received',
+                message=message
+            ).exists()
+
+            if already_notified:
+                return
+        else:
+            message = f"{sender_username} te ha compartido el archivo \"{instance.filename}\""
+
         Notification.objects.create(
             recipient=instance.recipient,
             sender=instance.sender,
-            message=f"Has recibido un archivo: {instance.filename}",
+            message=message,
             notification_type='file_received'
         )
 

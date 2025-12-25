@@ -9,20 +9,27 @@
 
     @if (isOpen()) {
     <div class="dropdown">
-        @if (user()) {
         <div class="menu">
+            @if (user()) {
             <div class="userInfo">
+                <span class="menuTitle">Sesión iniciada como</span>
                 <p class="userName">{{ user()!.username }}</p>
             </div>
-            <button (click)="handleLogoutClick()" class="menuItem">Cerrar Sesión</button>
+            <button (click)="handleLogoutClick()" class="menuItem">
+                <span class="icon">🚪</span> Cerrar Sesión
+            </button>
+            } @else {
+            <div class="userInfo">
+                <p class="userName">Cuenta</p>
+            </div>
+            <button (click)="navigateToLogin()" class="menuItem">
+                <span class="icon">🔑</span> Iniciar Sesión
+            </button>
+            <button (click)="navigateToRegister()" class="menuItem">
+                <span class="icon">📝</span> Registrarse
+            </button>
+            }
         </div>
-        } @else {
-        <div class="menu">
-            <p class="menuTitle">Cuenta</p>
-            <button (click)="navigateToLogin()" class="menuItem">Iniciar Sesión</button>
-            <button (click)="navigateToRegister()" class="menuItem">Registrarse</button>
-        </div>
-        }
     </div>
     }
 </div>

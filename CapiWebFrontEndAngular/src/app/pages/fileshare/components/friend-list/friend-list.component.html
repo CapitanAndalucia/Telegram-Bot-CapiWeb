@@ -33,7 +33,7 @@
         <li class="friendItem">
             <div class="friendInfo">
                 <div class="avatar">{{ friend.username[0].toUpperCase() }}</div>
-                <span>{{ friend.username }}</span>
+                <span [title]="friend.username">{{ friend.username }}</span>
             </div>
             <div class="friendActions">
                 <button class="selectBtn" (click)="handleSelectFriend(friend.username)"

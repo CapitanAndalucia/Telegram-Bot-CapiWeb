@@ -29,6 +29,15 @@ else
     echo "⚠️  Angular no está corriendo"
 fi
 
+# Detener Bot de Telegram
+if pgrep -f "TelegramBot/BotTelegram.py" >/dev/null ; then
+    echo -e "${GREEN}🤖 Deteniendo Bot de Telegram...${NC}"
+    pkill -f "TelegramBot/BotTelegram.py"
+    echo "✅ Bot detenido"
+else
+    echo "⚠️  Bot de Telegram no está corriendo"
+fi
+
 # source CapiWebBackend/botTelegram/bin/activate # No es necesario para detener
 
 # Detener Docker Compose (desde la carpeta del backend)

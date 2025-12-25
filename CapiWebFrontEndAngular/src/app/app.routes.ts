@@ -30,6 +30,12 @@ export const routes: Routes = [
         data: { animation: 'Fileshare' }
     },
     {
+        path: 'workouts',
+        loadComponent: () => import('./pages/workouts/workouts.component').then(m => m.WorkoutsComponent),
+        canActivate: [authGuard],
+        data: { animation: 'Workouts' }
+    },
+    {
         path: 'portafolio/portfolio_arte',
         loadComponent: () => import('./pages/portfolio/portfolio-arte.component').then(m => m.PortfolioArteComponent),
         data: { animation: 'PortfolioArte' }

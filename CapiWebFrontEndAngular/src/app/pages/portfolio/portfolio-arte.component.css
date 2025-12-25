@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Audiowide&display=swap');
+/* Fonts loaded via index.html to avoid per-component inlining */
 
 :host {
     display: block;

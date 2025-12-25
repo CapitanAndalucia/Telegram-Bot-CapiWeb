@@ -140,5 +140,6 @@ dmypy.json
 
 
 /botTelegram
+/log/
 
 CapiWebBackend/config/media/

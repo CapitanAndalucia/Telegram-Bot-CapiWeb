@@ -1,0 +1,25 @@
+<section class="week">
+  <h2>Semana</h2>
+  <div class="week-grid">
+    <div
+      class="day-card"
+      *ngFor="let dayNumber of daysOrder"
+      [class.empty]="!findDay(dayNumber)"
+      [class.done]="findDay(dayNumber)?.is_completed"
+      (click)="handleSelect(findDay(dayNumber))"
+    >
+      <div class="day-label">
+        {{ findDay(dayNumber)?.day_label || 'Sin asignar' }}
+        <span class="check" *ngIf="findDay(dayNumber)?.is_completed">✓</span>
+      </div>
+      <p class="title">{{ findDay(dayNumber)?.title || 'Añade ejercicios' }}</p>
+      <small *ngIf="findDay(dayNumber)?.routine_exercises">
+        {{ findDay(dayNumber)?.routine_exercises?.length || 0 }} ejercicios
+      </small>
+    </div>
+  </div>
+</section>
+
+
+
+

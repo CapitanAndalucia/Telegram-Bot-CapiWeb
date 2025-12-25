@@ -21,6 +21,7 @@ class Folder(models.Model):
 class FileTransfer(models.Model):
     sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_files')
     recipient = models.ForeignKey(User, on_delete=models.CASCADE, related_name='received_files')
+    is_shared_copy = models.BooleanField(default=False)
     folder = models.ForeignKey(Folder, null=True, blank=True, on_delete=models.SET_NULL, related_name='files')
     file = models.FileField(upload_to=file_upload_path)
     filename = models.CharField(max_length=255)

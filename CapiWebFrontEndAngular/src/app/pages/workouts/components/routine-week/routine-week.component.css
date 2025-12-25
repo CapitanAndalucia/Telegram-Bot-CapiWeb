@@ -1,0 +1,65 @@
+.week {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 1rem;
+  padding: 1rem;
+}
+
+.week h2 {
+  margin: 0 0 0.5rem 0;
+}
+
+.week-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 0.75rem;
+}
+
+.day-card {
+  background: #0b1224;
+  color: white;
+  border-radius: 0.9rem;
+  padding: 0.8rem;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: transform 0.1s ease, border-color 0.1s ease;
+}
+
+.day-card.empty {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.day-card:hover {
+  transform: translateY(-2px);
+  border-color: #22d3ee;
+}
+
+.day-card.done {
+  border-color: #10b981;
+  box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.2);
+}
+
+.day-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 600;
+}
+
+.title {
+  margin: 0.2rem 0 0.4rem 0;
+  font-size: 0.9rem;
+}
+
+.check {
+  background: #10b981;
+  color: white;
+  border-radius: 999px;
+  padding: 0.15rem 0.45rem;
+  font-size: 0.75rem;
+}
+
+
+
+

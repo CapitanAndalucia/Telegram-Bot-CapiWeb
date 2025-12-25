@@ -1,5 +1,5 @@
 /* Import Fonts */
-@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Manrope:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+/* Fonts loaded via index.html to avoid per-component inlining */
 
 :host {
     display: block;
@@ -661,4 +661,136 @@
     .mobile-dock {
         display: none;
     }
+}
+
+/* Modal edición usuario */
+.modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+    padding: 16px;
+    backdrop-filter: blur(3px);
+}
+
+.modal {
+    background: var(--midnight, #0f172a);
+    border: 1px solid var(--slate, #1f2937);
+    border-radius: 14px;
+    padding: 20px;
+    width: min(520px, 100%);
+    box-shadow: var(--shadow-lg);
+    color: var(--pearl, #e5e7eb);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.modal-header h3 {
+    margin: 0;
+    font-size: 18px;
+}
+
+.close-btn {
+    background: transparent;
+    border: none;
+    color: var(--smoke, #94a3b8);
+    font-size: 22px;
+    cursor: pointer;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 12px;
+}
+
+.form-group label {
+    color: var(--smoke, #94a3b8);
+    font-size: 14px;
+}
+
+.form-group input {
+    background: var(--charcoal, #111827);
+    border: 1px solid var(--slate, #1f2937);
+    border-radius: 10px;
+    padding: 10px 12px;
+    color: var(--pearl, #e5e7eb);
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 12px;
+}
+
+.modal-actions button {
+    padding: 10px 14px;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.modal-actions .secondary {
+    background: var(--slate, #1f2937);
+    color: var(--pearl, #e5e7eb);
+}
+
+.modal-actions .primary {
+    background: var(--crimson, #ef4444);
+    color: #fff;
+}
+
+.modal-actions .primary:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.alert {
+    padding: 10px 12px;
+    border-radius: 10px;
+    margin-bottom: 10px;
+    font-size: 14px;
+}
+
+.alert.error {
+    background: rgba(239, 68, 68, 0.12);
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    color: #fecdd3;
+}
+
+.alert.success {
+    background: rgba(34, 197, 94, 0.12);
+    border: 1px solid rgba(34, 197, 94, 0.4);
+    color: #bbf7d0;
+}
+
+.password-field {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.password-field input {
+    flex: 1;
+}
+
+.toggle-eye {
+    background: var(--slate, #1f2937);
+    color: var(--pearl, #e5e7eb);
+    border: 1px solid var(--slate, #1f2937);
+    border-radius: 8px;
+    padding: 8px 10px;
+    cursor: pointer;
+    font-size: 13px;
 }

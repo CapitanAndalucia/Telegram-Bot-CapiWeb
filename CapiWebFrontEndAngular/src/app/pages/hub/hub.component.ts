@@ -2,6 +2,7 @@ import { Component, ElementRef, ViewChild, AfterViewInit, OnDestroy, signal, inj
 import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { trigger, state, style, transition, animate, stagger, query } from '@angular/animations';
+import { firstValueFrom } from 'rxjs';
 import { ApiClientService } from '../../services/api-client.service';
 
 @Component({
@@ -27,6 +28,21 @@ export class HubComponent implements AfterViewInit, OnDestroy {
     currentDate = signal<string>('');
     user = signal<any>(null);
     showUserMenu = signal(false);
+    showEditModal = signal(false);
+    editLoading = signal(false);
+    editError = signal<string | null>(null);
+    editSuccess = signal<string | null>(null);
+    editData = signal({
+        username: '',
+        email: '',
+        telegram_id: '',
+        oldPassword: '',
+        newPassword1: '',
+        newPassword2: ''
+    });
+    showOldPassword = signal(false);
+    showNewPassword1 = signal(false);
+    showNewPassword2 = signal(false);
 
     greeting = computed(() => {
         const hour = new Date().getHours();
@@ -63,6 +79,12 @@ export class HubComponent implements AfterViewInit, OnDestroy {
     });
 
     apps = [
+        {
+            title: 'Workouts',
+            description: 'Seguimiento de entrenamientos y rutinas',
+            icon: '💪',
+            route: '/workouts'
+        },
         {
             title: 'Portfolio Personal',
             description: 'Mi trayectoria profesional y proyectos destacados',
@@ -152,6 +174,116 @@ export class HubComponent implements AfterViewInit, OnDestroy {
 
     toggleUserMenu() {
         this.showUserMenu.update(v => !v);
+    }
+
+    openEditModal() {
+        const currentUser = this.user();
+        if (!currentUser) {
+            this.navigateToLogin();
+            return;
+        }
+
+        this.editData.set({
+            username: currentUser.username || '',
+            email: currentUser.email || '',
+            telegram_id: currentUser.telegram_id ?? '',
+            oldPassword: '',
+            newPassword1: '',
+            newPassword2: ''
+        });
+        this.editError.set(null);
+        this.editSuccess.set(null);
+        this.showUserMenu.set(false);
+        this.showEditModal.set(true);
+    }
+
+    closeEditModal() {
+        this.showEditModal.set(false);
+    }
+
+    onEditFieldChange(
+        field: 'username' | 'email' | 'telegram_id' | 'oldPassword' | 'newPassword1' | 'newPassword2',
+        value: string
+    ) {
+        this.editData.update(data => ({
+            ...data,
+            [field]: value
+        }));
+    }
+
+    toggleOldPasswordVisibility() {
+        this.showOldPassword.update(v => !v);
+    }
+
+    toggleNewPassword1Visibility() {
+        this.showNewPassword1.update(v => !v);
+    }
+
+    toggleNewPassword2Visibility() {
+        this.showNewPassword2.update(v => !v);
+    }
+
+    async saveUserEdits() {
+        const currentUser = this.user();
+        if (!currentUser) {
+            this.editError.set('Debes iniciar sesión para editar tus datos.');
+            return;
+        }
+
+        const payload: any = {
+            username: this.editData().username.trim(),
+            email: this.editData().email.trim()
+        };
+
+        const telegramValue = this.editData().telegram_id;
+        payload.telegram_id = telegramValue === '' ? null : Number(telegramValue);
+        if (Number.isNaN(payload.telegram_id)) {
+            payload.telegram_id = null;
+        }
+
+        const wantsPasswordChange = [
+            this.editData().oldPassword.trim(),
+            this.editData().newPassword1.trim(),
+            this.editData().newPassword2.trim()
+        ].some(Boolean);
+
+        if (wantsPasswordChange) {
+            const oldPwd = this.editData().oldPassword.trim();
+            const new1 = this.editData().newPassword1.trim();
+            const new2 = this.editData().newPassword2.trim();
+
+            if (!oldPwd) {
+                this.editError.set('Debes introducir tu contraseña actual.');
+                return;
+            }
+            if (!new1 || !new2) {
+                this.editError.set('Debes introducir la nueva contraseña dos veces.');
+                return;
+            }
+            if (new1 !== new2) {
+                this.editError.set('Las nuevas contraseñas no coinciden.');
+                return;
+            }
+
+            payload.old_password = oldPwd;
+            payload.password = new1;
+        }
+
+        this.editLoading.set(true);
+        this.editError.set(null);
+        this.editSuccess.set(null);
+
+        try {
+            const updated = await firstValueFrom(this.apiClient.updateUserDetail(currentUser.id, payload));
+            this.user.set({ ...currentUser, ...updated });
+            this.editSuccess.set('Datos actualizados correctamente');
+            this.showEditModal.set(false);
+        } catch (error: any) {
+            const message = error?.message || 'No se pudieron actualizar los datos';
+            this.editError.set(message);
+        } finally {
+            this.editLoading.set(false);
+        }
     }
 
     navigateToLogin() {

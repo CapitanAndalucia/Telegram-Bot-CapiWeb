@@ -1,4 +1,4 @@
-import { Component, input, output, signal } from '@angular/core';
+import { Component, input, output, signal, ElementRef, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 
@@ -20,7 +20,14 @@ export class UserIconComponent {
 
     isOpen = signal(false);
 
-    constructor(private router: Router) { }
+    constructor(private router: Router, private el: ElementRef) { }
+
+    @HostListener('document:mousedown', ['$event'])
+    onGlobalClick(event: MouseEvent): void {
+        if (!this.el.nativeElement.contains(event.target)) {
+            this.isOpen.set(false);
+        }
+    }
 
     toggleDropdown(): void {
         this.isOpen.update((v) => !v);
@@ -32,13 +39,13 @@ export class UserIconComponent {
     }
 
     navigateToLogin(): void {
-        this.router.navigate(['/auth/login'], {
+        this.router.navigate(['/login'], {
             queryParams: { redirect: '/fileshare', title: 'Centro de Archivos' },
         });
     }
 
     navigateToRegister(): void {
-        this.router.navigate(['/auth/register'], {
+        this.router.navigate(['/register'], {
             queryParams: { redirect: '/fileshare', title: 'Centro de Archivos' },
         });
     }

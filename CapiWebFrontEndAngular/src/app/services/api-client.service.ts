@@ -53,9 +53,11 @@ export class ApiClientService {
             params?: Record<string, any>;
             headers?: HttpHeaders;
             responseType?: any;
+            silent?: boolean;
         } = {}
     ): Observable<T> {
         const url = this.buildUrl(path, options.params);
+        const silent = options.silent || false;
         const httpOptions: any = {
             headers: options.headers || new HttpHeaders({ 'Content-Type': 'application/json' }),
             withCredentials: true,
@@ -84,7 +86,12 @@ export class ApiClientService {
                 return throwError(() => new Error(`Unsupported HTTP method: ${method}`));
         }
 
-        return request$.pipe(catchError(this.handleError));
+        return request$.pipe(catchError((error) => {
+            if (silent && error.status === 401) {
+                return throwError(() => new ApiError('Unauthorized (silent)', 401));
+            }
+            return this.handleError(error);
+        }));
     }
 
     // ---- Auth ----------------------------------------------------------------
@@ -111,7 +118,7 @@ export class ApiClientService {
 
     checkAuth(): Promise<any> {
         return new Promise((resolve, reject) => {
-            this.request('/auth/check/', 'GET').subscribe({
+            this.request('/auth/check/', 'GET', { silent: true }).subscribe({
                 next: (data) => resolve(data),
                 error: (err) => reject(err)
             });
@@ -290,8 +297,8 @@ export class ApiClientService {
     }
 
     // ---- Transfers -----------------------------------------------------------
-    listFiles(folderId?: number): Promise<any> {
-        const params: any = {};
+    listFiles(folderId?: number | null, scope: 'all' | 'shared' | 'sent' = 'shared'): Promise<any> {
+        const params: any = { scope };
         if (folderId !== undefined) {
             params.folder = folderId;
         } else {
@@ -382,6 +389,45 @@ export class ApiClientService {
         });
     }
 
+    // ---- Workouts ------------------------------------------------------------
+    listRoutines(): Observable<any> {
+        return this.request('/workouts/routines/', 'GET');
+    }
+
+    getRoutine(id: number): Observable<any> {
+        return this.request(`/workouts/routines/${id}/`, 'GET');
+    }
+
+    createRoutine(data: any): Observable<any> {
+        return this.request('/workouts/routines/', 'POST', { data });
+    }
+
+    updateRoutine(id: number, data: any): Observable<any> {
+        return this.request(`/workouts/routines/${id}/`, 'PUT', { data });
+    }
+
+    deleteRoutine(id: number): Observable<any> {
+        return this.request(`/workouts/routines/${id}/`, 'DELETE');
+    }
+
+    getRoutineExercise(id: number): Observable<any> {
+        return this.request(`/workouts/routine-exercises/${id}/`, 'GET');
+    }
+
+    getRoutineExerciseProgress(id: number): Observable<any> {
+        return this.request(`/workouts/routine-exercises/${id}/progress/`, 'GET');
+    }
+
+    createExerciseSet(data: FormData): Observable<any> {
+        return this.http.post(`${this.baseUrl}/workouts/sets/`, data, {
+            withCredentials: true
+        }).pipe(catchError(this.handleError));
+    }
+
+    deleteExerciseSet(id: number): Observable<any> {
+        return this.request(`/workouts/sets/${id}/`, 'DELETE');
+    }
+
     // ---- Folders -------------------------------------------------------------
     listFolders(parentId?: number): Promise<any> {
         const params: any = {};
@@ -429,13 +475,33 @@ export class ApiClientService {
         });
     }
 
+    downloadFolder(id: number): Promise<Blob> {
+        return new Promise((resolve, reject) => {
+            this.request<Blob>(`/folders/${id}/download/`, 'GET', {
+                responseType: 'blob'
+            }).subscribe({
+                next: (data) => resolve(data),
+                error: (err) => reject(err)
+            });
+        });
+    }
+
+    getFolder(id: number): Promise<any> {
+        return new Promise((resolve, reject) => {
+            this.request(`/folders/${id}/`, 'GET').subscribe({
+                next: (data) => resolve(data),
+                error: (err) => reject(err)
+            });
+        });
+    }
+
     moveFileToFolder(fileId: number, folderId: number | null): Promise<any> {
         return new Promise((resolve, reject) => {
             const formData = new FormData();
             if (folderId !== null && folderId !== undefined) {
-                formData.append('folder_id', folderId.toString());
+                formData.append('folder', folderId.toString());
             } else {
-                formData.append('folder_id', '');
+                formData.append('folder', '');
             }
 
             this.http.post(`${this.baseUrl}/transfers/${fileId}/move/`, formData, {
@@ -460,6 +526,23 @@ export class ApiClientService {
     markNotificationRead(id: number): Promise<any> {
         return new Promise((resolve, reject) => {
             this.request(`/notifications/${id}/mark_read/`, 'POST').subscribe({
+                next: (data) => resolve(data),
+                error: (err) => reject(err)
+            });
+        });
+    }
+    shareFile(fileId: number, username: string): Promise<any> {
+        return new Promise((resolve, reject) => {
+            this.request(`/transfers/${fileId}/share/`, 'POST', { data: { username } }).subscribe({
+                next: (data) => resolve(data),
+                error: (err) => reject(err)
+            });
+        });
+    }
+
+    shareFolder(folderId: number, username: string): Promise<any> {
+        return new Promise((resolve, reject) => {
+            this.request(`/folders/${folderId}/share/`, 'POST', { data: { username } }).subscribe({
                 next: (data) => resolve(data),
                 error: (err) => reject(err)
             });

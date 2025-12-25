@@ -25,7 +25,12 @@
         </ul>
         }
 
-        <h4 style="margin-top: 1rem">Notificaciones</h4>
+        <div class="notifHeader">
+            <h4 style="margin-bottom: 0">Notificaciones</h4>
+            @if (notifications().length > 0) {
+            <button class="markReadBtn" (click)="markAllAsRead()">Marcar todo como leído</button>
+            }
+        </div>
         @if (!notifications() || notifications().length === 0) {
         <p class="empty">No hay notificaciones</p>
         } @else {

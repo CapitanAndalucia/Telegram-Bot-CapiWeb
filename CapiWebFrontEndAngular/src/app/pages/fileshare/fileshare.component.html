@@ -9,8 +9,20 @@
             <h1>Centro de Archivos</h1>
             <button class="closeSidebarBtn" (click)="closeSidebar()">✕</button>
         </div>
+        <nav class="scopeNav">
+            <button class="scopeBtn" [class.active]="activeScope() === 'all'" (click)="setActiveScope('all')">
+                Mi unidad
+            </button>
+            <button class="scopeBtn" [class.active]="activeScope() === 'shared'" (click)="setActiveScope('shared')">
+                Compartidos
+            </button>
+            <button class="scopeBtn" [class.active]="activeScope() === 'sent'" (click)="setActiveScope('sent')">
+                Enviados
+            </button>
+        </nav>
         @if (user()) {
-        <app-friend-list (selectFriend)="handleSelectFriend($event)"></app-friend-list>
+        <app-friend-list [refreshTrigger]="friendRefreshTrigger()"
+            (selectFriend)="handleSelectFriend($event)"></app-friend-list>
         }
     </div>
 
@@ -20,7 +32,7 @@
 
             <div style="display: flex; align-items: center; gap: 1rem; margin-left: auto">
                 @if (user()) {
-                <app-notification-center></app-notification-center>
+                <app-notification-center (accepted)="handleFriendAccepted()"></app-notification-center>
                 }
                 <app-user-icon [user]="user()" (logout)="handleLogout()"></app-user-icon>
             </div>
@@ -34,6 +46,10 @@
         <div class="loginPrompt">
             <h2>Inicia sesión para compartir archivos</h2>
             <p>Necesitas una cuenta para enviar y recibir archivos con tus amigos.</p>
+            <button class="primaryBtn" style="margin-top: 1.5rem"
+                onclick="window.location.href='/login?redirect=/fileshare&title=Centro de Archivos'">
+                Iniciar Sesión
+            </button>
         </div>
         } @else {
         <div class="tabs">
@@ -51,7 +67,8 @@
         <div class="contentArea">
             <div class="tabContent">
                 @if (activeTab() === 'files') {
-                <app-incoming-files [user]="user()" [refreshTrigger]="refreshTrigger()"
+                <app-incoming-files [user]="user()" [refreshTrigger]="refreshTrigger()" [scope]="activeScope()"
+                    [forceResetCount]="forceResetCount()"
                     (unreadCountChange)="onUnreadCountChange($event)"></app-incoming-files>
                 }
                 @if (activeTab() === 'upload') {

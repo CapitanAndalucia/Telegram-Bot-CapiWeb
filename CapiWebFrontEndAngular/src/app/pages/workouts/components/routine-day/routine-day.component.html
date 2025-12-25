@@ -1,0 +1,33 @@
+<section class="day">
+  <div class="day-header">
+    <div>
+      <p class="eyebrow">{{ day.day_label }}</p>
+      <h2>{{ day.title || 'Sesión' }}</h2>
+    </div>
+    <button class="cta" (click)="start()">Iniciar rutina</button>
+  </div>
+
+  <div class="exercise-list">
+    <article
+      class="exercise-row"
+      *ngFor="let item of day.routine_exercises"
+      (click)="handleOpen(item)"
+    >
+      <div class="thumb">
+        <ng-container *ngIf="item?.exercise_detail?.media?.[0] as media">
+          <img [src]="media.file" alt="preview" />
+        </ng-container>
+        <div class="placeholder" *ngIf="!item?.exercise_detail?.media?.length">🏋️</div>
+      </div>
+      <div class="info">
+        <p class="title">{{ item?.exercise_detail?.name || 'Ejercicio sin nombre' }}</p>
+        <small *ngIf="item">{{ item.target_sets }} x {{ item.target_reps }} reps</small>
+      </div>
+      <div class="chevron">›</div>
+    </article>
+  </div>
+</section>
+
+
+
+

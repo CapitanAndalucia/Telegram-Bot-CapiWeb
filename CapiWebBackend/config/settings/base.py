@@ -19,7 +19,8 @@ from django.utils.translation import gettext_lazy as _
 
 env = environ.Env(
     # set casting, default value
-    DEBUG=(bool, False)
+    DEBUG=(bool, False),
+    ENVIRONMENT=(str, 'dev'),  # dev | production
 )
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -67,6 +68,7 @@ INSTALLED_APPS = [
     "social",
     "transfers",
     "notifications",
+    "workouts",
 ]
 
 MIDDLEWARE = [
@@ -218,6 +220,33 @@ MEDIA_ROOT = CONFIG_BASE_DIR / 'media'
 # JWT Configuration
 from datetime import timedelta
 
+# =============================================================================
+# ENVIRONMENT-BASED CONFIGURATION
+# =============================================================================
+# La variable ENVIRONMENT controla automáticamente todas las configuraciones
+# de seguridad. Valores: 'dev' (default) | 'production'
+ENVIRONMENT = env('ENVIRONMENT')
+IS_PRODUCTION = ENVIRONMENT == 'production'
+
+# Validación de variables críticas en producción
+# Si falta alguna, Django no arrancará y mostrará un error claro
+if IS_PRODUCTION:
+    REQUIRED_ENV_VARS = [
+        'SECRET_KEY',
+        'POSTGRES_DB',
+        'POSTGRES_USER', 
+        'POSTGRES_PASSWORD',
+        'CORS_ALLOWED_ORIGINS',
+        'CSRF_TRUSTED_ORIGINS',
+    ]
+    missing_vars = [var for var in REQUIRED_ENV_VARS if not env(var, default=None)]
+    if missing_vars:
+        raise ValueError(
+            f"⚠️ PRODUCCIÓN: Faltan variables de entorno críticas: {', '.join(missing_vars)}\n"
+            f"Por favor, configúralas en tu archivo .env antes de ejecutar en producción."
+        )
+
+# JWT Settings - Se configuran según el entorno
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
@@ -226,51 +255,54 @@ SIMPLE_JWT = {
     'AUTH_HEADER_TYPES': ('Bearer',),
     'AUTH_COOKIE': 'access_token',
     'AUTH_COOKIE_REFRESH': 'refresh_token',
-    # PRODUCCIÓN: habilitar cookies sólo por HTTPS
-    # 'AUTH_COOKIE_SECURE': True,
-    # Desarrollo: permitir HTTP
-    'AUTH_COOKIE_SECURE': False,
+    'AUTH_COOKIE_SECURE': IS_PRODUCTION,  # True en producción, False en dev
     'AUTH_COOKIE_HTTP_ONLY': True,
     'AUTH_COOKIE_SAMESITE': 'Lax',
 }
 
-# Security Settings
-# PRODUCCIÓN (HTTPS):
-# SESSION_COOKIE_SECURE = True
-# CSRF_COOKIE_SECURE = True
-# SESSION_COOKIE_HTTPONLY = True
-# SECURE_CONTENT_TYPE_NOSNIFF = True
-# X_FRAME_OPTIONS = 'DENY'
-# SECURE_SSL_REDIRECT = True
-# SECURE_HSTS_SECONDS = 31536000
-# SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-# SECURE_HSTS_PRELOAD = True
-
-# DESARROLLO (HTTP):
-SESSION_COOKIE_SECURE = False
-CSRF_COOKIE_SECURE = False
+# Security Settings - Automáticos según ENVIRONMENT
+SESSION_COOKIE_SECURE = IS_PRODUCTION
+CSRF_COOKIE_SECURE = IS_PRODUCTION
 SESSION_COOKIE_HTTPONLY = True
-SECURE_SSL_REDIRECT = False
-SECURE_HSTS_SECONDS = 0
-SECURE_HSTS_INCLUDE_SUBDOMAINS = False
-SECURE_HSTS_PRELOAD = False
+SECURE_SSL_REDIRECT = IS_PRODUCTION
+SECURE_CONTENT_TYPE_NOSNIFF = True
+X_FRAME_OPTIONS = 'DENY'
+
+# HSTS - Solo en producción
+if IS_PRODUCTION:
+    SECURE_HSTS_SECONDS = 31536000  # 1 año
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    USE_X_FORWARDED_HOST = True
+else:
+    SECURE_HSTS_SECONDS = 0
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = False
+    SECURE_HSTS_PRELOAD = False
 
 # Configuración de django-axes
 AXES_ENABLED = True
 AXES_FAILURE_LIMIT = 5
 AXES_COOLOFF_TIME = 1  # horas
 AXES_LOCKOUT_PARAMETERS = ['username', 'ip_address']
-SECURE_CONTENT_TYPE_NOSNIFF = True
-X_FRAME_OPTIONS = 'DENY'
-## PRODUCCIÓN: forzar HTTPS y HSTS (comentado en desarrollo)
-# SECURE_SSL_REDIRECT = True
-# SECURE_HSTS_SECONDS = 31536000
-# SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-# SECURE_HSTS_PRELOAD = True
 
-# CORS Configuration
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-]
+# CORS Configuration - Según ENVIRONMENT
+if IS_PRODUCTION:
+    # En producción, configurar tus dominios aquí
+    CORS_ALLOWED_ORIGINS = env.list('CORS_ALLOWED_ORIGINS', default=[])
+    CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=[])
+else:
+    # En desarrollo, permitir localhost
+    CORS_ALLOWED_ORIGINS = [
+        "http://localhost:4200",
+        "http://127.0.0.1:4200",
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+    ]
+    CSRF_TRUSTED_ORIGINS = [
+        'http://localhost:4200',
+        'http://127.0.0.1:4200',
+    ]
+
 CORS_ALLOW_CREDENTIALS = True
+

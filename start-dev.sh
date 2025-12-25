@@ -6,6 +6,18 @@
 echo "🚀 Iniciando entorno de desarrollo..."
 echo ""
 
+# Establecer entorno de desarrollo
+export ENVIRONMENT=dev
+
+# Directorio de logs diario
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+LOG_DIR="${SCRIPT_DIR}/log"
+mkdir -p "${LOG_DIR}"
+TODAY="$(date +%F)"
+DJANGO_LOG="${LOG_DIR}/django-${TODAY}.log"
+ANGULAR_LOG="${LOG_DIR}/angular-${TODAY}.log"
+BOT_LOG="${LOG_DIR}/telegram_bot-${TODAY}.log"
+
 # Colores para output
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
@@ -92,9 +104,10 @@ if check_port 8000; then
 else
     # Iniciar Django en segundo plano
     echo -e "${GREEN}✅ Iniciando Django en http://localhost:8000${NC}"
-    python3 manage.py runserver > /tmp/django.log 2>&1 &
+    python3 manage.py runserver > "${DJANGO_LOG}" 2>&1 &
     DJANGO_PID=$!
     echo "Django PID: $DJANGO_PID"
+    echo "Log: ${DJANGO_LOG}"
 fi
 
 cd ..
@@ -107,7 +120,7 @@ cd CapiWebFrontEndAngular
 # Verificar si node_modules existe
 if [ ! -d "node_modules" ]; then
     echo -e "${BLUE}📦 Instalando dependencias de Angular...${NC}"
-    corepack pnpm install
+    pnpm install
 fi
 
 # Verificar si el puerto 4200 está en uso
@@ -117,12 +130,24 @@ if check_port 4200; then
 else
     # Iniciar Angular en segundo plano
     echo -e "${GREEN}✅ Iniciando Angular en http://localhost:4200${NC}"
-    corepack pnpm run hmr > /tmp/angular.log 2>&1 &
+    pnpm run hmr > "${ANGULAR_LOG}" 2>&1 &
     ANGULAR_PID=$!
     echo "Angular PID: $ANGULAR_PID"
+    echo "Log: ${ANGULAR_LOG}"
 fi
 
 cd ..
+
+# Iniciar Bot de Telegram
+echo -e "${GREEN}🤖 Iniciando Bot de Telegram...${NC}"
+if pgrep -f "TelegramBot/BotTelegram.py" >/dev/null; then
+    echo -e "${YELLOW}⚠️  El bot ya está corriendo${NC}"
+else
+    python3 TelegramBot/BotTelegram.py > "${BOT_LOG}" 2>&1 &
+    BOT_PID=$!
+    echo "Bot PID: $BOT_PID"
+    echo "Log: ${BOT_LOG}"
+fi
 
 echo ""
 echo -e "${GREEN}✅ Entorno de desarrollo iniciado correctamente${NC}"
@@ -131,6 +156,9 @@ echo "📍 URLs disponibles:"
 echo "   - Frontend (Angular): http://localhost:4200"
 echo "   - Backend (Django): http://localhost:8000"
 echo "   - Admin Django: http://localhost:8000/admin"
+echo ""
+echo "🤖 Bot de Telegram:"
+echo "   - Log: ${BOT_LOG}"
 echo ""
 echo "📝 Logs:"
 echo "   - Django: /tmp/django.log"

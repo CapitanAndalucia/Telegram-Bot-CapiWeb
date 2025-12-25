@@ -1,8 +1,9 @@
-import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, inject, ChangeDetectorRef, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { ApiClientService } from '../../services/api-client.service';
+import { firstValueFrom } from 'rxjs';
 
 interface Ticket {
   id: number;
@@ -48,6 +49,22 @@ export class TicketsComponent implements OnInit {
   modalOpen = false;
   editingTicket: Ticket | null = null;
   form: TicketForm = { ...EMPTY_FORM };
+  showUserMenu = false;
+  showEditModal = false;
+  editLoading = false;
+  editError = '';
+  editSuccess = '';
+  editData = {
+    username: '',
+    email: '',
+    telegram_id: '',
+    oldPassword: '',
+    newPassword1: '',
+    newPassword2: ''
+  };
+  showOldPassword = false;
+  showNewPassword1 = false;
+  showNewPassword2 = false;
 
   filters = {
     from: '',
@@ -57,6 +74,122 @@ export class TicketsComponent implements OnInit {
 
   ngOnInit() {
     this.init();
+  }
+
+  toggleUserMenu() {
+    this.showUserMenu = !this.showUserMenu;
+  }
+
+  openEditModal() {
+    if (!this.user) {
+      this.router.navigate(['/tickets/login'], { replaceUrl: true });
+      return;
+    }
+
+    this.editData = {
+      username: this.user.username || '',
+      email: this.user.email || '',
+      telegram_id: this.user.telegram_id ?? '',
+      oldPassword: '',
+      newPassword1: '',
+      newPassword2: ''
+    };
+    this.editError = '';
+    this.editSuccess = '';
+    this.showUserMenu = false;
+    this.showEditModal = true;
+  }
+
+  closeEditModal() {
+    this.showEditModal = false;
+  }
+
+  onEditFieldChange(field: keyof typeof this.editData, value: string) {
+    this.editData = { ...this.editData, [field]: value };
+  }
+
+  toggleOldPasswordVisibility() {
+    this.showOldPassword = !this.showOldPassword;
+  }
+
+  toggleNewPassword1Visibility() {
+    this.showNewPassword1 = !this.showNewPassword1;
+  }
+
+  toggleNewPassword2Visibility() {
+    this.showNewPassword2 = !this.showNewPassword2;
+  }
+
+  async saveUserEdits() {
+    if (!this.user) {
+      this.editError = 'Debes iniciar sesión para editar tus datos.';
+      return;
+    }
+
+    const payload: any = {
+      username: this.editData.username.trim(),
+      email: this.editData.email.trim()
+    };
+
+    const telegramValue = this.editData.telegram_id;
+    payload.telegram_id = telegramValue === '' ? null : Number(telegramValue);
+    if (Number.isNaN(payload.telegram_id)) {
+      payload.telegram_id = null;
+    }
+
+    const wantsPasswordChange = [
+      this.editData.oldPassword.trim(),
+      this.editData.newPassword1.trim(),
+      this.editData.newPassword2.trim()
+    ].some(Boolean);
+
+    if (wantsPasswordChange) {
+      const oldPwd = this.editData.oldPassword.trim();
+      const new1 = this.editData.newPassword1.trim();
+      const new2 = this.editData.newPassword2.trim();
+
+      if (!oldPwd) {
+        this.editError = 'Debes introducir tu contraseña actual.';
+        return;
+      }
+      if (!new1 || !new2) {
+        this.editError = 'Debes introducir la nueva contraseña dos veces.';
+        return;
+      }
+      if (new1 !== new2) {
+        this.editError = 'Las nuevas contraseñas no coinciden.';
+        return;
+      }
+
+      payload.old_password = oldPwd;
+      payload.password = new1;
+    }
+
+    this.editLoading = true;
+    this.editError = '';
+    this.editSuccess = '';
+
+    try {
+      const updated = await firstValueFrom(this.apiClient.updateUserDetail(this.user.id, payload));
+      this.user = { ...this.user, ...updated };
+      this.editSuccess = 'Datos actualizados correctamente';
+      this.showEditModal = false;
+    } catch (error: any) {
+      this.editError = error?.message || 'No se pudieron actualizar los datos';
+    } finally {
+      this.editLoading = false;
+      this.cdr.detectChanges();
+    }
+  }
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent) {
+    const target = event.target as HTMLElement;
+    const clickedInside = target.closest('.user-avatar');
+    const clickedDropdown = target.closest('.user-dropdown');
+    if (this.showUserMenu && !clickedInside && !clickedDropdown) {
+      this.showUserMenu = false;
+    }
   }
 
   async init() {

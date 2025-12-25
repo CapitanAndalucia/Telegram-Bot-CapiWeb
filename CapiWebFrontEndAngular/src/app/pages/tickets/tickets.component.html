@@ -4,9 +4,15 @@
             <h1>📄 Gestor de Tickets</h1>
             <p class="subtitle" *ngIf="user">Bienvenido, {{ user.username }}</p>
         </div>
-        <button (click)="handleLogout()" class="logout">
-            🚪 Cerrar sesión
-        </button>
+        <div class="user-section">
+            <div class="user-avatar" [class.active]="showUserMenu" (click)="toggleUserMenu()">
+                {{ user?.username?.substring(0,2)?.toUpperCase() || '👤' }}
+                <div class="user-dropdown" *ngIf="showUserMenu" (click)="$event.stopPropagation()">
+                    <div class="dropdown-item" (click)="openEditModal()">Editar datos</div>
+                    <div class="dropdown-item" (click)="handleLogout()">Cerrar sesión</div>
+                </div>
+            </div>
+        </div>
     </header>
 
     <main class="main">
@@ -101,6 +107,73 @@
                     </button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <div class="modalBackdrop" *ngIf="showEditModal" (click)="closeEditModal()">
+        <div class="modal edit-modal" (click)="$event.stopPropagation()">
+            <div class="modal-header">
+                <h3>Editar mis datos</h3>
+                <button class="close-btn" (click)="closeEditModal()">×</button>
+            </div>
+
+            <div class="alert error" *ngIf="editError">{{ editError }}</div>
+            <div class="alert success" *ngIf="editSuccess">{{ editSuccess }}</div>
+
+            <div class="form-group">
+                <label>Usuario</label>
+                <input type="text" [value]="editData.username" (input)="onEditFieldChange('username', $any($event.target).value)" />
+            </div>
+
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" [value]="editData.email" (input)="onEditFieldChange('email', $any($event.target).value)" />
+            </div>
+
+            <div class="form-group">
+                <label>Telegram ID</label>
+                <input type="number" [value]="editData.telegram_id" (input)="onEditFieldChange('telegram_id', $any($event.target).value)" />
+            </div>
+
+            <div class="form-group">
+                <label>Contraseña actual</label>
+                <div class="password-field">
+                    <input [type]="showOldPassword ? 'text' : 'password'" placeholder="Obligatoria para cambiar la contraseña"
+                        [value]="editData.oldPassword" (input)="onEditFieldChange('oldPassword', $any($event.target).value)" />
+                    <button type="button" class="toggle-eye" (click)="toggleOldPasswordVisibility()">
+                        {{ showOldPassword ? 'Ocultar' : 'Ver' }}
+                    </button>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Nueva contraseña</label>
+                <div class="password-field">
+                    <input [type]="showNewPassword1 ? 'text' : 'password'" placeholder="Introduce la nueva contraseña"
+                        [value]="editData.newPassword1" (input)="onEditFieldChange('newPassword1', $any($event.target).value)" />
+                    <button type="button" class="toggle-eye" (click)="toggleNewPassword1Visibility()">
+                        {{ showNewPassword1 ? 'Ocultar' : 'Ver' }}
+                    </button>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Repite la nueva contraseña</label>
+                <div class="password-field">
+                    <input [type]="showNewPassword2 ? 'text' : 'password'" placeholder="Repite la nueva contraseña"
+                        [value]="editData.newPassword2" (input)="onEditFieldChange('newPassword2', $any($event.target).value)" />
+                    <button type="button" class="toggle-eye" (click)="toggleNewPassword2Visibility()">
+                        {{ showNewPassword2 ? 'Ocultar' : 'Ver' }}
+                    </button>
+                </div>
+            </div>
+
+            <div class="modal-actions">
+                <button class="secondary" type="button" (click)="closeEditModal()">Cancelar</button>
+                <button class="primary" type="button" [disabled]="editLoading" (click)="saveUserEdits()">
+                    {{ editLoading ? 'Guardando...' : 'Guardar cambios' }}
+                </button>
+            </div>
         </div>
     </div>
 </div>

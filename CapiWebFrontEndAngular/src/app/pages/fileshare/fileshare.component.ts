@@ -31,9 +31,12 @@ export class FileshareComponent implements OnInit {
   activeTab = signal<'files' | 'upload'>('files');
   user = signal<User | null>(null);
   refreshTrigger = signal(0);
+  activeScope = signal<'all' | 'shared' | 'sent'>('all');
+  forceResetCount = signal(0);
   loading = signal(true);
   isSidebarOpen = signal(false);
   unreadCount = signal(0);
+  friendRefreshTrigger = signal(0);
   selectedRecipient = signal('');
 
   constructor(
@@ -59,9 +62,14 @@ export class FileshareComponent implements OnInit {
   }
 
   handleUploadSuccess(): void {
+    this.setActiveTab('files');
     this.refreshTrigger.update((v) => v + 1);
-    this.activeTab.set('files');
     this.selectedRecipient.set('');
+    this.activeScope.set('all');
+  }
+
+  handleFriendAccepted(): void {
+    this.friendRefreshTrigger.update((v) => v + 1);
   }
 
   handleSelectFriend(username: string): void {
@@ -81,6 +89,15 @@ export class FileshareComponent implements OnInit {
 
   setActiveTab(tab: 'files' | 'upload'): void {
     this.activeTab.set(tab);
+  }
+
+  setActiveScope(scope: 'all' | 'shared' | 'sent'): void {
+    if (this.activeScope() === scope) {
+      // If same scope, just trigger a reset of navigation
+      this.forceResetCount.update(v => v + 1);
+    } else {
+      this.activeScope.set(scope);
+    }
   }
 
   toggleSidebar(): void {

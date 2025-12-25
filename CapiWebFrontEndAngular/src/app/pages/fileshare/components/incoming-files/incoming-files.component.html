@@ -3,20 +3,65 @@
     (contextmenu)="handleContextMenu($event, 'background')">
     <div class="filesHeader">
         <div class="breadcrumbs">
-            @for (crumb of breadcrumbs(); track crumb.id; let last = $last; let index = $index) {
-            <span class="crumb" (click)="handleBreadcrumbClick(index)" [class.active]="last"
-                [class.clickable]="!last" [class.dropTarget]="hoveredBreadcrumbKey() === breadcrumbKey(crumb)"
-                (dragenter)="handleBreadcrumbDragEnter($event, crumb)" (dragover)="handleBreadcrumbDragOver($event, crumb)"
-                (dragleave)="handleBreadcrumbDragLeave($event, crumb)" (drop)="handleBreadcrumbDrop($event, crumb)">
-                {{ crumb.name }}
+            <span class="breadcrumb-root-icon">📁</span>
+            <span class="crumb" (click)="handleBreadcrumbClick(0)" [class.active]="breadcrumbs().length === 1"
+                (dragover)="handleBreadcrumbDragOver($event, breadcrumbs()[0])"
+                (dragenter)="handleBreadcrumbDragEnter($event, breadcrumbs()[0])"
+                (dragleave)="handleBreadcrumbDragLeave($event, breadcrumbs()[0])"
+                (drop)="handleBreadcrumbDrop($event, breadcrumbs()[0])"
+                [class.dropTarget]="hoveredBreadcrumbKey() === breadcrumbKey(breadcrumbs()[0])">
+                {{ breadcrumbs()[0]?.name }}
             </span>
-            @if (!last) {
-            <span class="separator">/</span>
-            }
-            }
-            @if (uploading()) {
-            <span class="uploadingBadge">Subiendo...</span>
-            }
+            <span *ngIf="breadcrumbs().length > 1" class="separator">›</span>
+
+            <ng-container *ngFor="let crumb of breadcrumbs().slice(1); let i = index; let last = last">
+                <span class="crumb" (click)="handleBreadcrumbClick(i + 1)" [class.active]="last"
+                    (dragover)="handleBreadcrumbDragOver($event, crumb)"
+                    (dragenter)="handleBreadcrumbDragEnter($event, crumb)"
+                    (dragleave)="handleBreadcrumbDragLeave($event, crumb)" (drop)="handleBreadcrumbDrop($event, crumb)"
+                    [class.dropTarget]="hoveredBreadcrumbKey() === breadcrumbKey(crumb)">
+                    {{ crumb.name }}
+                </span>
+                <span *ngIf="!last" class="separator">›</span>
+            </ng-container>
+        </div>
+        <div class="sortContainer" (click)="$event.stopPropagation()">
+            <button class="sortBtn" (click)="toggleSortMenu()">
+                {{ getSortLabel() }}
+                <span class="sortIcon">{{ sortConfig().order === 'asc' ? '↑' : '↓' }}</span>
+            </button>
+
+            <div *ngIf="isSortMenuOpen()" class="sortMenu">
+                <div class="sortGroup">
+                    <div class="sortHeader">Ordenar por</div>
+                    <div class="sortItem" (click)="setSortConfig({field: 'name'}); toggleSortMenu()"
+                        [class.active]="sortConfig().field === 'name'">
+                        <span *ngIf="sortConfig().field === 'name'">✓</span> Nombre
+                    </div>
+                    <div class="sortItem" (click)="setSortConfig({field: 'date'}); toggleSortMenu()"
+                        [class.active]="sortConfig().field === 'date'">
+                        <span *ngIf="sortConfig().field === 'date'">✓</span> Fecha de modificación
+                    </div>
+                    <div class="sortItem" (click)="setSortConfig({field: 'size'}); toggleSortMenu()"
+                        [class.active]="sortConfig().field === 'size'">
+                        <span *ngIf="sortConfig().field === 'size'">✓</span> Tamaño
+                    </div>
+                </div>
+
+                <div class="sortDivider"></div>
+
+                <div class="sortGroup">
+                    <div class="sortHeader">Orden</div>
+                    <div class="sortItem" (click)="setSortConfig({order: 'asc'}); toggleSortMenu()"
+                        [class.active]="sortConfig().order === 'asc'">
+                        <span *ngIf="sortConfig().order === 'asc'">✓</span> Ascendente
+                    </div>
+                    <div class="sortItem" (click)="setSortConfig({order: 'desc'}); toggleSortMenu()"
+                        [class.active]="sortConfig().order === 'desc'">
+                        <span *ngIf="sortConfig().order === 'desc'">✓</span> Descendente
+                    </div>
+                </div>
+            </div>
         </div>
         <div class="viewToggle">
             <button class="toggleBtn" [class.active]="viewMode() === 'list'" (click)="viewMode.set('list')"
@@ -30,125 +75,189 @@
         </div>
     </div>
 
-    @if (loading()) {
-    <p>Cargando...</p>
-    } @else if (files().length === 0 && folders().length === 0) {
-    <div class="emptyState">
+    <p *ngIf="loading()">Cargando...</p>
+
+    <div *ngIf="!loading() && files().length === 0 && folders().length === 0" class="emptyState">
         <p>Carpeta vacía</p>
         <p class="dragHint">Arrastra archivos aquí o click derecho para crear carpeta</p>
     </div>
-    } @else {
-    <div class="incomingContent" [class.listMode]="viewMode() === 'list'">
-        <!-- Folders -->
-        @for (folder of folders(); track folder.id) {
-        <div class="folderCard" [class.listMode]="viewMode() === 'list'"
-            [class.dropTarget]="hoveredFolderId() === folder.id" (dblclick)="navigateToFolder(folder)"
-            (contextmenu)="handleContextMenu($event, 'folder', folder)" (drop)="handleFileDrop($event, folder)"
-            (dragover)="$event.preventDefault()" (dragenter)="handleFolderDragEnter($event, folder)"
-            (dragleave)="handleFolderDragLeave($event, folder)">
-            <div class="folderIcon">📁</div>
-            <div class="folderName">{{ folder.name }}</div>
+
+    <div *ngIf="!loading() && (files().length > 0 || folders().length > 0)">
+        <div *ngIf="bulkSelectionActive()" class="selectionBar">
+            <span>{{ selectedFileIds().size + selectedFolderIds().size }} seleccionados</span>
+            <button class="clearSelectionBtn" (click)="clearSelection()">✕ Cancelar</button>
         </div>
-        }
 
-        <!-- Files -->
-        @for (file of files(); track file.id) {
-        <div class="fileCard" [class.listMode]="viewMode() === 'list'" (mouseenter)="handleFileHover(file)"
-            (click)="handleFileClick(file)" (contextmenu)="handleContextMenu($event, 'file', file)" draggable="true"
-            (dragstart)="handleDragStart($event, file)" (dragend)="handleDragEnd()" style="cursor: pointer">
-            <!-- New indicator for list view -->
-            @if (viewMode() === 'list' && !file.is_viewed) {
-            <div class="newIndicatorList">
-                <span class="newDot"></span>
-            </div>
-            }
+        <div class="incomingContent" [class.listMode]="viewMode() === 'list'" [class.selectionMode]="isSelectionMode()"
+            [class.animate]="animateList()">
+            <!-- Folders -->
+            <ng-container *ngFor="let folder of sortedFolders()">
+                <div class="folderCard" [class.listMode]="viewMode() === 'list'"
+                    [class.selected]="isFolderSelected(folder.id)" [class.dropTarget]="hoveredFolderId() === folder.id"
+                    (touchstart)="handleItemTouchStart($event)"
+                    (touchend)="handleItemTouchEnd($event, 'folder', folder)"
+                    (click)="handleItemClick($event, 'folder', folder)"
+                    (contextmenu)="handleContextMenu($event, 'folder', folder)" (dblclick)="navigateToFolder(folder)"
+                    (dragover)="handleFolderDragOver($event, folder)"
+                    (dragenter)="handleFolderDragEnter($event, folder)"
+                    (dragleave)="handleFolderDragLeave($event, folder)" (drop)="handleFileDrop($event, folder)">
 
-            <!-- New indicator for grid view -->
-            @if (viewMode() === 'grid' && !file.is_viewed) {
-            <div class="newIndicatorGrid">NUEVO</div>
-            }
+                    <div class="selectionCheckbox" [class.checked]="isFolderSelected(folder.id)"
+                        (click)="toggleItemSelection('folder', folder, true); $event.stopPropagation()">
+                        <span *ngIf="isFolderSelected(folder.id)">✓</span>
+                    </div>
 
-            <div class="previewContainer">
-                @if (isImage(file.filename)) {
-                <img [src]="getFileUrl(file.id)" [alt]="file.filename" class="fileImage" />
-                } @else {
-                <div class="fileIconPlaceholder">📄</div>
-                }
-                @if (viewMode() === 'grid') {
-                <div class="fileOverlay">
-                    <span class="fileNameOverlay">{{ file.filename }}</span>
+                    <ng-container *ngIf="viewMode() === 'grid'">
+                        <div class="cardHeader">
+                            <div class="cardIconSmall">📁</div>
+                            <div class="cardName">{{ folder.name }}</div>
+                            <span (click)="handleContextMenu($event, 'folder', folder); $event.stopPropagation()"
+                                class="optionsBtn" title="Opciones">
+                                ⋮
+                            </span>
+                        </div>
+                    </ng-container>
+
+                    <div class="previewContainer">
+                        <div class="folderIcon" style="font-size: 3rem; margin: 0;">📁</div>
+                    </div>
+
+                    <ng-container *ngIf="viewMode() === 'list'">
+                        <div class="fileInfoList">
+                            <span class="cardName">{{ folder.name }}</span>
+                        </div>
+                        <span (click)="handleContextMenu($event, 'folder', folder); $event.stopPropagation()"
+                            class="optionsBtn listModeBtn" title="Opciones">
+                            ⋮
+                        </span>
+                    </ng-container>
                 </div>
-                }
-            </div>
+            </ng-container>
 
-            @if (viewMode() === 'list') {
-            <div class="fileInfoList">
-                <span class="fileNameList">{{ file.filename }}</span>
-                <span class="fileSizeList">{{ (file.size / 1024).toFixed(1) }} KB</span>
-            </div>
-            }
+            <!-- Files -->
+            <ng-container *ngFor="let file of sortedFiles()">
+                <div class="fileCard" [class.listMode]="viewMode() === 'list'"
+                    [class.selected]="isFileSelected(file.id)" [draggable]="true"
+                    (dragstart)="handleDragStart($event, file)" (dragend)="handleDragEnd()"
+                    (touchstart)="handleItemTouchStart($event)" (touchend)="handleItemTouchEnd($event, 'file', file)"
+                    (click)="handleItemClick($event, 'file', file)" (dblclick)="handleFileClick(file)"
+                    (contextmenu)="handleContextMenu($event, 'file', file)" style="cursor: pointer">
 
-            <button (click)="handleDownload(file.id, file.filename); $event.stopPropagation()" class="downloadIconBtn"
-                title="Descargar">
-                ⬇
-            </button>
+                    <div class="selectionCheckbox" [class.checked]="isFileSelected(file.id)"
+                        (click)="toggleItemSelection('file', file, true); $event.stopPropagation()">
+                        <span *ngIf="isFileSelected(file.id)">✓</span>
+                    </div>
+
+                    <ng-container *ngIf="viewMode() === 'grid'">
+                        <div class="cardHeader">
+                            <div class="cardIconSmall">
+                                <img *ngIf="isImage(file.filename)" src="assets/icons/image-file-icon.png" alt="Image"
+                                    class="fileTypeIcon" />
+                                <span *ngIf="!isImage(file.filename)">📄</span>
+                            </div>
+                            <div class="cardName">{{ file.filename }}</div>
+                            <span (click)="handleContextMenu($event, 'file', file); $event.stopPropagation()"
+                                class="optionsBtn" title="Opciones">
+                                ⋮
+                            </span>
+                        </div>
+                    </ng-container>
+
+                    <!-- New Phase: Preview Body -->
+                    <div class="previewContainer">
+                        <img *ngIf="isImage(file.filename)" [src]="getFileUrl(file.id)" [alt]="file.filename"
+                            class="fileImage" />
+                        <div *ngIf="!isImage(file.filename)" class="fileIconPlaceholder">📄</div>
+                    </div>
+
+                    <!-- List View Fallback (keep existing logic for list mode) -->
+                    <ng-container *ngIf="viewMode() === 'list'">
+                        <div class="fileInfoList">
+                            <span class="fileNameList">{{ file.filename }}</span>
+                            <span class="fileSizeList">{{ (file.size / 1024).toFixed(1) }} KB</span>
+                        </div>
+                        <span (click)="handleContextMenu($event, 'file', file); $event.stopPropagation()"
+                            class="optionsBtn listModeBtn" title="Opciones">
+                            ⋮
+                        </span>
+                    </ng-container>
+                </div>
+            </ng-container>
         </div>
-        }
     </div>
-    }
 
     <!-- Context Menu -->
-    @if (contextMenu()) {
-    <div class="contextMenu" [style.left.px]="contextMenu()!.x" [style.top.px]="contextMenu()!.y"
-        (click)="$event.stopPropagation()">
-        @if (contextMenu()!.type === 'background') {
-        <button (click)="createFolder(); closeContextMenu()">Nueva carpeta</button>
-        }
-        @if (contextMenu()!.type === 'folder') {
-        <button (click)="navigateToFolder($any(contextMenu()!.item)); closeContextMenu()">Abrir</button>
-        <button (click)="renameItem(); closeContextMenu()">Renombrar</button>
-        <button (click)="deleteItem(); closeContextMenu()">Eliminar</button>
-        }
-        @if (contextMenu()!.type === 'file') {
-        <button
-            (click)="handleDownload($any(contextMenu()!.item).id, $any(contextMenu()!.item).filename); closeContextMenu()">Descargar</button>
-        <button (click)="openMoveDialog($any(contextMenu()!.item)); closeContextMenu()">Mover a carpeta</button>
-        <button (click)="deleteItem(); closeContextMenu()">Eliminar</button>
-        }
-    </div>
-    }
-</div>
-
-@if (selectedFile()) {
-<app-file-preview-modal [file]="selectedFile()!" (close)="closeModal()"
-    (download)="handleDownload($event.id, $event.filename)" (delete)="handleDelete($event)"></app-file-preview-modal>
-}
-
-@if (moveDialogOpen()) {
-<div class="moveDialogOverlay" (click)="closeMoveDialog()">
-    <div class="moveDialog" (click)="$event.stopPropagation()">
-        <header class="moveDialogHeader">
-            <h3>Mover "{{ moveTargetFile()?.filename }}"</h3>
-            <button class="moveDialogClose" (click)="closeMoveDialog()" [disabled]="moveDialogBusy()">✕</button>
-        </header>
-        <div class="moveDialogBody">
-            @if (moveDialogLoading()) {
-            <div class="moveDialogLoading">Cargando carpetas...</div>
-            } @else {
-            <div class="moveDialogList">
-                @for (option of moveOptions(); track option.id) {
-                <button class="moveOptionButton" [disabled]="moveDialogBusy()"
-                    [class.active]="moveTargetFile()?.folder === option.id" (click)="confirmMove(option.id)">
-                    <span class="moveOptionIndent" [style.width.rem]="option.depth * 0.8"></span>
-                    <span>{{ option.name }}</span>
+    <ng-container *ngIf="contextMenu() as menu">
+        <div class="context-menu" [style.top.px]="menu.y" [style.left.px]="menu.x" (click)="$event.stopPropagation()">
+            <ng-container *ngIf="menu.type === 'file' || menu.type === 'folder'">
+                <button
+                    (click)="openShareModal(menu.item!, menu.type === 'file' ? 'file' : 'folder'); closeContextMenu()">
+                    <span class="icon">🔗</span> Compartir
                 </button>
-                }
-            </div>
-            }
+                <button
+                    (click)="menu.type === 'file' ? handleDownload(menu.item!.id, $any(menu.item!).filename) : handleFolderDownload($any(menu.item!)); closeContextMenu()">
+                    <span class="icon">⬇</span> Descargar
+                </button>
+                <ng-container *ngIf="menu.type === 'file'">
+                    <button (click)="openPreview(menu.item!); closeContextMenu()">
+                        <span class="icon">👁</span> Previsualizar
+                    </button>
+                </ng-container>
+                <button (click)="openMoveDialog(menu.item!); closeContextMenu()">
+                    <span class="icon">➡️</span> Mover a...
+                </button>
+                <button (click)="renameItem(); closeContextMenu()">
+                    <span class="icon">✏</span> Renombrar
+                </button>
+                <div class="divider"></div>
+                <button class="delete" (click)="deleteItem(); closeContextMenu()">
+                    <span class="icon">🗑</span> Eliminar
+                </button>
+            </ng-container>
+            <ng-container *ngIf="menu.type !== 'file' && menu.type !== 'folder'">
+                <button (click)="triggerFileUpload(); closeContextMenu()">
+                    <span class="icon">📄</span> Subir archivo
+                </button>
+                <button (click)="createFolder(); closeContextMenu()">
+                    <span class="icon">📁</span> Nueva carpeta
+                </button>
+            </ng-container>
         </div>
-        <footer class="moveDialogFooter">
-            <button class="secondaryBtn" (click)="closeMoveDialog()" [disabled]="moveDialogBusy()">Cancelar</button>
-        </footer>
-    </div>
+    </ng-container>
+
+    <app-share-modal *ngIf="shareModalItem()" [item]="shareModalItem()!" [type]="shareModalType()"
+        (close)="closeShareModal()" (shared)="refreshContent()">
+    </app-share-modal>
 </div>
-}
+
+<!-- Input de archivo oculto para la carga de archivos -->
+<input type="file" id="file-upload" style="display: none" (change)="onFileSelected($event)" multiple>
+
+<app-file-preview-modal *ngIf="selectedFile()" [file]="selectedFile()!" (close)="closeModal()"
+    (download)="handleDownload($event.id, $event.filename)" (delete)="handleDelete($event)"></app-file-preview-modal>
+
+<ng-container *ngIf="moveDialogOpen()">
+    <div class="moveDialogOverlay" (click)="closeMoveDialog()">
+        <div class="moveDialog" (click)="$event.stopPropagation()">
+            <header class="moveDialogHeader">
+                <h3>Mover "{{ moveTargetDisplayName() }}"</h3>
+                <button class="moveDialogClose" (click)="closeMoveDialog()" [disabled]="moveDialogBusy()">✕</button>
+            </header>
+            <div class="moveDialogBody">
+                <div *ngIf="moveDialogLoading()" class="moveDialogLoading">Cargando carpetas...</div>
+                <div *ngIf="!moveDialogLoading()" class="moveDialogList">
+                    <ng-container *ngFor="let option of moveOptions()">
+                        <button class="moveOptionButton" [disabled]="moveDialogBusy()"
+                            [class.active]="isMoveOptionActive(option.id)" (click)="confirmMove(option.id)">
+                            <span class="moveOptionIndent" [style.width.rem]="option.depth * 0.8"></span>
+                            <span>{{ option.name }}</span>
+                        </button>
+                    </ng-container>
+                </div>
+            </div>
+            <footer class="moveDialogFooter">
+                <button class="secondaryBtn" (click)="closeMoveDialog()" [disabled]="moveDialogBusy()">Cancelar</button>
+            </footer>
+        </div>
+    </div>
+</ng-container>

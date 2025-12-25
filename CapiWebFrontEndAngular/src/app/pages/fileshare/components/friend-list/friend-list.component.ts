@@ -7,6 +7,8 @@ import {
     effect,
     ElementRef,
     ViewChild,
+    input,
+    untracked,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -34,6 +36,7 @@ export class FriendListComponent implements OnInit, OnDestroy {
     @ViewChild('dropdownRef') dropdownRef?: ElementRef;
 
     selectFriend = output<string>();
+    refreshTrigger = input<number>(0);
 
     friends = signal<Friend[]>([]);
     newFriend = signal('');
@@ -71,6 +74,15 @@ export class FriendListComponent implements OnInit, OnDestroy {
                     this.searching.set(false);
                 }
             });
+
+        effect(() => {
+            const trigger = this.refreshTrigger();
+            if (trigger > 0) {
+                untracked(() => {
+                    void this.fetchFriends();
+                });
+            }
+        });
     }
 
     ngOnInit(): void {

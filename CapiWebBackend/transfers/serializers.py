@@ -114,9 +114,9 @@ class FileTransferSerializer(serializers.ModelSerializer):
         model = FileTransfer
         fields = ['id', 'sender', 'sender_username', 'recipient', 'recipient_username', 'recipient_username_display',
                   'file', 'filename', 'size', 'description', 'folder',
-                  'created_at', 'expires_at', 'is_downloaded', 'is_viewed',
+                  'created_at', 'expires_at', 'is_downloaded', 'is_viewed', 'is_shared_copy',
                   'has_executables', 'executable_files']
-        read_only_fields = ['sender', 'recipient', 'size', 'filename', 'created_at', 'is_downloaded']
+        read_only_fields = ['sender', 'recipient', 'size', 'filename', 'created_at', 'is_downloaded', 'is_shared_copy']
 
     def create(self, validated_data):
         # Extract recipient_username
@@ -131,7 +131,12 @@ class FileTransferSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({'recipient_username': 'User not found.'})
 
         # Auto-populate sender from context
-        validated_data['sender'] = self.context['request'].user
+        user = self.context['request'].user
+        validated_data['sender'] = user
+
+        # If uploading to someone else, clear folder (sender can't pick recipient's folders)
+        if recipient != user:
+            validated_data['folder'] = None
         # Auto-populate filename and size from file
         file_obj = validated_data.get('file')
         if file_obj:
