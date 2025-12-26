@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import FileTransfer, Folder
+from .models import FileTransfer, Folder, FileAccess, FolderAccess
 from django.contrib.auth.models import User
 import os
 import re
@@ -91,55 +91,108 @@ def validate_file(value):
     
     return value
 
+class FolderAccessSerializer(serializers.ModelSerializer):
+    granted_to_username = serializers.ReadOnlyField(source='granted_to.username')
+    granted_by_username = serializers.ReadOnlyField(source='granted_by.username')
+
+    class Meta:
+        model = FolderAccess
+        fields = [
+            'id', 'folder', 'granted_to', 'granted_to_username', 'granted_by',
+            'granted_by_username', 'permission', 'propagate', 'created_at', 'expires_at'
+        ]
+        read_only_fields = ['folder', 'granted_by', 'created_at']
+
+
 class FolderSerializer(serializers.ModelSerializer):
+    access_list = FolderAccessSerializer(many=True, read_only=True)
+
     class Meta:
         model = Folder
-        fields = ['id', 'name', 'owner', 'parent', 'created_at']
-        read_only_fields = ['owner', 'created_at']
+        fields = ['id', 'name', 'owner', 'parent', 'created_at', 'access_list']
+        read_only_fields = ['owner', 'created_at', 'access_list']
         
     def create(self, validated_data):
         validated_data['owner'] = self.context['request'].user
         return super().create(validated_data)
 
+
+class FileAccessSerializer(serializers.ModelSerializer):
+    granted_to_username = serializers.ReadOnlyField(source='granted_to.username')
+    granted_by_username = serializers.ReadOnlyField(source='granted_by.username')
+
+    class Meta:
+        model = FileAccess
+        fields = [
+            'id', 'file', 'granted_to', 'granted_to_username', 'granted_by',
+            'granted_by_username', 'permission', 'created_at', 'expires_at'
+        ]
+        read_only_fields = ['file', 'granted_by', 'created_at']
+
+
 class FileTransferSerializer(serializers.ModelSerializer):
-    sender_username = serializers.ReadOnlyField(source='sender.username')
-    recipient_username = serializers.CharField(write_only=True)
-    recipient_username_display = serializers.ReadOnlyField(source='recipient.username')
+    uploader_username = serializers.ReadOnlyField(source='uploader.username')
+    owner_username = serializers.ReadOnlyField(source='owner.username')
+    recipient_username = serializers.CharField(write_only=True, required=False, allow_blank=True)
     file = serializers.FileField(validators=[validate_file])
     has_executables = serializers.BooleanField(read_only=True, required=False)
     executable_files = serializers.ListField(read_only=True, required=False)
     folder = serializers.PrimaryKeyRelatedField(queryset=Folder.objects.all(), required=False, allow_null=True)
+    access_list = FileAccessSerializer(many=True, read_only=True)
+    has_access = serializers.SerializerMethodField()
 
     class Meta:
         model = FileTransfer
-        fields = ['id', 'sender', 'sender_username', 'recipient', 'recipient_username', 'recipient_username_display',
-                  'file', 'filename', 'size', 'description', 'folder',
-                  'created_at', 'expires_at', 'is_downloaded', 'is_viewed', 'is_shared_copy',
-                  'has_executables', 'executable_files']
-        read_only_fields = ['sender', 'recipient', 'size', 'filename', 'created_at', 'is_downloaded', 'is_shared_copy']
+        fields = [
+            'id', 'uploader', 'uploader_username', 'owner', 'owner_username', 'recipient_username',
+            'file', 'filename', 'size', 'description', 'folder',
+            'created_at', 'expires_at', 'is_downloaded', 'is_viewed',
+            'has_executables', 'executable_files', 'access_list', 'has_access'
+        ]
+        read_only_fields = [
+            'uploader', 'uploader_username', 'owner', 'owner_username', 'size',
+            'filename', 'created_at', 'is_downloaded', 'is_viewed',
+            'has_executables', 'executable_files', 'access_list', 'has_access'
+        ]
+
+    def get_has_access(self, obj):
+        request = self.context.get('request')
+        if not request or not hasattr(request, 'user'):
+            return False
+        user = request.user
+        if user.is_anonymous:
+            return False
+        if obj.owner_id == user.id or obj.uploader_id == user.id:
+            return True
+        if obj.access_list.filter(granted_to=user).exists():
+            return True
+        if obj.folder and obj.folder.access_list.filter(granted_to=user).exists():
+            return True
+        return False
 
     def create(self, validated_data):
-        # Extract recipient_username
         recipient_username = validated_data.pop('recipient_username', None)
-        if not recipient_username:
-            raise serializers.ValidationError({'recipient_username': 'This field is required.'})
-            
-        try:
-            recipient = User.objects.get(username=recipient_username)
-            validated_data['recipient'] = recipient
-        except User.DoesNotExist:
-            raise serializers.ValidationError({'recipient_username': 'User not found.'})
+        request = self.context['request']
+        user = request.user
 
-        # Auto-populate sender from context
-        user = self.context['request'].user
-        validated_data['sender'] = user
+        if recipient_username:
+            try:
+                owner = User.objects.get(username=recipient_username)
+            except User.DoesNotExist:
+                raise serializers.ValidationError({'recipient_username': 'User not found.'})
+        else:
+            owner = user
 
-        # If uploading to someone else, clear folder (sender can't pick recipient's folders)
-        if recipient != user:
+        validated_data['owner'] = owner
+        validated_data['uploader'] = user
+
+        if owner != user:
+            # Uploading to someone else: ensure folder belongs to target user
             validated_data['folder'] = None
-        # Auto-populate filename and size from file
+
         file_obj = validated_data.get('file')
         if file_obj:
             validated_data['filename'] = file_obj.name
             validated_data['size'] = file_obj.size
+
         return super().create(validated_data)

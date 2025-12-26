@@ -297,7 +297,7 @@ export class ApiClientService {
     }
 
     // ---- Transfers -----------------------------------------------------------
-    listFiles(folderId?: number | null, scope: 'all' | 'shared' | 'sent' = 'shared'): Promise<any> {
+    listFiles(folderId?: number | null, scope: 'mine' | 'shared' | 'sent' = 'mine'): Promise<any> {
         const params: any = { scope };
         if (folderId !== undefined) {
             params.folder = folderId;
@@ -466,6 +466,15 @@ export class ApiClientService {
         });
     }
 
+    renameFile(id: number, filename: string): Promise<any> {
+        return new Promise((resolve, reject) => {
+            this.request(`/transfers/${id}/`, 'PATCH', { data: { filename } }).subscribe({
+                next: (data) => resolve(data),
+                error: (err) => reject(err)
+            });
+        });
+    }
+
     deleteFolder(id: number): Promise<any> {
         return new Promise((resolve, reject) => {
             this.request(`/folders/${id}/`, 'DELETE').subscribe({
@@ -499,14 +508,25 @@ export class ApiClientService {
         return new Promise((resolve, reject) => {
             const formData = new FormData();
             if (folderId !== null && folderId !== undefined) {
-                formData.append('folder', folderId.toString());
+                // backend expects 'folder_id' for the move endpoint
+                formData.append('folder_id', folderId.toString());
             } else {
-                formData.append('folder', '');
+                formData.append('folder_id', '');
             }
 
             this.http.post(`${this.baseUrl}/transfers/${fileId}/move/`, formData, {
                 withCredentials: true
             }).pipe(catchError(this.handleError)).subscribe({
+                next: (data) => resolve(data),
+                error: (err) => reject(err)
+            });
+        });
+    }
+
+    moveFolderToFolder(folderId: number, parentId: number | null): Promise<any> {
+        const payload: any = { parent: parentId ?? null };
+        return new Promise((resolve, reject) => {
+            this.request(`/folders/${folderId}/`, 'PATCH', { data: payload }).subscribe({
                 next: (data) => resolve(data),
                 error: (err) => reject(err)
             });
@@ -531,19 +551,81 @@ export class ApiClientService {
             });
         });
     }
-    shareFile(fileId: number, username: string): Promise<any> {
+    listFileAccess(fileId: number): Promise<any[]> {
         return new Promise((resolve, reject) => {
-            this.request(`/transfers/${fileId}/share/`, 'POST', { data: { username } }).subscribe({
+            this.request(`/transfers/${fileId}/access/`, 'GET').subscribe({
+                next: (data) => {
+                    const payload: any = data;
+                    if (Array.isArray(payload)) {
+                        resolve(payload);
+                    } else if (payload && Array.isArray(payload.results)) {
+                        resolve(payload.results);
+                    } else {
+                        resolve([]);
+                    }
+                },
+                error: (err) => reject(err)
+            });
+        });
+    }
+
+    shareFile(fileId: number, username: string, permission: 'read' | 'edit' = 'read', expires_at?: string | null): Promise<any> {
+        const payload: any = { username, permission };
+        if (expires_at) {
+            payload.expires_at = expires_at;
+        }
+        return new Promise((resolve, reject) => {
+            this.request(`/transfers/${fileId}/access/`, 'POST', { data: payload }).subscribe({
                 next: (data) => resolve(data),
                 error: (err) => reject(err)
             });
         });
     }
 
-    shareFolder(folderId: number, username: string): Promise<any> {
+    revokeFileAccess(fileId: number, userId: number): Promise<void> {
         return new Promise((resolve, reject) => {
-            this.request(`/folders/${folderId}/share/`, 'POST', { data: { username } }).subscribe({
+            this.request(`/transfers/${fileId}/access/${userId}/`, 'DELETE').subscribe({
+                next: () => resolve(),
+                error: (err) => reject(err)
+            });
+        });
+    }
+
+    listFolderAccess(folderId: number): Promise<any[]> {
+        return new Promise((resolve, reject) => {
+            this.request(`/folders/${folderId}/access/`, 'GET').subscribe({
+                next: (data) => {
+                    const payload: any = data;
+                    if (Array.isArray(payload)) {
+                        resolve(payload);
+                    } else if (payload && Array.isArray(payload.results)) {
+                        resolve(payload.results);
+                    } else {
+                        resolve([]);
+                    }
+                },
+                error: (err) => reject(err)
+            });
+        });
+    }
+
+    shareFolder(folderId: number, username: string, permission: 'read' | 'edit' = 'read', propagate: boolean = true, expires_at?: string | null): Promise<any> {
+        const payload: any = { username, permission, propagate };
+        if (expires_at) {
+            payload.expires_at = expires_at;
+        }
+        return new Promise((resolve, reject) => {
+            this.request(`/folders/${folderId}/access/`, 'POST', { data: payload }).subscribe({
                 next: (data) => resolve(data),
+                error: (err) => reject(err)
+            });
+        });
+    }
+
+    revokeFolderAccess(folderId: number, userId: number): Promise<void> {
+        return new Promise((resolve, reject) => {
+            this.request(`/folders/${folderId}/access/${userId}/`, 'DELETE').subscribe({
+                next: () => resolve(),
                 error: (err) => reject(err)
             });
         });

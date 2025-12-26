@@ -7,8 +7,13 @@ from rest_framework import serializers
 from django.http import FileResponse
 from django.utils import timezone
 from datetime import timedelta
-from .models import FileTransfer, Folder
-from .serializers import FileTransferSerializer, FolderSerializer
+from .models import FileTransfer, Folder, FileAccess, FolderAccess
+from .serializers import (
+    FileTransferSerializer,
+    FolderSerializer,
+    FileAccessSerializer,
+    FolderAccessSerializer,
+)
 from django.db.models import Q
 from django.core.cache import cache
 from .security_utils import (
@@ -24,14 +29,23 @@ SECURITY_CONFIG = load_security_config()
 class FolderViewSet(viewsets.ModelViewSet):
     serializer_class = FolderSerializer
     permission_classes = [permissions.IsAuthenticated]
-    
+    parser_classes = (MultiPartParser, FormParser, JSONParser)
+
     def get_queryset(self):
-        queryset = Folder.objects.filter(owner=self.request.user)
+        user = self.request.user
+        queryset = Folder.objects.filter(
+            Q(owner=user) | Q(access_list__granted_to=user)
+        ).distinct()
+
         parent_id = self.request.query_params.get('parent')
         if parent_id == 'null':
             queryset = queryset.filter(parent__isnull=True)
         elif parent_id:
             queryset = queryset.filter(parent_id=parent_id)
+        else:
+            # Default to top-level folders owned or shared
+            queryset = queryset.filter(parent__isnull=True)
+
         return queryset
         
     def perform_create(self, serializer):
@@ -46,6 +60,9 @@ class FolderViewSet(viewsets.ModelViewSet):
         import io
         
         folder = self.get_object()
+
+        if not self._has_folder_access(request.user, folder):
+            return Response({'error': 'unauthorized'}, status=status.HTTP_403_FORBIDDEN)
         
         # Create ZIP in memory
         zip_buffer = io.BytesIO()
@@ -54,9 +71,12 @@ class FolderViewSet(viewsets.ModelViewSet):
             """Recursively add folder contents to ZIP"""
             # Add files in current folder
             files = FileTransfer.objects.filter(
-                recipient=request.user,
                 folder=current_folder
-            )
+            ).filter(
+                Q(owner=request.user)
+                | Q(access_list__granted_to=request.user)
+                | Q(folder__access_list__granted_to=request.user)
+            ).distinct()
             for file_transfer in files:
                 if file_transfer.file and hasattr(file_transfer.file, 'path'):
                     file_path = os.path.join(path_prefix, file_transfer.filename)
@@ -66,7 +86,10 @@ class FolderViewSet(viewsets.ModelViewSet):
                         pass  # Skip files that no longer exist on disk
             
             # Add subfolders recursively
-            subfolders = Folder.objects.filter(owner=request.user, parent=current_folder)
+            subfolders = Folder.objects.filter(parent=current_folder).filter(
+                Q(owner=request.user)
+                | Q(access_list__granted_to=request.user)
+            ).distinct()
             for subfolder in subfolders:
                 subfolder_path = os.path.join(path_prefix, subfolder.name)
                 add_folder_to_zip(zipf, subfolder, subfolder_path)
@@ -84,49 +107,64 @@ class FolderViewSet(viewsets.ModelViewSet):
         response['Content-Type'] = 'application/zip'
         return response
 
-    @action(detail=True, methods=['post'])
-    def share(self, request, pk=None):
-        folder = self.get_object()
-        username = request.data.get('username')
-        
-        try:
-            recipient = User.objects.get(username=username)
-        except User.DoesNotExist:
-             return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+    def _has_folder_access(self, user, folder: Folder) -> bool:
+        if folder.owner_id == user.id:
+            return True
+        return folder.access_list.filter(granted_to=user).exists()
 
-        # Copia recursiva (simplificada)
-        def copy_folder(src_folder, new_owner, parent=None):
-            new_folder = Folder.objects.create(
-                name=src_folder.name,
-                owner=new_owner,
-                parent=parent
-            )
-            
-            # Copiar subcarpetas
-            for child in src_folder.subfolders.all():
-                copy_folder(child, new_owner, new_folder)
-                
-            # Copiar archivos
-            files = FileTransfer.objects.filter(recipient=src_folder.owner, folder=src_folder)
-            for f in files:
-                new_file = FileTransfer(
-                    sender=request.user,
-                    recipient=new_owner,
-                    folder=new_folder,
-                    filename=f.filename,
-                    size=f.size,
-                    expires_at=timezone.now() + timedelta(days=3),
-                    is_shared_copy=True
-                )
-                if f.file:
-                    try:
-                        # Re-save the file content to create a new physical copy
-                        new_file.file.save(f.filename, f.file.open(), save=True)
-                    except Exception as e:
-                        print(f"Error copying file {f.filename}: {e}")
-                    
-        copy_folder(folder, recipient)
-        return Response({'status': 'shared'})
+    @action(detail=True, methods=['get', 'post'], url_path='access')
+    def manage_access(self, request, pk=None):
+        folder = self.get_object()
+        if folder.owner != request.user:
+            return Response({'error': 'unauthorized'}, status=status.HTTP_403_FORBIDDEN)
+
+        if request.method.lower() == 'get':
+            serializer = FolderAccessSerializer(folder.access_list.all(), many=True)
+            return Response(serializer.data)
+
+        username = request.data.get('username')
+        permission = request.data.get('permission', FolderAccess.Permission.READ)
+        propagate_value = request.data.get('propagate', True)
+        if isinstance(propagate_value, str):
+            propagate = propagate_value.lower() in {'1', 'true', 'yes', 'on'}
+        else:
+            propagate = bool(propagate_value)
+
+        if not username:
+            return Response({'error': 'Username required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            user = User.objects.get(username=username)
+        except User.DoesNotExist:
+            return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        access, _created = FolderAccess.objects.update_or_create(
+            folder=folder,
+            granted_to=user,
+            defaults={
+                'granted_by': request.user,
+                'permission': permission,
+                'propagate': propagate,
+                'expires_at': request.data.get('expires_at')
+            }
+        )
+
+        serializer = FolderAccessSerializer(access)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=['delete'], url_path='access/(?P<user_id>[^/.]+)')
+    def revoke_access(self, request, pk=None, user_id=None):
+        folder = self.get_object()
+        if folder.owner != request.user:
+            return Response({'error': 'unauthorized'}, status=status.HTTP_403_FORBIDDEN)
+
+        try:
+            access = folder.access_list.get(granted_to_id=user_id)
+        except FolderAccess.DoesNotExist:
+            return Response({'error': 'Access not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        access.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 class FileTransferViewSet(viewsets.ModelViewSet):
     serializer_class = FileTransferSerializer
@@ -134,13 +172,15 @@ class FileTransferViewSet(viewsets.ModelViewSet):
     parser_classes = (MultiPartParser, FormParser, JSONParser)
 
     def get_queryset(self):
-        """Return all transfers the user can access (sender or recipient)."""
         user = self.request.user
         if not user.is_authenticated:
             return FileTransfer.objects.none()
 
         return FileTransfer.objects.filter(
-            Q(recipient=user) | Q(sender=user)
+            Q(owner=user)
+            | Q(uploader=user)
+            | Q(access_list__granted_to=user)
+            | Q(folder__access_list__granted_to=user)
         ).order_by('-created_at').distinct()
 
     def list(self, request, *args, **kwargs):
@@ -149,13 +189,14 @@ class FileTransferViewSet(viewsets.ModelViewSet):
         scope = request.query_params.get('scope', 'all')
 
         if scope == 'shared':
-            queryset = queryset.filter(recipient=user, is_shared_copy=True)
+            queryset = queryset.filter(
+                Q(access_list__granted_to=user)
+                | Q(folder__access_list__granted_to=user)
+            )
         elif scope == 'sent':
-            # "Enviados" in this context refers to files sent TO the user by others
-            queryset = queryset.filter(recipient=user, is_shared_copy=False).exclude(sender=user)
+            queryset = queryset.filter(uploader=user).exclude(owner=user)
         else:
-            # "Mi unidad" - show all files belonging to the user as recipient
-            queryset = queryset.filter(recipient=user)
+            queryset = queryset.filter(owner=user)
 
         folder_id = request.query_params.get('folder')
         if folder_id == 'null':
@@ -206,6 +247,10 @@ class FileTransferViewSet(viewsets.ModelViewSet):
         """
         Set the sender to the current user and expires_at to 3 days from now
         """
+        # Sólo usuarios staff pueden subir archivos
+        if not getattr(self.request.user, 'is_staff', False):
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied('Solo usuarios staff pueden subir archivos.')
         # Get file size from request
         file_obj = self.request.FILES.get('file')
         if file_obj:
@@ -213,10 +258,7 @@ class FileTransferViewSet(viewsets.ModelViewSet):
             self.check_rate_limit(self.request.user, file_obj.size)
         
         # Save the file
-        instance = serializer.save(
-            sender=self.request.user,
-            expires_at=timezone.now() + timedelta(days=3)
-        )
+        instance = serializer.save(expires_at=timezone.now() + timedelta(days=3))
         
         # Scan file for malware
         if file_obj and hasattr(instance.file, 'path'):
@@ -245,10 +287,12 @@ class FileTransferViewSet(viewsets.ModelViewSet):
         """
         instance = self.get_object()
         
-        # Only mark as downloaded if the requester is the recipient
-        if request.user == instance.recipient:
+        if not self._has_file_access(request.user, instance):
+            return Response({'error': 'unauthorized'}, status=status.HTTP_403_FORBIDDEN)
+
+        if request.user == instance.owner:
             instance.is_downloaded = True
-            instance.save()
+            instance.save(update_fields=['is_downloaded'])
             
         response = FileResponse(instance.file.open(), as_attachment=True, filename=instance.filename)
         return response
@@ -285,30 +329,31 @@ class FileTransferViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'])
     def mark_viewed(self, request, pk=None):
         instance = self.get_object()
-        if request.user == instance.recipient:
+        if not self._has_file_access(request.user, instance):
+            return Response({'status': 'unauthorized'}, status=status.HTTP_403_FORBIDDEN)
+
+        if request.user == instance.owner:
             instance.is_viewed = True
-            instance.save()
-            return Response({'status': 'marked as viewed'})
-        return Response({'status': 'unauthorized'}, status=status.HTTP_403_FORBIDDEN)
+            instance.save(update_fields=['is_viewed'])
+        return Response({'status': 'marked as viewed'})
 
     @action(detail=True, methods=['delete'])
     def delete_file(self, request, pk=None):
         instance = self.get_object()
-        if request.user == instance.recipient or request.user == instance.sender:
-            # Delete the physical file
-            if instance.file:
-                instance.file.delete()
-            # Delete the database record
-            instance.delete()
-            return Response({'status': 'deleted'}, status=status.HTTP_204_NO_CONTENT)
-        return Response({'status': 'unauthorized'}, status=status.HTTP_403_FORBIDDEN)
+        if request.user not in {instance.owner, instance.uploader}:
+            return Response({'status': 'unauthorized'}, status=status.HTTP_403_FORBIDDEN)
+
+        if instance.file:
+            instance.file.delete()
+        instance.delete()
+        return Response({'status': 'deleted'}, status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=True, methods=['post'])
     def move(self, request, pk=None):
         instance = self.get_object()
         folder_id = request.data.get('folder_id')
         
-        if request.user != instance.recipient:
+        if request.user != instance.owner:
              return Response({'status': 'unauthorized'}, status=status.HTTP_403_FORBIDDEN)
              
         if folder_id:
@@ -324,32 +369,66 @@ class FileTransferViewSet(viewsets.ModelViewSet):
         return Response({'status': 'moved'})
 
     @action(detail=True, methods=['post'])
-    def share(self, request, pk=None):
+    def _has_file_access(self, user, instance: FileTransfer) -> bool:
+        if user.is_anonymous:
+            return False
+        if instance.owner_id == user.id or instance.uploader_id == user.id:
+            return True
+        if instance.access_list.filter(granted_to=user).exists():
+            return True
+        if instance.folder and instance.folder.access_list.filter(granted_to=user).exists():
+            return True
+        return False
+
+    @action(detail=True, methods=['get'], url_path='access')
+    def list_access(self, request, pk=None):
         instance = self.get_object()
+        if instance.owner != request.user:
+            return Response({'error': 'unauthorized'}, status=status.HTTP_403_FORBIDDEN)
+        serializer = FileAccessSerializer(instance.access_list.all(), many=True)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['post'], url_path='access')
+    def grant_access(self, request, pk=None):
+        instance = self.get_object()
+        if instance.owner != request.user:
+            return Response({'error': 'unauthorized'}, status=status.HTTP_403_FORBIDDEN)
+
         username = request.data.get('username')
+        permission = request.data.get('permission', FileAccess.Permission.READ)
+        expires_at = request.data.get('expires_at')
+
         if not username:
             return Response({'error': 'Username required'}, status=status.HTTP_400_BAD_REQUEST)
-            
+
         try:
-            recipient = User.objects.get(username=username)
+            user = User.objects.get(username=username)
         except User.DoesNotExist:
-             return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
-             
-        # Crear copia del registro
-        new_transfer = FileTransfer(
-            sender=request.user,
-            recipient=recipient,
-            filename=instance.filename,
-            size=instance.size,
-            description=instance.description,
-            expires_at=timezone.now() + timedelta(days=3),
-            is_shared_copy=True
+            return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        access, _created = FileAccess.objects.update_or_create(
+            file=instance,
+            granted_to=user,
+            defaults={
+                'granted_by': request.user,
+                'permission': permission,
+                'expires_at': expires_at
+            }
         )
-        # Copiar archivo físico
-        if instance.file:
-            try:
-                new_transfer.file.save(instance.filename, instance.file.open(), save=True)
-            except Exception as e:
-                return Response({'error': f'Error copying file: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-            
-        return Response({'status': 'shared'})
+
+        serializer = FileAccessSerializer(access)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=['delete'], url_path='access/(?P<user_id>[^/.]+)')
+    def revoke_access(self, request, pk=None, user_id=None):
+        instance = self.get_object()
+        if instance.owner != request.user:
+            return Response({'error': 'unauthorized'}, status=status.HTTP_403_FORBIDDEN)
+
+        try:
+            access = instance.access_list.get(granted_to_id=user_id)
+        except FileAccess.DoesNotExist:
+            return Response({'error': 'Access not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        access.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)

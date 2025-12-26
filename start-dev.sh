@@ -116,13 +116,11 @@ cd ..
 # Iniciar Angular Frontend
 echo -e "${GREEN}🅰️  Iniciando Angular Frontend...${NC}"
 cd CapiWebFrontEndAngular
-
 # Verificar si node_modules existe
 if [ ! -d "node_modules" ]; then
     echo -e "${BLUE}📦 Instalando dependencias de Angular...${NC}"
     pnpm install
 fi
-
 # Verificar si el puerto 4200 está en uso
 if check_port 4200; then
     echo -e "${RED}⚠️  El puerto 4200 ya está en uso${NC}"
@@ -130,7 +128,9 @@ if check_port 4200; then
 else
     # Iniciar Angular en segundo plano
     echo -e "${GREEN}✅ Iniciando Angular en http://localhost:4200${NC}"
-    pnpm run hmr > "${ANGULAR_LOG}" 2>&1 &
+    echo -e "${YELLOW}📝 Logs de Angular: ${ANGULAR_LOG}${NC}"
+    echo -e "${YELLOW}🌐 Accesible en la red local en: http://$(hostname -I | awk '{print $1}'):4200${NC}"
+    ng serve --host 0.0.0.0 > "${ANGULAR_LOG}" 2>&1 &
     ANGULAR_PID=$!
     echo "Angular PID: $ANGULAR_PID"
     echo "Log: ${ANGULAR_LOG}"
@@ -149,25 +149,36 @@ else
     echo "Log: ${BOT_LOG}"
 fi
 
-echo ""
-echo -e "${GREEN}✅ Entorno de desarrollo iniciado correctamente${NC}"
-echo ""
+# echo ""
+# echo -e "${GREEN}✅ Entorno de desarrollo iniciado correctamente${NC}"
+# echo ""
+# echo "📍 URLs disponibles:"
+# echo "   - Frontend (Angular): http://localhost:4200"
+# echo "   - Backend (Django): http://localhost:8000"
+# echo "   - Admin Django: http://localhost:8000/admin"
+# echo ""
+# echo "🤖 Bot de Telegram:"
+# echo "   - Log: ${BOT_LOG}"
+# echo ""
+# echo "📝 Logs:"
+# echo "   - Django: /tmp/django.log"
+# echo "   - Angular: /tmp/angular.log"
+# echo ""
+# echo "🛑 Para detener los servidores:"
+# echo "   - Ejecuta: ./stop-dev.sh"
+# echo "   - O presiona Ctrl+C y luego ejecuta: killall python node"
+# echo ""
+
 echo "📍 URLs disponibles:"
 echo "   - Frontend (Angular): http://localhost:4200"
+echo "   - Frontend (Red Local): http://$(hostname -I | awk '{print $1}'):4200"
 echo "   - Backend (Django): http://localhost:8000"
 echo "   - Admin Django: http://localhost:8000/admin"
 echo ""
-echo "🤖 Bot de Telegram:"
-echo "   - Log: ${BOT_LOG}"
-echo ""
 echo "📝 Logs:"
-echo "   - Django: /tmp/django.log"
-echo "   - Angular: /tmp/angular.log"
-echo ""
-echo "🛑 Para detener los servidores:"
-echo "   - Ejecuta: ./stop-dev.sh"
-echo "   - O presiona Ctrl+C y luego ejecuta: killall python node"
-echo ""
+echo "   - Django: ${DJANGO_LOG}"
+echo "   - Angular: ${ANGULAR_LOG}"
+echo "   - Bot: ${BOT_LOG}"
 
 # Mantener el script corriendo
 wait

@@ -2,6 +2,53 @@
     (dragleave)="handleDragLeave($event)" (drop)="handleDrop($event)"
     (contextmenu)="handleContextMenu($event, 'background')">
     <div class="filesHeader">
+        <div class="headerControls">
+            <div class="sortContainer" (click)="$event.stopPropagation()">
+                <button class="sortBtn" (click)="toggleSortMenu()">
+                    {{ getSortLabel() }}
+                    <span class="sortIcon">{{ sortConfig().order === 'asc' ? '↑' : '↓' }}</span>
+                </button>
+
+                <div *ngIf="isSortMenuOpen()" class="sortMenu">
+                    <div class="sortGroup">
+                        <div class="sortHeader">Ordenar por</div>
+                        <div class="sortItem" (click)="setSortConfig({field: 'name'}); toggleSortMenu()"
+                            [class.active]="sortConfig().field === 'name'">
+                            <span *ngIf="sortConfig().field === 'name'">✓</span> Nombre
+                        </div>
+                        <div class="sortItem" (click)="setSortConfig({field: 'date'}); toggleSortMenu()"
+                            [class.active]="sortConfig().field === 'date'">
+                            <span *ngIf="sortConfig().field === 'date'">✓</span> Fecha de modificación
+                        </div>
+                        <div class="sortItem" (click)="setSortConfig({field: 'size'}); toggleSortMenu()"
+                            [class.active]="sortConfig().field === 'size'">
+                            <span *ngIf="sortConfig().field === 'size'">✓</span> Tamaño
+                        </div>
+                    </div>
+
+                    <div class="sortDivider"></div>
+
+                    <div class="sortGroup">
+                        <div class="sortHeader">Orden</div>
+                        <div class="sortItem" (click)="setSortConfig({order: 'asc'}); toggleSortMenu()"
+                            [class.active]="sortConfig().order === 'asc'">
+                            <span *ngIf="sortConfig().order === 'asc'">✓</span> Ascendente
+                        </div>
+                        <div class="sortItem" (click)="setSortConfig({order: 'desc'}); toggleSortMenu()"
+                            [class.active]="sortConfig().order === 'desc'">
+                            <span *ngIf="sortConfig().order === 'desc'">✓</span> Descendente
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="viewToggle">
+                <button class="toggleBtn" [class.active]="viewMode() === 'list'" (click)="viewMode.set('list')"
+                    title="Lista">☰</button>
+                <button class="toggleBtn" [class.active]="viewMode() === 'grid'" (click)="viewMode.set('grid')"
+                    title="Cuadrícula">⊞</button>
+            </div>
+        </div>
         <div class="breadcrumbs">
             <span class="breadcrumb-root-icon">📁</span>
             <span class="crumb" (click)="handleBreadcrumbClick(0)" [class.active]="breadcrumbs().length === 1"
@@ -25,54 +72,7 @@
                 <span *ngIf="!last" class="separator">›</span>
             </ng-container>
         </div>
-        <div class="sortContainer" (click)="$event.stopPropagation()">
-            <button class="sortBtn" (click)="toggleSortMenu()">
-                {{ getSortLabel() }}
-                <span class="sortIcon">{{ sortConfig().order === 'asc' ? '↑' : '↓' }}</span>
-            </button>
 
-            <div *ngIf="isSortMenuOpen()" class="sortMenu">
-                <div class="sortGroup">
-                    <div class="sortHeader">Ordenar por</div>
-                    <div class="sortItem" (click)="setSortConfig({field: 'name'}); toggleSortMenu()"
-                        [class.active]="sortConfig().field === 'name'">
-                        <span *ngIf="sortConfig().field === 'name'">✓</span> Nombre
-                    </div>
-                    <div class="sortItem" (click)="setSortConfig({field: 'date'}); toggleSortMenu()"
-                        [class.active]="sortConfig().field === 'date'">
-                        <span *ngIf="sortConfig().field === 'date'">✓</span> Fecha de modificación
-                    </div>
-                    <div class="sortItem" (click)="setSortConfig({field: 'size'}); toggleSortMenu()"
-                        [class.active]="sortConfig().field === 'size'">
-                        <span *ngIf="sortConfig().field === 'size'">✓</span> Tamaño
-                    </div>
-                </div>
-
-                <div class="sortDivider"></div>
-
-                <div class="sortGroup">
-                    <div class="sortHeader">Orden</div>
-                    <div class="sortItem" (click)="setSortConfig({order: 'asc'}); toggleSortMenu()"
-                        [class.active]="sortConfig().order === 'asc'">
-                        <span *ngIf="sortConfig().order === 'asc'">✓</span> Ascendente
-                    </div>
-                    <div class="sortItem" (click)="setSortConfig({order: 'desc'}); toggleSortMenu()"
-                        [class.active]="sortConfig().order === 'desc'">
-                        <span *ngIf="sortConfig().order === 'desc'">✓</span> Descendente
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="viewToggle">
-            <button class="toggleBtn" [class.active]="viewMode() === 'list'" (click)="viewMode.set('list')"
-                title="Lista">
-                ☰
-            </button>
-            <button class="toggleBtn" [class.active]="viewMode() === 'grid'" (click)="viewMode.set('grid')"
-                title="Cuadrícula">
-                ⊞
-            </button>
-        </div>
     </div>
 
     <p *ngIf="loading()">Cargando...</p>
@@ -92,15 +92,19 @@
             [class.animate]="animateList()">
             <!-- Folders -->
             <ng-container *ngFor="let folder of sortedFolders()">
-                <div class="folderCard" [class.listMode]="viewMode() === 'list'"
+                <div class="folderCard" [class.listMode]="viewMode() === 'list'" [attr.data-folder-id]="folder.id"
                     [class.selected]="isFolderSelected(folder.id)" [class.dropTarget]="hoveredFolderId() === folder.id"
-                    (touchstart)="handleItemTouchStart($event)"
+                    (touchstart)="handleItemTouchStart($event, 'folder', folder)"
+                    (touchmove)="handleTouchMove($event, 'folder', folder)"
+                    (touchcancel)="handleTouchCancel($event)"
                     (touchend)="handleItemTouchEnd($event, 'folder', folder)"
                     (click)="handleItemClick($event, 'folder', folder)"
                     (contextmenu)="handleContextMenu($event, 'folder', folder)" (dblclick)="navigateToFolder(folder)"
                     (dragover)="handleFolderDragOver($event, folder)"
                     (dragenter)="handleFolderDragEnter($event, folder)"
-                    (dragleave)="handleFolderDragLeave($event, folder)" (drop)="handleFileDrop($event, folder)">
+                    (dragleave)="handleFolderDragLeave($event, folder)" (drop)="handleFileDrop($event, folder)"
+                    [draggable]="true" (dragstart)="handleFolderDragStart($event, folder)" (dragend)="handleDragEnd()">
+
 
                     <div class="selectionCheckbox" [class.checked]="isFolderSelected(folder.id)"
                         (click)="toggleItemSelection('folder', folder, true); $event.stopPropagation()">
@@ -112,7 +116,7 @@
                             <div class="cardIconSmall">📁</div>
                             <div class="cardName">{{ folder.name }}</div>
                             <span (click)="handleContextMenu($event, 'folder', folder); $event.stopPropagation()"
-                                class="optionsBtn" title="Opciones">
+                                class="optionsBtn" [class.active]="isOptionsActive('folder', folder)" title="Opciones">
                                 ⋮
                             </span>
                         </div>
@@ -127,7 +131,7 @@
                             <span class="cardName">{{ folder.name }}</span>
                         </div>
                         <span (click)="handleContextMenu($event, 'folder', folder); $event.stopPropagation()"
-                            class="optionsBtn listModeBtn" title="Opciones">
+                            class="optionsBtn listModeBtn" [class.active]="isOptionsActive('folder', folder)" title="Opciones">
                             ⋮
                         </span>
                     </ng-container>
@@ -136,10 +140,10 @@
 
             <!-- Files -->
             <ng-container *ngFor="let file of sortedFiles()">
-                <div class="fileCard" [class.listMode]="viewMode() === 'list'"
+                <div class="fileCard" [class.listMode]="viewMode() === 'list'" [attr.data-file-id]="file.id"
                     [class.selected]="isFileSelected(file.id)" [draggable]="true"
                     (dragstart)="handleDragStart($event, file)" (dragend)="handleDragEnd()"
-                    (touchstart)="handleItemTouchStart($event)" (touchend)="handleItemTouchEnd($event, 'file', file)"
+                    (touchstart)="handleItemTouchStart($event, 'file', file)" (touchmove)="handleTouchMove($event, 'file', file)" (touchcancel)="handleTouchCancel($event)" (touchend)="handleItemTouchEnd($event, 'file', file)"
                     (click)="handleItemClick($event, 'file', file)" (dblclick)="handleFileClick(file)"
                     (contextmenu)="handleContextMenu($event, 'file', file)" style="cursor: pointer">
 
@@ -157,7 +161,7 @@
                             </div>
                             <div class="cardName">{{ file.filename }}</div>
                             <span (click)="handleContextMenu($event, 'file', file); $event.stopPropagation()"
-                                class="optionsBtn" title="Opciones">
+                                class="optionsBtn" [class.active]="isOptionsActive('file', file)" title="Opciones">
                                 ⋮
                             </span>
                         </div>
@@ -177,7 +181,7 @@
                             <span class="fileSizeList">{{ (file.size / 1024).toFixed(1) }} KB</span>
                         </div>
                         <span (click)="handleContextMenu($event, 'file', file); $event.stopPropagation()"
-                            class="optionsBtn listModeBtn" title="Opciones">
+                            class="optionsBtn listModeBtn" [class.active]="isOptionsActive('file', file)" title="Opciones">
                             ⋮
                         </span>
                     </ng-container>
@@ -186,9 +190,10 @@
         </div>
     </div>
 
-    <!-- Context Menu -->
+    <!-- Context Menu: floating on desktop, bottom-sheet modal on mobile -->
     <ng-container *ngIf="contextMenu() as menu">
-        <div class="context-menu" [style.top.px]="menu.y" [style.left.px]="menu.x" (click)="$event.stopPropagation()">
+        <div *ngIf="!isMobile()" class="context-menu" [style.top.px]="menu.y" [style.left.px]="menu.x"
+            (click)="$event.stopPropagation()">
             <ng-container *ngIf="menu.type === 'file' || menu.type === 'folder'">
                 <button
                     (click)="openShareModal(menu.item!, menu.type === 'file' ? 'file' : 'folder'); closeContextMenu()">
@@ -222,6 +227,32 @@
                     <span class="icon">📁</span> Nueva carpeta
                 </button>
             </ng-container>
+        </div>
+
+        <!-- Mobile bottom sheet modal -->
+        <div *ngIf="isMobile()" class="mobile-context-modal" (click)="$event.stopPropagation()">
+            <div class="mobile-context-sheet">
+                <header class="mobile-context-header">
+                    <div class="mobile-context-title">Opciones</div>
+                    <button class="mobile-context-close" (click)="closeContextMenu()">✕</button>
+                </header>
+                <div class="mobile-context-body">
+                    <ng-container *ngIf="menu.type === 'file' || menu.type === 'folder'">
+                        <button (click)="openShareModal(menu.item!, menu.type === 'file' ? 'file' : 'folder'); closeContextMenu()">Compartir</button>
+                        <button (click)="menu.type === 'file' ? handleDownload(menu.item!.id, $any(menu.item!).filename) : handleFolderDownload($any(menu.item!)); closeContextMenu()">Descargar</button>
+                        <ng-container *ngIf="menu.type === 'file'">
+                            <button (click)="openPreview(menu.item!); closeContextMenu()">Previsualizar</button>
+                        </ng-container>
+                        <button (click)="openMoveDialog(menu.item!); closeContextMenu()">Mover a...</button>
+                        <button (click)="renameItem(); closeContextMenu()">Renombrar</button>
+                        <button class="delete" (click)="deleteItem(); closeContextMenu()">Eliminar</button>
+                    </ng-container>
+                    <ng-container *ngIf="menu.type !== 'file' && menu.type !== 'folder'">
+                        <button (click)="triggerFileUpload(); closeContextMenu()">Subir archivo</button>
+                        <button (click)="createFolder(); closeContextMenu()">Nueva carpeta</button>
+                    </ng-container>
+                </div>
+            </div>
         </div>
     </ng-container>
 

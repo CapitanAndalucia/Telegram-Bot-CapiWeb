@@ -99,6 +99,12 @@ FILE_UPLOAD_MAX_MEMORY_SIZE = 30 * 1024 * 1024 * 1024  # 30 GB
 # VirusTotal Configuration (optional)
 VIRUSTOTAL_API_KEY = env('VIRUSTOTAL_API_KEY', default=None)
 
+# reCAPTCHA secret (para verificar tokens en el servidor). Defínelo en .env si deseas activar CAPTCHA.
+RECAPTCHA_SECRET = env('RECAPTCHA_SECRET', default=None)
+# Permite activar/desactivar comprobación de reCAPTCHA desde .env.
+# Por defecto se activa si hay RECAPTCHA_SECRET configurado.
+RECAPTCHA_ENABLED = env.bool('RECAPTCHA_ENABLED', default=bool(RECAPTCHA_SECRET))
+
 ROOT_URLCONF = 'urls'
 
 TEMPLATES = [

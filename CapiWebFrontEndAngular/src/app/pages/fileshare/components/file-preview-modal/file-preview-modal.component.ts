@@ -27,7 +27,7 @@ export class FilePreviewModalComponent {
     }
 
     get downloadUrl(): string {
-        return `http://localhost:8000/api/transfers/${this.file().id}/download/`;
+        return `/api/transfers/${this.file().id}/download/`;
     }
 
     onClose(): void {

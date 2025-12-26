@@ -1,4 +1,5 @@
 import { Component, signal, computed, OnInit, Input } from '@angular/core';
+import { environment } from '../../../environments/environment';
 import { Router, ActivatedRoute, RouterModule } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -71,6 +72,8 @@ export class AuthComponent implements OnInit {
     });
 
     displayTitle = computed(() => this.customTitle || this.meta().heading);
+    recaptchaSiteKey = environment.recaptchaSiteKey;
+    recaptchaEnabled = environment.recaptchaEnabled;
 
     constructor(
         private apiClient: ApiClientService,
@@ -118,11 +121,20 @@ export class AuthComponent implements OnInit {
                 }).toPromise();
                 this.status.set({ loading: false, error: '', success: 'Inicio de sesión exitoso. Redirigiendo...' });
             } else {
-                await this.apiClient.register({
+                const payload: any = {
                     username: formData.username.trim(),
                     password: formData.password,
                     email: formData.email.trim() || undefined,
-                }).toPromise();
+                };
+                if (environment.recaptchaSiteKey && (window as any).grecaptcha) {
+                    try {
+                        const token = (window as any).grecaptcha.getResponse();
+                        if (token) payload['g-recaptcha-response'] = token;
+                    } catch (e) {
+                        // ignore token retrieval errors
+                    }
+                }
+                await this.apiClient.register(payload).toPromise();
                 this.status.set({ loading: false, error: '', success: 'Registro exitoso. Redirigiendo...' });
             }
 

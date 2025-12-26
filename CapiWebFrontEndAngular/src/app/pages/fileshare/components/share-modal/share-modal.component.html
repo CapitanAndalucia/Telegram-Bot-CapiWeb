@@ -11,50 +11,93 @@
                 {{ type === 'file' ? $any(item).filename : $any(item).name }}
             </p>
 
-            <div class="search-section">
-                <input type="text" [(ngModel)]="searchQuery" (ngModelChange)="onSearch()"
-                    placeholder="Buscar usuario..." class="search-input">
+            <section class="access-section">
+                <div class="access-header">
+                    <h4>Usuarios con acceso</h4>
+                    @if (loadingAccess()) {
+                        <span class="access-status">Cargando…</span>
+                    }
+                </div>
 
-                @if (searchResults().length > 0) {
-                <div class="search-results">
-                    @for (user of searchResults(); track user.id) {
-                    <div class="user-item" (click)="selectUser(user)">
-                        <div class="avatar">{{ user.username.charAt(0).toUpperCase() }}</div>
-                        <span class="username">{{ user.username }}</span>
+                @if (!loadingAccess() && !hasAccessEntries()) {
+                    <p class="no-access">Todavía no has compartido este {{ type === 'file' ? 'archivo' : 'carpeta' }}.</p>
+                } @else {
+                    <ul class="access-list">
+                        @for (access of accessList(); track access.id) {
+                            <li class="access-item">
+                                <div class="access-info">
+                                    <div class="avatar-small">{{ access.granted_to_username.charAt(0).toUpperCase() }}</div>
+                                    <div class="access-text">
+                                        <span class="access-username">{{ access.granted_to_username }}</span>
+                                        <small class="access-meta">Permiso: {{ access.permission === 'edit' ? 'Edición' : 'Lectura' }}</small>
+                                    </div>
+                                </div>
+                                <button class="revoke-btn" (click)="revokeAccess(access)" [disabled]="isSharing()">✕</button>
+                            </li>
+                        }
+                    </ul>
+                }
+            </section>
+
+            <section class="share-section">
+                <div class="search-section">
+                    <input type="text" [(ngModel)]="searchQuery" (ngModelChange)="onSearch()"
+                        placeholder="Buscar usuario..." class="search-input">
+
+                    @if (searchResults().length > 0) {
+                    <div class="search-results">
+                        @for (user of searchResults(); track user.id) {
+                        <div class="user-item" (click)="selectUser(user)">
+                            <div class="avatar">{{ user.username.charAt(0).toUpperCase() }}</div>
+                            <span class="username">{{ user.username }}</span>
+                        </div>
+                        }
                     </div>
                     }
+                </div>
+
+                <div class="friends-section">
+                    <h4>Amigos sugeridos</h4>
+                    <div class="friends-list">
+                        @for (friend of friends(); track friend.id) {
+                        <div class="friend-chip" [class.selected]="selectedUser()?.id === friend.id"
+                            (click)="selectUser(friend)">
+                            <div class="avatar-small">{{ friend.username.charAt(0).toUpperCase() }}</div>
+                            <span>{{ friend.username }}</span>
+                        </div>
+                        }
+                        @if (friends().length === 0) {
+                        <p class="no-friends">No tienes amigos agregados aún.</p>
+                        }
+                    </div>
+                </div>
+
+                <div class="permission-row">
+                    <label class="permission-label" for="permission-select">Permiso</label>
+                    <select id="permission-select" class="permission-select" [(ngModel)]="selectedPermission">
+                        <option value="read">Lectura</option>
+                        <option value="edit">Edición</option>
+                    </select>
+                </div>
+
+                @if (type === 'folder') {
+                    <label class="propagate-toggle">
+                        <input type="checkbox" [(ngModel)]="propagateAccess"> Aplicar a subcarpetas y archivos
+                    </label>
+                }
+
+                @if (selectedUser()) {
+                <div class="selected-user-summary">
+                    Compartir con: <strong>{{ selectedUser().username }}</strong>
                 </div>
                 }
-            </div>
-
-            <div class="friends-section">
-                <h4>Amigos sugeridos</h4>
-                <div class="friends-list">
-                    @for (friend of friends(); track friend.id) {
-                    <div class="friend-chip" [class.selected]="selectedUser()?.id === friend.id"
-                        (click)="selectUser(friend)">
-                        <div class="avatar-small">{{ friend.username.charAt(0).toUpperCase() }}</div>
-                        <span>{{ friend.username }}</span>
-                    </div>
-                    }
-                    @if (friends().length === 0) {
-                    <p class="no-friends">No tienes amigos agregados aún.</p>
-                    }
-                </div>
-            </div>
-
-            @if (selectedUser()) {
-            <div class="selected-user-summary">
-                Compartir con: <strong>{{ selectedUser().username }}</strong>
-            </div>
-            }
-
+            </section>
         </div>
 
         <div class="modal-footer">
             <button class="cancel-btn" (click)="close.emit()">Cancelar</button>
             <button class="share-action-btn" [disabled]="!selectedUser() || isSharing()" (click)="share()">
-                {{ isSharing() ? 'Compartiendo...' : 'Compartir' }}
+                {{ isSharing() ? 'Guardando...' : 'Guardar acceso' }}
             </button>
         </div>
     </div>

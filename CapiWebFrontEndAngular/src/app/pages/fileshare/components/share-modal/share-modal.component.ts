@@ -1,8 +1,8 @@
-import { Component, EventEmitter, Input, Output, signal, inject, effect } from '@angular/core';
+import { Component, EventEmitter, Input, Output, signal, inject, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiClientService } from '../../../../services/api-client.service';
-import { FileItem, Folder } from '../../../../models/file-item.model';
+import { FileItem, Folder, FileAccess, FolderAccess } from '../../../../models/file-item.model';
 import { ToastrService } from 'ngx-toastr';
 
 @Component({
@@ -12,7 +12,7 @@ import { ToastrService } from 'ngx-toastr';
     templateUrl: './share-modal.component.html',
     styleUrls: ['./share-modal.component.css']
 })
-export class ShareModalComponent {
+export class ShareModalComponent implements OnChanges {
     @Input() item!: FileItem | Folder;
     @Input() type!: 'file' | 'folder';
     @Output() close = new EventEmitter<void>();
@@ -25,15 +25,34 @@ export class ShareModalComponent {
     searchResults = signal<any[]>([]);
     friends = signal<any[]>([]);
     selectedUser = signal<any>(null);
+    selectedPermission = signal<'read' | 'edit'>('read');
+    propagateAccess = signal(true);
     isLoading = signal(false);
     isSharing = signal(false);
+    loadingAccess = signal(false);
+    accessList = signal<(FileAccess | FolderAccess)[]>([]);
 
     constructor() {
         // Load friends initially
         this.loadFriends();
     }
 
-    async loadFriends() {
+    ngOnChanges(changes: SimpleChanges): void {
+        if (changes['item'] || changes['type']) {
+            this.resetFormState();
+            void this.fetchAccessList();
+        }
+    }
+
+    private resetFormState(): void {
+        this.selectedUser.set(null);
+        this.searchQuery.set('');
+        this.searchResults.set([]);
+        this.selectedPermission.set('read');
+        this.propagateAccess.set(true);
+    }
+
+    async loadFriends(): Promise<void> {
         try {
             const friends = await this.api.listFriends();
             this.friends.set(friends);
@@ -42,7 +61,26 @@ export class ShareModalComponent {
         }
     }
 
-    async onSearch() {
+    async fetchAccessList(): Promise<void> {
+        if (!this.item) return;
+        this.loadingAccess.set(true);
+        try {
+            if (this.type === 'file') {
+                const access = await this.api.listFileAccess(this.item.id);
+                this.accessList.set(access);
+            } else {
+                const access = await this.api.listFolderAccess(this.item.id);
+                this.accessList.set(access);
+            }
+        } catch (error) {
+            console.error('Error fetching access list', error);
+            this.accessList.set([]);
+        } finally {
+            this.loadingAccess.set(false);
+        }
+    }
+
+    async onSearch(): Promise<void> {
         const query = this.searchQuery();
         if (!query) {
             this.searchResults.set([]);
@@ -60,13 +98,13 @@ export class ShareModalComponent {
         }
     }
 
-    selectUser(user: any) {
+    selectUser(user: any): void {
         this.selectedUser.set(user);
         this.searchQuery.set(user.username);
         this.searchResults.set([]); // Clear results after selection
     }
 
-    async share() {
+    async share(): Promise<void> {
         const user = this.selectedUser();
         if (!user) {
             this.toast.error('Selecciona un usuario primero');
@@ -76,21 +114,55 @@ export class ShareModalComponent {
         this.isSharing.set(true);
         try {
             if (this.type === 'file') {
-                await this.api.shareFile(this.item.id, user.username);
+                await this.api.shareFile(
+                    (this.item as FileItem).id,
+                    user.username,
+                    this.selectedPermission(),
+                    undefined
+                );
             } else {
-                await this.api.shareFolder(this.item.id, user.username);
+                await this.api.shareFolder(
+                    (this.item as Folder).id,
+                    user.username,
+                    this.selectedPermission(),
+                    this.propagateAccess(),
+                    undefined
+                );
             }
-            this.toast.success(`Compartido con ${user.username}`);
+            this.toast.success(`Acceso concedido a ${user.username}`);
             this.shared.emit();
-            this.close.emit();
+            await this.fetchAccessList();
+            this.selectedUser.set(null);
+            this.searchQuery.set('');
         } catch (error: any) {
-            this.toast.error(error.message || 'Error al compartir');
+            const message = error?.message || error?.payload?.error || 'Error al compartir';
+            this.toast.error(message);
         } finally {
             this.isSharing.set(false);
         }
     }
 
-    onBackdropClick(event: MouseEvent) {
+    async revokeAccess(access: FileAccess | FolderAccess): Promise<void> {
+        try {
+            if (this.type === 'file') {
+                await this.api.revokeFileAccess((this.item as FileItem).id, access.granted_to);
+            } else {
+                await this.api.revokeFolderAccess((this.item as Folder).id, access.granted_to);
+            }
+            this.toast.success(`Acceso eliminado para ${access.granted_to_username}`);
+            await this.fetchAccessList();
+            this.shared.emit();
+        } catch (error: any) {
+            const message = error?.message || error?.payload?.error || 'Error al revocar acceso';
+            this.toast.error(message);
+        }
+    }
+
+    hasAccessEntries(): boolean {
+        return this.accessList().length > 0;
+    }
+
+    onBackdropClick(event: MouseEvent): void {
         if ((event.target as HTMLElement).classList.contains('comp-overlay')) {
             this.close.emit();
         }

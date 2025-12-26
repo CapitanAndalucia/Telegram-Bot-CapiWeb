@@ -1,4 +1,444 @@
-/* Fileshare styles moved to global styles.css. Keep minimal local rules here. */
+/* File and folder cards */
+.incomingContent {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1.5rem;
+    padding: 1rem 0;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* Ensure file and folder cards take full height */
+.fileCard, .folderCard {
+    height: 100%;
+    min-height: 220px;
+    display: flex;
+    flex-direction: column;
+    background: #1e1e1e;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: transform 0.2s, border-color 0.2s;
+    position: relative;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+/* Card header styles */
+.cardHeader {
+    padding: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: rgba(0, 0, 0, 0.2);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.cardName {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 0.9rem;
+}
+
+/* Preview container */
+.previewContainer {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #121212;
+    overflow: hidden;
+    position: relative;
+    padding: 1rem;
+}
+
+/* Image preview styling */
+.fileImage {
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+}
+
+/* File icon placeholder */
+.fileIconPlaceholder {
+    font-size: 3rem;
+    opacity: 0.7;
+}
+
+/* Folder icon */
+.folderIcon {
+    font-size: 3rem !important;
+    opacity: 0.9;
+}
+
+/* Hover effects */
+.fileCard:hover, .folderCard:hover {
+    transform: translateY(-2px);
+    border-color: var(--accent-primary);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* List mode specific styles */
+.incomingContent.listMode {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.incomingContent.listMode .fileCard,
+.incomingContent.listMode .folderCard {
+    flex-direction: row;
+    min-height: 60px;
+    height: auto;
+    align-items: center;
+    padding-right: 1rem;
+}
+
+.incomingContent.listMode .previewContainer {
+    width: 50px;
+    height: 50px;
+    flex: 0 0 auto;
+    margin: 0.5rem;
+    border-radius: 6px;
+    padding: 0.5rem;
+}
+
+.incomingContent.listMode .fileInfoList {
+    flex: 1;
+    padding: 0 1rem;
+}
+
+.incomingContent.listMode .fileNameList {
+    display: block;
+    font-size: 0.95rem;
+    margin-bottom: 0.25rem;
+}
+
+.incomingContent.listMode .fileSizeList {
+    font-size: 0.8rem;
+    color: #aaa;
+}
+
+/* Selection checkbox */
+.selectionCheckbox {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    width: 20px;
+    height: 20px;
+    border: 2px solid #555;
+    border-radius: 4px;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 2;
+}
+
+.selectionCheckbox.checked {
+    background: var(--accent-primary);
+    border-color: var(--accent-primary);
+}
+
+/* Options button */
+.optionsBtn {
+    cursor: pointer;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    transition: background 0.2s;
+}
+
+.optionsBtn:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+/* For list mode options button */
+.listModeBtn {
+    margin-left: auto;
+}
+
+/* Context menu */
+.context-menu {
+    position: fixed;
+    background: #2d2d2d;
+    border: 1px solid #444;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    z-index: 1000;
+    min-width: 180px;
+    overflow: hidden;
+}
+
+.context-menu button {
+    display: block;
+    width: 100%;
+    padding: 0.75rem 1rem;
+    text-align: left;
+    background: none;
+    border: none;
+    color: #fff;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.context-menu button:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.context-menu .icon {
+    margin-right: 0.75rem;
+    opacity: 0.8;
+}
+
+/* Drag and drop styles */
+.dragging {
+    position: relative;
+}
+
+.dragging::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 242, 255, 0.1);
+    border: 2px dashed var(--accent-primary);
+    border-radius: 12px;
+    pointer-events: none;
+    z-index: 10;
+}
+
+/* Breadcrumbs */
+.breadcrumbs {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    font-size: 0.95rem;
+}
+
+.crumb {
+    cursor: pointer;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    transition: background 0.2s;
+}
+
+.crumb:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.crumb.active {
+    color: var(--accent-primary);
+    font-weight: 500;
+}
+
+.separator {
+    opacity: 0.6;
+}
+
+/* Empty state */
+.emptyState {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: #aaa;
+}
+
+.emptyState p {
+    margin: 0.5rem 0;
+}
+
+.dragHint {
+    font-size: 0.9rem;
+    opacity: 0.8;
+}
+
+/* Loading state */
+p {
+    text-align: center;
+    padding: 2rem;
+    color: #aaa;
+}
+
+/* Selection bar */
+.selectionBar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    margin-bottom: 1rem;
+}
+
+.clearSelectionBtn {
+    background: none;
+    border: 1px solid #444;
+    color: #fff;
+    padding: 0.25rem 0.75rem;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.clearSelectionBtn:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+/* View toggle buttons */
+.viewToggle {
+    display: flex;
+    gap: 0.5rem;
+    margin-left: auto;
+}
+
+.toggleBtn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid #444;
+    color: #aaa;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.toggleBtn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+.toggleBtn.active {
+    background: var(--accent-primary);
+    border-color: var(--accent-primary);
+    color: #fff;
+}
+
+/* Sort menu */
+.sortContainer {
+    position: relative;
+    margin-left: 1rem;
+}
+
+.sortBtn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid #444;
+    color: #fff;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+}
+
+.sortBtn:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.sortMenu {
+    position: absolute;
+    top: calc(100% + 0.5rem);
+    right: 0;
+    background: #2d2d2d;
+    border: 1px solid #444;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    z-index: 100;
+    min-width: 200px;
+    overflow: hidden;
+}
+
+.sortGroup {
+    padding: 0.5rem 0;
+}
+
+.sortHeader {
+    padding: 0.5rem 1rem;
+    font-size: 0.8rem;
+    color: #aaa;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.sortItem {
+    padding: 0.5rem 1rem 0.5rem 2rem;
+    cursor: pointer;
+    transition: background 0.2s;
+    position: relative;
+}
+
+.sortItem:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.sortItem.active {
+    color: var(--accent-primary);
+}
+
+.sortItem span {
+    position: absolute;
+    left: 0.75rem;
+}
+
+.sortDivider {
+    height: 1px;
+    background: #444;
+    margin: 0.25rem 0;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .incomingContent {
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 1rem;
+    }
+
+    .fileCard, .folderCard {
+        min-height: 180px;
+    }
+
+    .cardName {
+        font-size: 0.8rem;
+    }
+
+    .fileIconPlaceholder, .folderIcon {
+        font-size: 2.5rem !important;
+    }
+}
+
+/* Animation for list items */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.incomingContent.animate .fileCard,
+.incomingContent.animate .folderCard {
+    animation: fadeIn 0.3s ease-out forwards;
+}
+
+/* Ensure items have a slight delay for staggered animation */
+.incomingContent.animate .fileCard:nth-child(odd),
+.incomingContent.animate .folderCard:nth-child(odd) {
+    animation-delay: 0.05s;
+}
+
+.incomingContent.animate .fileCard:nth-child(even),
+.incomingContent.animate .folderCard:nth-child(even) {
+    animation-delay: 0.1s;
+}
 
 
 .submitButton:disabled {
@@ -156,11 +596,176 @@
     display: flex;
 }
 
-/* Mobile Visibility: Always show */
+/* Mobile Styles */
 @media (max-width: 768px) {
-    .folderCard .optionsBtn {
+    /* Mostrar siempre los botones de opciones en móvil */
+    .folderCard .optionsBtn,
+    .fileCard .optionsBtn {
         display: flex;
+        opacity: 1;
+        /* override desktop 'background' rule which used !important */
+        background: transparent !important; /* no circle by default */
+        color: var(--text-secondary);
     }
+
+    /* Ajustar el contenedor de migas de pan */
+    .breadcrumbs {
+        padding: 0.5rem 1rem;
+        overflow-x: auto;
+        white-space: nowrap;
+        -webkit-overflow-scrolling: touch;
+        display: flex !important; /* Force display */
+        background: rgba(30, 30, 30, 0.8);
+        border-radius: 8px;
+        margin: 0.5rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        position: relative;
+        z-index: 5;
+    }
+
+    .breadcrumbs::-webkit-scrollbar {
+        display: none;
+    }
+
+    .crumb {
+        font-size: 0.9rem;
+        padding: 0.25rem 0.5rem;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 4px;
+        margin-right: 0.5rem;
+    }
+
+    .crumb.active {
+        color: var(--accent-primary);
+        font-weight: 500;
+    }
+
+    .separator {
+        margin: 0 0.25rem;
+        color: #666;
+    }
+
+    /* Ocultar círculo de selección inicialmente */
+    .selectionCheckbox {
+        display: none;
+    }
+
+    /* Mostrar círculo de selección solo en modo selección */
+    .selectionMode .selectionCheckbox {
+        display: flex;
+        margin-right: 8px;
+    }
+
+    /* Ajustar espaciado en móvil */
+    .fileCard, .folderCard {
+        margin: 0;
+        width: 100%;
+    }
+
+    /* Mejorar la interacción táctil */
+    .fileCard, .folderCard {
+        -webkit-tap-highlight-color: transparent;
+        touch-action: pan-y;
+    }
+
+    /* Asegurar que los botones de acción sean fáciles de tocar */
+    .optionsBtn {
+        width: 36px !important;
+        height: 36px !important;
+        font-size: 1.2rem !important;
+    }
+
+    /* Show circle only when the options button is active (opened) */
+    .optionsBtn.active {
+        background: rgba(0, 0, 0, 0.6) !important;
+        color: white !important;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+    }
+
+    /* Force overriding other rules that might add a subtle circle behind the options */
+    .folderCard .optionsBtn,
+    .fileCard .optionsBtn {
+        background-clip: padding-box !important;
+    }
+
+    /* Move breadcrumbs to its own line in mobile for better readability */
+    .filesHeader {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.5rem;
+    }
+
+    .filesHeader .breadcrumbs {
+        order: 2;
+        width: 100%;
+        margin: 0 0.5rem;
+    }
+
+    .filesHeader .headerControls {
+        order: 1;
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.5rem;
+        width: 100%;
+        align-items: center;
+        padding-right: 0.5rem;
+    }
+
+    /* Make selection bar visible and sticky on mobile */
+    .selectionBar {
+        position: sticky;
+        top: 64px;
+        z-index: 30;
+        margin: 0.5rem;
+    }
+
+    /* touch drag preview bubble */
+    .touch-drag-preview {
+        backdrop-filter: blur(4px);
+        -webkit-backdrop-filter: blur(4px);
+        box-shadow: 0 6px 18px rgba(0,0,0,0.5);
+        max-width: 160px;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+    }
+
+    /* Mobile context modal (bottom sheet) */
+    .mobile-context-modal {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        top: 0;
+        background: rgba(0,0,0,0.4);
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+        z-index: 1200;
+    }
+
+    .mobile-context-sheet {
+        width: 100%;
+        max-height: 70%;
+        background: #111;
+        border-top-left-radius: 12px;
+        border-top-right-radius: 12px;
+        box-shadow: 0 -6px 24px rgba(0,0,0,0.6);
+        color: white;
+        overflow: auto;
+    }
+
+    .mobile-context-header {
+        display:flex;
+        justify-content:space-between;
+        align-items:center;
+        padding: 12px 16px;
+        border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+
+    .mobile-context-body { padding: 12px 16px; display:flex; flex-direction:column; gap:8px; }
+    .mobile-context-body button { padding: 12px; border-radius:8px; background: rgba(255,255,255,0.03); border:none; color:inherit; text-align:left }
+    .mobile-context-close { background:transparent; border:none; color:inherit; font-size:18px }
 }
 
 /* List Mode adjustments */
@@ -576,6 +1181,11 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: 1rem;
+}
+
+.filesHeader .breadcrumbs {
+    flex: 1 1 auto;
+    min-width: 0; /* allow flex child to shrink and enable overflow */
 }
 
 .viewToggle {
@@ -1321,12 +1931,12 @@
 }
 
 .folderCard .optionsBtn {
-    display: flex !important;
+    /* hidden by default on desktop; shown on hover via .folderCard:hover .optionsBtn */
+    display: none;
     position: absolute;
     top: 8px;
     right: 8px;
     z-index: 5;
-    background: rgba(255, 255, 255, 0.08) !important;
 }
 
 .fileCard.selected .fileNameList,
@@ -1367,6 +1977,15 @@
     align-items: center;
     margin-bottom: 2rem;
     position: relative;
+}
+
+/* Desktop: ensure headerControls sits on the right and doesn't change desktop ordering */
+.filesHeader .headerControls {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    order: 2;
+    margin-left: auto;
 }
 
 .sortContainer {

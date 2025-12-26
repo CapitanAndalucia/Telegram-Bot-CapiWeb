@@ -10,7 +10,7 @@
             <button class="closeSidebarBtn" (click)="closeSidebar()">✕</button>
         </div>
         <nav class="scopeNav">
-            <button class="scopeBtn" [class.active]="activeScope() === 'all'" (click)="setActiveScope('all')">
+            <button class="scopeBtn" [class.active]="activeScope() === 'mine'" (click)="setActiveScope('mine')">
                 Mi unidad
             </button>
             <button class="scopeBtn" [class.active]="activeScope() === 'shared'" (click)="setActiveScope('shared')">

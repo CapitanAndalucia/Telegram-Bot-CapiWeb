@@ -3,16 +3,18 @@ from rest_framework.decorators import api_view, permission_classes, throttle_cla
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.throttling import ScopedRateThrottle
+from .throttles import RegisterThrottle
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.conf import settings
 from axes.utils import reset
+from .captcha import verify_recaptcha
 
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
-@throttle_classes([ScopedRateThrottle])
+@throttle_classes([RegisterThrottle])
 def register_view(request):
     """
     Registro de nuevo usuario.
@@ -21,6 +23,12 @@ def register_view(request):
     username = request.data.get('username', '').strip()
     password = request.data.get('password', '')
     email = request.data.get('email', '').strip()
+    # Si el frontend envía el token de reCAPTCHA y la verificación está activada, comprobarlo
+    captcha_token = request.data.get('g-recaptcha-response') or request.data.get('captcha')
+    if getattr(settings, 'RECAPTCHA_ENABLED', False) and getattr(settings, 'RECAPTCHA_SECRET', None):
+        ok, err = verify_recaptcha(captcha_token, remote_ip=request.META.get('REMOTE_ADDR'))
+        if not ok:
+            return Response({'error': 'Captcha inválido: ' + str(err)}, status=status.HTTP_400_BAD_REQUEST)
     
     if not username or not password:
         return Response(
@@ -33,6 +41,14 @@ def register_view(request):
             {'error': 'El usuario ya existe'},
             status=status.HTTP_400_BAD_REQUEST
         )
+
+    # Verificar unicidad de email si se proporcionó
+    if email:
+        if User.objects.filter(email__iexact=email).exists():
+            return Response(
+                {'error': 'El email ya está en uso'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
     
     # Crear usuario sin validaciones de contraseña
     try:
@@ -141,8 +157,7 @@ def login_view(request):
     
     return response
 
-# Asignar scopes para throttling (después de definir las vistas)
-register_view.throttle_scope = 'register'
+# Asignar scope para login (register ahora usa RegisterThrottle)
 login_view.throttle_scope = 'login'
 
 

@@ -5,6 +5,10 @@ import { ToastrService } from 'ngx-toastr';
 import { FilePreviewModalComponent } from '../file-preview-modal/file-preview-modal.component';
 import { ShareModalComponent } from '../share-modal/share-modal.component';
 import { FileItem, Folder } from '../../../../models/file-item.model';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { ConfirmDialogComponent, ConfirmDialogData } from '../../../../shared/dialogs/confirm-dialog/confirm-dialog.component';
+import { InputDialogComponent, InputDialogData } from '../../../../shared/dialogs/input-dialog/input-dialog.component';
+import { firstValueFrom } from 'rxjs';
 
 interface User {
     username: string;
@@ -43,25 +47,35 @@ interface SortConfig {
 
 @Component({
     selector: 'app-incoming-files',
-    imports: [CommonModule, FilePreviewModalComponent, ShareModalComponent],
+    imports: [CommonModule, FilePreviewModalComponent, ShareModalComponent, MatDialogModule],
     templateUrl: './incoming-files.component.html',
     styleUrls: ['../../fileshare.component.css'],
 })
 export class IncomingFilesComponent implements OnInit {
-    // Inyección de dependencias ya está en el constructor
-
+    // Inputs
     user = input.required<User | null>();
     refreshTrigger = input<number>(0);
     forceResetCount = input<number>(0);
-    scope = input<'all' | 'shared' | 'sent'>('all');
+    scope = input<'mine' | 'shared' | 'sent'>('mine');
 
+    // Outputs
     unreadCountChange = output<number>();
 
+    // Sort signals
+    showSortMenu = signal(false);
+    sortConfig = signal<SortConfig>({
+        field: 'name',
+        order: 'asc',
+        foldersPosition: 'top'
+    });
+
+    // Data signals
     files = signal<FileItem[]>([]);
     folders = signal<Folder[]>([]);
     currentFolder = signal<Folder | null>(null);
     breadcrumbs = signal<Breadcrumb[]>([{ id: null, name: 'Mi unidad', folder: null }]);
 
+    // UI state signals
     loading = signal(true);
     isDragging = signal(false);
     uploading = signal(false);
@@ -69,6 +83,8 @@ export class IncomingFilesComponent implements OnInit {
     viewMode = signal<'grid' | 'list'>('grid');
     selectedFile = signal<FileItem | null>(null);
     contextMenu = signal<ContextMenu | null>(null);
+    // Which options button is currently active (for mobile): { type, id }
+    activeOptions = signal<{ type: 'file' | 'folder' | 'background'; id: number | null } | null>(null);
     moveDialogOpen = signal(false);
     moveDialogLoading = signal(false);
     moveDialogBusy = signal(false);
@@ -77,46 +93,50 @@ export class IncomingFilesComponent implements OnInit {
     hoveredFolderId = signal<number | null>(null);
     hoveredBreadcrumbKey = signal<string | null>(null);
     animateList = signal(false);
-    private dragPreviewElement: HTMLElement | null = null;
-
-    // Selection Mode Signals
-    isSelectionMode = signal(false);
-    bulkSelectionActive = signal(false); // Controls the visibility of the selection bar at the top
-    selectedFileIds = signal<Set<number>>(new Set());
-    selectedFolderIds = signal<Set<number>>(new Set());
-    private touchTimer: any = null;
-
-    private touchStartTime = 0;
-
-    // Sort Configuration
-    sortConfig = signal<SortConfig>({
-        field: 'name',
-        order: 'asc',
-        foldersPosition: 'top'
-    });
     isSortMenuOpen = signal(false);
 
-    // Share Modal
+    // Share modal
     shareModalItem = signal<FileItem | Folder | null>(null);
     shareModalType = signal<'file' | 'folder'>('file');
 
-    // Sorted Computed Lists
+    // Selection mode signals
+    isSelectionMode = signal(false);
+    bulkSelectionActive = signal(false);
+    selectedFileIds = signal<Set<number>>(new Set());
+    selectedFolderIds = signal<Set<number>>(new Set());
+
+    // Touch handling
+    private touchStartX = 0;
+    private touchStartY = 0;
+    private touchStartTime = 0;
+    private readonly TOUCH_DELAY = 300;
+    private touchTimer: any = null;
+    private longPressActive = false;
+    private dragPreviewElement: HTMLElement | null = null;
+    // Helper to detect if the touch started on an options button
+    private touchStartedOnOptions = false;
+    // Touch-drag emulation state
+    private touchDragActive = false;
+    private touchDraggingItem: FileItem | Folder | null = null;
+    private touchPreviewElement: HTMLElement | null = null;
+    // id of folder currently being dragged (desktop or touch) — used to hide selection UI
+    private currentDraggedFolderId: number | null = null;
+
+    // Computed sorted lists
     sortedFolders = computed(() => {
         const folders = this.folders();
-        const config = this.sortConfig();
-        // Clone array to avoid mutating original source
         return [...folders].sort((a, b) => this.compareItems(a, b, 'folder'));
     });
 
     sortedFiles = computed(() => {
         const files = this.files();
-        const config = this.sortConfig();
         return [...files].sort((a, b) => this.compareItems(a, b, 'file'));
     });
 
     constructor(
         private apiClient: ApiClientService,
-        private toastr: ToastrService
+        private toastr: ToastrService,
+        private dialog: MatDialog
     ) {
         // Watch for refresh trigger changes
         effect(() => {
@@ -128,23 +148,21 @@ export class IncomingFilesComponent implements OnInit {
             }
         });
 
-        // Guarded scope effect: only act when scope actually changes
+        // Scope effect
         effect(() => {
             const currentScope = this.scope();
             untracked(() => {
                 console.log('Scope changed to:', currentScope);
-                // Reset navigation when scope changes
                 this.clearSelection();
                 this.currentFolder.set(null);
                 this.resetBreadcrumbs();
-
                 this.hoveredFolderId.set(null);
                 this.hoveredBreadcrumbKey.set(null);
                 void this.refreshContent();
             });
         });
 
-        // Watch for force reset (clicking the same scope in sidebar)
+        // Force reset effect
         effect(() => {
             const resetCount = this.forceResetCount();
             if (resetCount > 0) {
@@ -157,7 +175,7 @@ export class IncomingFilesComponent implements OnInit {
             }
         });
 
-        // Emit unread count changes
+        // Unread count effect
         effect(() => {
             const unreadCount = this.files().filter((f) => !f.is_viewed).length;
             this.unreadCountChange.emit(unreadCount);
@@ -165,9 +183,8 @@ export class IncomingFilesComponent implements OnInit {
     }
 
     ngOnInit(): void {
-        // Initial data load handled reactively when scope effect runs
+        // Initial load handled by effects
     }
-
 
     async refreshContent(): Promise<void> {
         const isInitialLoad = this.files().length === 0 && this.folders().length === 0;
@@ -186,7 +203,7 @@ export class IncomingFilesComponent implements OnInit {
             const folderId = this.currentFolder()?.id;
             console.debug('[incoming-files] fetchFiles parentId=', folderId);
             const data = await this.apiClient.listFiles(folderId, this.scope());
-            // Handle Django REST Framework paginated response
+
             if (data && data.results && Array.isArray(data.results)) {
                 this.files.set(data.results);
             } else if (Array.isArray(data)) {
@@ -214,22 +231,18 @@ export class IncomingFilesComponent implements OnInit {
 
     async navigateToFolder(folder: Folder | null, options?: { path?: Breadcrumb[] }): Promise<void> {
         console.log('navigateToFolder called for:', folder?.name);
+
         if (options?.path) {
             this.breadcrumbs.set(options.path);
         } else if (!folder) {
             this.resetBreadcrumbs();
         } else {
-            const currentPath = this.breadcrumbs();
-            console.log('Current path before navigation:', currentPath);
-            // Build absolute path for breadcrumbs
             try {
-                // Build full ancestor chain for the folder so breadcrumbs show the full path
                 const fullPath = await this.buildBreadcrumbsForFolder(folder);
                 console.debug('[incoming-files] built fullPath:', fullPath);
                 this.breadcrumbs.set(fullPath);
-                console.log('New path after navigation:', this.breadcrumbs());
             } catch (err) {
-                // Fallback: push folder to current path if anything goes wrong
+                const currentPath = this.breadcrumbs();
                 const newPath = [...currentPath];
                 const alreadyInPath = newPath.some(c => c.id === folder.id);
                 if (!alreadyInPath) {
@@ -242,12 +255,9 @@ export class IncomingFilesComponent implements OnInit {
 
         this.clearSelection();
         this.currentFolder.set(folder);
-        console.debug('[incoming-files] currentFolder set to:', this.currentFolder());
-        // Trigger enter animation for items
         this.animateList.set(true);
         setTimeout(() => this.animateList.set(false), 800);
         await this.refreshContent();
-        console.debug('[incoming-files] after refresh, currentFolder=', this.currentFolder(), 'breadcrumbs=', this.breadcrumbs());
     }
 
     async handleBreadcrumbClick(index: number): Promise<void> {
@@ -260,6 +270,14 @@ export class IncomingFilesComponent implements OnInit {
     closeContextMenu(): void {
         this.contextMenu.set(null);
         this.isSortMenuOpen.set(false);
+        this.activeOptions.set(null);
+        // Cleanup any touch-drag state to avoid UI getting stuck
+        this.removeTouchPreview();
+        this.touchDragActive = false;
+        this.touchDraggingItem = null;
+        this.isDragging.set(false);
+        this.hoveredFolderId.set(null);
+        this.currentDraggedFolderId = null;
     }
 
     @HostListener('document:click', ['$event'])
@@ -274,15 +292,12 @@ export class IncomingFilesComponent implements OnInit {
         event.preventDefault();
         event.stopPropagation();
 
-        // Don't show context menu if in selection mode (avoids conflict with mobile selection)
         if (this.isSelectionMode()) {
             return;
         }
 
-        // Calculate position to prevent overflow
         let x = event.clientX;
         let y = event.clientY;
-
         const menuWidth = 200;
         const menuHeight = 250;
 
@@ -291,48 +306,149 @@ export class IncomingFilesComponent implements OnInit {
             if (y + menuHeight > window.innerHeight) y = window.innerHeight - menuHeight - 10;
         }
 
-        this.contextMenu.set({
-            x,
-            y,
-            type,
-            item
-        });
+        // Cleanup any touch drag state before opening menu
+        this.removeTouchPreview();
+        this.touchDragActive = false;
+        this.touchDraggingItem = null;
+        this.isDragging.set(false);
+        this.hoveredFolderId.set(null);
+
+        this.contextMenu.set({ x, y, type, item });
+        // mark the clicked options button as active so mobile CSS can show the circle
+        const id = item && (item as any).id ? Number((item as any).id) : null;
+        this.activeOptions.set({ type, id });
     }
 
-    openPreview(item: any): void {
-        this.selectedFile.set(item);
-    }
+    createFolder(): void {
+        const idSuffix = Date.now();
+        const inputId = `create-folder-input-${idSuffix}`;
+        const confirmId = `confirm-create-${idSuffix}`;
+        const cancelId = `cancel-create-${idSuffix}`;
 
-    async createFolder(): Promise<void> {
-        const name = prompt('Nombre de la carpeta:');
-        if (name) {
-            try {
-                await this.apiClient.createFolder(name, this.currentFolder()?.id);
-                this.toastr.success('Carpeta creada');
-                await this.refreshContent();
-            } catch (error) {
-                this.toastr.error('Error al crear carpeta');
+        const confirmToast = this.toastr.info(
+            `
+      <div style="display: flex; flex-direction: column; gap: 12px; min-width: 240px;">
+        <div style="font-weight: 600; font-size: 15px;">Nueva carpeta</div>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <label for="${inputId}" style="font-size: 12px; opacity: 0.8;">Nombre de la carpeta</label>
+          <input id="${inputId}" type="text" style="padding: 8px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.2); color: white;" />
+        </div>
+        <div style="display: flex; gap: 8px; margin-top: 4px;">
+          <button id="${confirmId}" style="flex: 1; padding: 8px 16px; background: linear-gradient(135deg, #4F9CFF 0%, #1D5DFF 100%); border: none; border-radius: 6px; color: white; font-weight: bold; cursor: pointer; font-size: 13px;">Crear</button>
+          <button id="${cancelId}" style="flex: 1; padding: 8px 16px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; color: white; cursor: pointer; font-size: 13px;">Cancelar</button>
+        </div>
+      </div>
+    `,
+            '',
+            { disableTimeOut: true, closeButton: false, enableHtml: true }
+        );
+
+        setTimeout(() => {
+            const inputEl = document.getElementById(inputId) as HTMLInputElement | null;
+            const confirmBtn = document.getElementById(confirmId);
+            const cancelBtn = document.getElementById(cancelId);
+
+            if (inputEl) {
+                inputEl.focus();
+                inputEl.select();
             }
-        }
+
+            const closeToast = () => this.toastr.clear(confirmToast.toastId);
+
+            const submit = async () => {
+                const newName = inputEl?.value?.trim();
+                if (!newName) {
+                    this.toastr.warning('El nombre de la carpeta no puede estar vacío');
+                    return;
+                }
+
+                closeToast();
+                const creatingToast = this.toastr.info('Creando carpeta...', '', { disableTimeOut: true });
+
+                try {
+                    await this.apiClient.createFolder(newName, this.currentFolder()?.id ?? undefined);
+                    this.toastr.clear(creatingToast.toastId);
+                    this.toastr.success('Carpeta creada correctamente');
+                    await this.refreshContent();
+                } catch (error) {
+                    console.error('Error al crear carpeta', error);
+                    this.toastr.clear(creatingToast.toastId);
+                    this.toastr.error('Error al crear la carpeta');
+                }
+            };
+
+            if (confirmBtn) {
+                confirmBtn.onclick = () => void submit();
+            }
+
+            if (inputEl) {
+                inputEl.addEventListener('keydown', (event) => {
+                    if (event.key === 'Enter') {
+                        event.preventDefault();
+                        void submit();
+                    }
+                    if (event.key === 'Escape') {
+                        closeToast();
+                    }
+                });
+            }
+
+            if (cancelBtn) {
+                cancelBtn.onclick = () => closeToast();
+            }
+        }, 100);
     }
 
     async renameItem(): Promise<void> {
         const menu = this.contextMenu();
-        if (!menu || !menu.item) return;
+        if (!menu || !menu.item || menu.type === 'background') {
+            return;
+        }
 
-        const newName = prompt('Nuevo nombre:', 'filename' in menu.item ? menu.item.filename : menu.item.name);
-        if (!newName) return;
+        const isFolder = menu.type === 'folder';
+        const currentName = isFolder
+            ? (menu.item as Folder).name
+            : (menu.item as FileItem).filename;
+
+        const dialogRef = this.dialog.open<InputDialogComponent, InputDialogData, string>(InputDialogComponent, {
+            panelClass: 'rename-dialog-panel',
+            data: {
+                title: `Renombrar ${isFolder ? 'carpeta' : 'archivo'}`,
+                label: 'Nuevo nombre',
+                initialValue: currentName,
+                confirmLabel: 'Guardar',
+                cancelLabel: 'Cancelar',
+                placeholder: isFolder ? 'Mi carpeta' : 'archivo.ext',
+                validator: (value) => (value.trim().length === 0 ? 'El nombre no puede estar vacío' : null),
+            },
+        });
+
+        const result = await firstValueFrom(dialogRef.afterClosed());
+        const newName = result?.trim();
+        if (!newName || newName === currentName) {
+            return;
+        }
+
+        const renameToast = this.toastr.info(`Renombrando ${isFolder ? 'carpeta' : 'archivo'}...`, '', {
+            disableTimeOut: true,
+        });
 
         try {
-            if (menu.type === 'folder') {
-                await this.apiClient.renameFolder(menu.item.id, newName);
-                this.fetchFolders();
+            if (isFolder) {
+                await this.apiClient.renameFolder((menu.item as Folder).id, newName);
+                await this.fetchFolders();
             } else {
-                // File rename not implemented in backend yet, maybe later
-                this.toastr.info('Renombrar archivos no implementado aún');
+                await this.apiClient.renameFile((menu.item as FileItem).id, newName);
+                await this.fetchFiles();
             }
+
+            this.toastr.clear(renameToast.toastId);
+            this.toastr.success(`${isFolder ? 'Carpeta' : 'Archivo'} renombrado`);
+            await this.refreshContent();
         } catch (error) {
-            this.toastr.error('Error al renombrar');
+            console.error('Rename failed', error);
+            this.toastr.clear(renameToast.toastId);
+            this.toastr.error(`Error al renombrar ${isFolder ? 'la carpeta' : 'el archivo'}`);
         }
     }
 
@@ -340,42 +456,56 @@ export class IncomingFilesComponent implements OnInit {
         const menu = this.contextMenu();
         if (!menu || !menu.item) return;
 
-        if (!confirm('¿Estás seguro de eliminar este elemento?')) return;
-
+        const isFolder = menu.type === 'folder';
         const itemId = Number(menu.item.id);
-        const itemType = menu.type;
+        const itemName = isFolder ? (menu.item as Folder).name : (menu.item as FileItem).filename;
 
-        console.log(`[Fileshare] Deleting ${itemType} with ID ${itemId}`);
+        const dialogRef = this.dialog.open<ConfirmDialogComponent, ConfirmDialogData, boolean>(ConfirmDialogComponent, {
+            data: {
+                title: `Eliminar ${isFolder ? 'carpeta' : 'archivo'}`,
+                message: 'Esta acción no se puede deshacer.',
+                detail: itemName,
+                confirmLabel: 'Eliminar',
+                cancelLabel: 'Cancelar',
+                destructive: true,
+            },
+        });
 
-        // Optimistic update: remove from local state immediately
-        if (itemType === 'folder') {
-            this.folders.update(fs => fs.filter(f => Number(f.id) !== itemId));
-        } else {
-            this.files.update(fs => fs.filter(f => Number(f.id) !== itemId));
+        const confirmed = await firstValueFrom(dialogRef.afterClosed());
+        if (!confirmed) {
+            return;
         }
+
+        if (isFolder) {
+            await this.performFolderDelete(itemId);
+        } else {
+            await this.performDelete(itemId);
+        }
+    }
+
+    private async performFolderDelete(folderId: number): Promise<void> {
+        const idToDelete = Number(folderId);
+        this.folders.update(fs => fs.filter(f => Number(f.id) !== idToDelete));
         this.clearSelection();
 
+        const deleteToast = this.toastr.info('Eliminando carpeta...', '', { disableTimeOut: true });
+
         try {
-            if (itemType === 'folder') {
-                await this.apiClient.deleteFolder(itemId);
-            } else {
-                await this.apiClient.deleteFile(itemId);
-            }
-            this.toastr.success('Elemento eliminado');
-            // Small delay before refresh to ensure backend has finished processing
+            await this.apiClient.deleteFolder(idToDelete);
+            this.toastr.clear(deleteToast.toastId);
+            this.toastr.success('Carpeta eliminada correctamente');
             setTimeout(() => this.refreshContent(), 500);
         } catch (error) {
-            this.toastr.error('Error al eliminar');
-            // On error, refresh to restore state
+            console.error('Error al eliminar carpeta', error);
+            this.toastr.clear(deleteToast.toastId);
+            this.toastr.error('Error al eliminar la carpeta');
             await this.refreshContent();
         }
     }
 
     async handleFolderDownload(folder: Folder): Promise<void> {
         try {
-            const downloadToast = this.toastr.info('Descargando carpeta...', '', {
-                disableTimeOut: true,
-            });
+            const downloadToast = this.toastr.info('Descargando carpeta...', '', { disableTimeOut: true });
 
             const blob = await this.apiClient.downloadFolder(folder.id);
             const url = window.URL.createObjectURL(blob);
@@ -398,7 +528,7 @@ export class IncomingFilesComponent implements OnInit {
     openShareModal(item: FileItem | Folder, type: 'file' | 'folder'): void {
         this.shareModalItem.set(item);
         this.shareModalType.set(type);
-        this.closeContextMenu(); // Close context menu if open
+        this.closeContextMenu();
     }
 
     closeShareModal(): void {
@@ -410,18 +540,149 @@ export class IncomingFilesComponent implements OnInit {
         return window.innerWidth <= 768;
     }
 
+    handleItemTouchStart(event: TouchEvent, type?: 'file' | 'folder', item?: any): void {
+        // If type and item are not provided, we can't proceed with selection logic
+        if (type === undefined || item === undefined) {
+            return;
+        }
+
+        // Detect if the touch started on the options button; if so, don't trigger preview/select logic
+        const targetEl = event.target as HTMLElement | null;
+        this.touchStartedOnOptions = !!(targetEl && targetEl.closest && targetEl.closest('.optionsBtn'));
+        if (this.touchStartedOnOptions) {
+            // Let the native click on the options button run; don't start timers or selection.
+            return;
+        }
+
+        this.touchStartX = event.touches[0].clientX;
+        this.touchStartY = event.touches[0].clientY;
+        this.touchStartTime = Date.now();
+        this.longPressActive = false;
+
+        this.touchTimer = setTimeout(() => {
+            this.longPressActive = true;
+            this.toggleItemSelection(type, item);
+        }, this.TOUCH_DELAY);
+
+        // mark a candidate for touch-drag emulation (files and folders)
+        if ((type === 'file' || type === 'folder') && item) {
+            this.touchDraggingItem = item as any;
+            this.touchDragActive = false;
+        }
+    }
+
+    handleItemTouchEnd(event: TouchEvent, type: 'file' | 'folder', item: any): void {
+        if (this.touchTimer) {
+            clearTimeout(this.touchTimer);
+            this.touchTimer = null;
+        }
+
+        // If the touch started on an options button, don't trigger previews or navigation here.
+        if (this.touchStartedOnOptions) {
+            this.touchStartedOnOptions = false;
+            return;
+        }
+
+        if (this.longPressActive) {
+            this.longPressActive = false;
+            // cleanup any touch-drag remnants
+            this.removeTouchPreview();
+            this.touchDragActive = false;
+            this.touchDraggingItem = null;
+            this.isDragging.set(false);
+            this.hoveredFolderId.set(null);
+            this.currentDraggedFolderId = null;
+            return;
+        }
+
+        // If a touch-drag emulation was active, handle drop logic
+        if (this.touchDragActive && this.touchDraggingItem) {
+            // determine hovered folder id
+            const targetFolderId = this.hoveredFolderId();
+            const itemId = Number((this.touchDraggingItem as any).id);
+            const isFile = !!(this.touchDraggingItem as any).filename;
+            this.removeTouchPreview();
+            this.touchDragActive = false;
+            const dragged = this.touchDraggingItem;
+            this.touchDraggingItem = null;
+            this.isDragging.set(false);
+            this.currentDraggedFolderId = null;
+            if (targetFolderId != null) {
+                if (isFile) {
+                    void this.apiClient.moveFileToFolder(itemId, targetFolderId)
+                        .then(() => {
+                            this.toastr.success('Movido correctamente');
+                            void this.refreshContent();
+                        })
+                        .catch(() => this.toastr.error('Error al mover archivo'));
+                } else {
+                    void this.apiClient.moveFolderToFolder(itemId, targetFolderId)
+                        .then(() => {
+                            this.toastr.success('Carpeta movida correctamente');
+                            void this.refreshContent();
+                        })
+                        .catch(() => this.toastr.error('Error al mover carpeta'));
+                }
+                return;
+            }
+        }
+
+        if (this.isSelectionMode()) {
+            event.preventDefault();
+            this.toggleItemSelection(type, item);
+            // ensure no drag UI remains
+            this.removeTouchPreview();
+            this.touchDragActive = false;
+            this.touchDraggingItem = null;
+            this.isDragging.set(false);
+            this.hoveredFolderId.set(null);
+            return;
+        }
+
+        const touchEndTime = Date.now();
+        const touchDuration = touchEndTime - this.touchStartTime;
+
+        if (touchDuration < this.TOUCH_DELAY && !this.hasSignificantMovement(event)) {
+            if (type === 'folder') {
+                this.navigateToFolder(item as Folder);
+            } else {
+                this.openFilePreview(item as FileItem);
+            }
+        }
+
+        event.preventDefault();
+        // cleanup drag state in case no drop occurred
+        this.removeTouchPreview();
+        this.touchDragActive = false;
+        this.touchDraggingItem = null;
+        this.isDragging.set(false);
+        this.hoveredFolderId.set(null);
+    }
+
+    private hasSignificantMovement(event: TouchEvent): boolean {
+        if (!event.changedTouches || event.changedTouches.length === 0) return false;
+
+        const touch = event.changedTouches[0];
+        const deltaX = Math.abs(touch.clientX - this.touchStartX);
+        const deltaY = Math.abs(touch.clientY - this.touchStartY);
+
+        return deltaX > 15 || deltaY > 15;
+    }
+
+    openFilePreview(file: FileItem): void {
+        if (!file.is_viewed) {
+            void this.markAsViewed(file.id);
+        }
+        this.selectedFile.set(file);
+    }
+
     handleItemClick(event: MouseEvent, type: 'file' | 'folder', item: FileItem | Folder): void {
         event.stopPropagation();
 
         if (this.isMobile()) return;
 
-        // PC Logic: Single click selects (highlights), Double click (handled by (dblclick)) enters.
-        // User wants "total" selection via checkbox.
-        // We'll treat card click as a single item selection/highlight.
-        // If this click is actually part of a double-click, handle navigation immediately
         const detail = (event as MouseEvent).detail || 1;
         if (detail === 2 && type === 'folder') {
-            // Double click (two rapid clicks) — navigate into folder
             this.navigateToFolder(item as Folder).catch(err => console.error('navigate error', err));
             return;
         }
@@ -437,31 +698,22 @@ export class IncomingFilesComponent implements OnInit {
     @HostListener('document:mousedown', ['$event'])
     onDocumentMouseDown(event: MouseEvent): void {
         const target = event.target as HTMLElement;
-        // Close context menu if clicked outside of it or outside options button
         if (!target.closest('.context-menu') && !target.closest('.optionsBtn')) {
             this.closeContextMenu();
         }
     }
 
-    /**
-     * Build breadcrumb array from the root to the provided folder by walking parents.
-     */
     private async buildBreadcrumbsForFolder(folder: Folder): Promise<Breadcrumb[]> {
         const crumbs: Breadcrumb[] = [{ id: null, name: this.getScopeRootLabel(), folder: null }];
         try {
-            // Collect ancestors up to root
             const stack: Folder[] = [];
             let current: Folder | null = folder;
+
             while (current) {
                 stack.push(current);
                 if (current.parent == null) break;
-                // Fetch parent folder details
-                // Use apiClient.getFolder which we added to the service
-                // If API fails, break and fallback
-                // eslint-disable-next-line no-await-in-loop
+
                 try {
-                    // parent may be null/undefined; api may throw if not found
-                    // eslint-disable-next-line no-await-in-loop
                     const parentData = await this.apiClient.getFolder(current.parent as number);
                     if (!parentData) break;
                     current = parentData as Folder;
@@ -471,43 +723,14 @@ export class IncomingFilesComponent implements OnInit {
                 }
             }
 
-            // stack currently has [folder, parent, grandparent...] — reverse to root-first
             stack.reverse();
             console.debug('[incoming-files] ancestor stack reversed:', stack);
             stack.forEach(f => crumbs.push({ id: f.id, name: f.name, folder: f }));
         } catch (error) {
             console.error('Error building breadcrumbs for folder', error);
-            // In case of error, push the single folder at least
             crumbs.push({ id: folder.id, name: folder.name, folder });
         }
         return crumbs;
-    }
-
-    handleItemTouchStart(event: TouchEvent): void {
-        this.touchStartTime = Date.now();
-        this.touchTimer = setTimeout(() => {
-            // Long-press detected - trigger selection
-            if (navigator.vibrate) navigator.vibrate(50);
-        }, 500);
-    }
-
-    handleItemTouchEnd(event: TouchEvent, type: 'file' | 'folder', item: FileItem | Folder): void {
-        clearTimeout(this.touchTimer);
-        const duration = Date.now() - this.touchStartTime;
-
-        if (duration >= 500) {
-            // Long-press: Toggle selection
-            if (event.cancelable) event.preventDefault();
-            this.toggleItemSelection(type, item);
-        } else if (this.isSelectionMode()) {
-            // In selection mode: Toggle selection on tap
-            if (event.cancelable) event.preventDefault();
-            this.toggleItemSelection(type, item);
-        } else if (type === 'folder' && duration < 300) {
-            // Short tap on folder: Navigate
-            if (event.cancelable) event.preventDefault();
-            this.navigateToFolder(item as Folder);
-        }
     }
 
     toggleItemSelection(type: 'file' | 'folder', item: FileItem | Folder, isBulk: boolean = false): void {
@@ -531,7 +754,6 @@ export class IncomingFilesComponent implements OnInit {
         const selectedCount = this.selectedFileIds().size + this.selectedFolderIds().size;
         this.isSelectionMode.set(selectedCount > 0);
 
-        // If we used the checkbox OR have multiple items, active bulk mode
         if (isBulk || selectedCount > 1) {
             this.bulkSelectionActive.set(true);
         } else if (selectedCount === 0) {
@@ -551,6 +773,8 @@ export class IncomingFilesComponent implements OnInit {
     }
 
     isFolderSelected(id: number): boolean {
+        // hide selection UI for the folder currently being dragged
+        if (this.currentDraggedFolderId !== null && this.currentDraggedFolderId === id) return false;
         return this.selectedFolderIds().has(id);
     }
 
@@ -558,12 +782,58 @@ export class IncomingFilesComponent implements OnInit {
         event.preventDefault();
         event.stopPropagation();
         this.hoveredFolderId.set(null);
+        // First check for folder drag
+        const folderData = event.dataTransfer?.getData('application/x-folder');
+        if (folderData) {
+            const folderId = parseInt(folderData, 10);
+            if (folderId === targetFolder.id) {
+                this.toastr.info('No se puede mover una carpeta dentro de sí misma');
+                return;
+            }
+
+            // try to find dragged folder locally to check same parent
+            const draggedFolder = this.folders().find(f => Number(f.id) === folderId);
+            if (draggedFolder && (draggedFolder.parent ?? null) === targetFolder.id) {
+                this.toastr.info('La carpeta ya está en esa ubicación');
+                return;
+            }
+
+            // Prevent moving folder into one of its own descendants
+            try {
+                const isDesc = await this.isDescendantFolder(targetFolder.id, folderId);
+                if (isDesc) {
+                    this.toastr.error('No se puede mover una carpeta dentro de una de sus subcarpetas');
+                    return;
+                }
+            } catch (err) {
+                // if check fails, continue but backend should validate as well
+                console.warn('isDescendantFolder check failed', err);
+            }
+
+            try {
+                await this.apiClient.moveFolderToFolder(folderId, targetFolder.id);
+                this.toastr.success(`Carpeta movida a ${targetFolder.name}`);
+                await this.refreshContent();
+            } catch (error) {
+                console.error('Error moving folder', error);
+                this.toastr.error('Error al mover carpeta');
+            }
+            return;
+        }
 
         const fileId = event.dataTransfer?.getData('application/json');
         if (fileId) {
-            // Internal move
+            const id = parseInt(fileId, 10);
+            // check if file already in target folder
+            const f = this.files().find(x => Number(x.id) === id);
+            const currentFolderId = f ? (f.folder ?? null) : null;
+            if (currentFolderId === targetFolder.id) {
+                this.toastr.info('El archivo ya está en esa carpeta');
+                return;
+            }
+
             try {
-                await this.apiClient.moveFileToFolder(parseInt(fileId), targetFolder.id);
+                await this.apiClient.moveFileToFolder(id, targetFolder.id);
                 this.toastr.success(`Movido a ${targetFolder.name}`);
                 await this.refreshContent();
             } catch (error) {
@@ -574,12 +844,127 @@ export class IncomingFilesComponent implements OnInit {
 
     handleFolderDragOver(event: DragEvent, folder: Folder): void {
         if (!this.isInternalFileDrag(event)) return;
+        // If dragging a folder, don't mark the same folder as a drop target
+        try {
+            const folderDragData = event.dataTransfer?.getData('application/x-folder');
+            if (folderDragData) {
+                const draggedId = parseInt(folderDragData, 10);
+                if (draggedId === folder.id) return;
+            }
+        } catch (e) {
+            // ignore
+        }
+
+        if (this.currentDraggedFolderId !== null && this.currentDraggedFolderId === Number(folder.id)) return;
+
         event.preventDefault();
         if (event.dataTransfer) {
             event.dataTransfer.dropEffect = 'move';
         }
         if (this.hoveredFolderId() !== folder.id) {
             this.hoveredFolderId.set(folder.id);
+        }
+    }
+
+    // Touch move - emulate drag on touch devices
+    handleTouchMove(event: TouchEvent, type: 'file' | 'folder', item: any): void {
+        if (!event.changedTouches || event.changedTouches.length === 0) return;
+        const touch = event.changedTouches[0];
+
+        const deltaX = Math.abs(touch.clientX - this.touchStartX);
+        const deltaY = Math.abs(touch.clientY - this.touchStartY);
+
+        // If touch started on options button, ignore
+        if (this.touchStartedOnOptions) return;
+
+        // Start emulated drag if movement significant
+        if (!this.touchDragActive && (deltaX > 15 || deltaY > 15) && this.touchDraggingItem) {
+            this.touchDragActive = true;
+            this.isDragging.set(true);
+            this.createTouchPreview(touch.clientX, touch.clientY, this.touchDraggingItem);
+            // if dragging a folder, track its id to hide selection UI
+            if (this.touchDraggingItem && !('filename' in this.touchDraggingItem)) {
+                this.currentDraggedFolderId = Number((this.touchDraggingItem as any).id);
+            }
+        }
+
+        if (this.touchDragActive) {
+            event.preventDefault();
+            // move preview
+            if (this.touchPreviewElement) {
+                this.touchPreviewElement.style.left = `${touch.clientX + 8}px`;
+                this.touchPreviewElement.style.top = `${touch.clientY + 8}px`;
+            }
+
+            // detect element under finger
+            const el = document.elementFromPoint(touch.clientX, touch.clientY) as HTMLElement | null;
+            if (!el) {
+                this.hoveredFolderId.set(null);
+                return;
+            }
+
+            const folderEl = el.closest('.folderCard') as HTMLElement | null;
+            if (folderEl) {
+                const idAttr = folderEl.getAttribute('data-folder-id');
+                const fid = idAttr ? Number(idAttr) : null;
+                // If we're touch-dragging a folder, don't highlight the same folder
+                if (this.touchDraggingItem && !(('filename') in this.touchDraggingItem)) {
+                    const draggedId = Number((this.touchDraggingItem as any).id);
+                    if (fid === draggedId) {
+                        this.hoveredFolderId.set(null);
+                    } else {
+                        this.hoveredFolderId.set(fid);
+                    }
+                } else {
+                    this.hoveredFolderId.set(fid);
+                }
+            } else {
+                this.hoveredFolderId.set(null);
+            }
+        }
+    }
+
+    handleTouchCancel(event: TouchEvent): void {
+        if (this.touchTimer) {
+            clearTimeout(this.touchTimer);
+            this.touchTimer = null;
+        }
+        if (this.touchDragActive) {
+            this.removeTouchPreview();
+            this.touchDragActive = false;
+            this.touchDraggingItem = null;
+            this.isDragging.set(false);
+            this.hoveredFolderId.set(null);
+            this.currentDraggedFolderId = null;
+        }
+        this.touchStartedOnOptions = false;
+    }
+
+    private createTouchPreview(x: number, y: number, item: FileItem | Folder): void {
+        this.removeTouchPreview();
+        const preview = document.createElement('div');
+        preview.className = 'touch-drag-preview';
+        preview.style.position = 'fixed';
+        preview.style.left = `${x + 8}px`;
+        preview.style.top = `${y + 8}px`;
+        preview.style.zIndex = '9999';
+        preview.style.pointerEvents = 'none';
+        preview.style.padding = '6px';
+        preview.style.borderRadius = '8px';
+        preview.style.background = 'rgba(0,0,0,0.7)';
+        preview.style.color = 'white';
+        preview.style.fontSize = '12px';
+        const label = 'filename' in item ? item.filename : item.name;
+        preview.textContent = label || 'elemento';
+        document.body.appendChild(preview);
+        this.touchPreviewElement = preview;
+    }
+
+
+    private removeTouchPreview(): void {
+        if (this.touchPreviewElement) {
+            try { document.body.removeChild(this.touchPreviewElement); } catch (e) {}
+            this.touchPreviewElement = null;
         }
     }
 
@@ -600,10 +985,10 @@ export class IncomingFilesComponent implements OnInit {
         }
         this.hoveredFolderId.set(null);
         this.hoveredBreadcrumbKey.set(null);
+        this.currentDraggedFolderId = null;
     }
 
     async markAsViewed(fileId: number): Promise<void> {
-        // Optimistic update
         this.files.update((prev) =>
             prev.map((f) => (f.id === fileId ? { ...f, is_viewed: true } : f))
         );
@@ -612,7 +997,6 @@ export class IncomingFilesComponent implements OnInit {
             await this.apiClient.markFileViewed(fileId);
         } catch (error) {
             console.error('Failed to mark as viewed', error);
-            // Revert on error
             this.files.update((prev) =>
                 prev.map((f) => (f.id === fileId ? { ...f, is_viewed: false } : f))
             );
@@ -622,6 +1006,20 @@ export class IncomingFilesComponent implements OnInit {
     handleFileClick(file: FileItem): void {
         if (!file.is_viewed) {
             this.markAsViewed(file.id);
+        }
+        this.selectedFile.set(file);
+    }
+
+    openPreview(item: FileItem | Folder): void {
+        if (!('filename' in item)) {
+            console.warn('openPreview called with non-file item', item);
+            return;
+        }
+
+        const file = item as FileItem;
+
+        if (!file.is_viewed) {
+            void this.markAsViewed(file.id);
         }
         this.selectedFile.set(file);
     }
@@ -639,12 +1037,16 @@ export class IncomingFilesComponent implements OnInit {
 
     handleDragOver(event: DragEvent): void {
         event.preventDefault();
-        this.isDragging.set(this.isExternalDrag(event));
+        if (this.isExternalDrag(event)) {
+            this.isDragging.set(true);
+        }
     }
 
     handleDragLeave(event: DragEvent): void {
         event.preventDefault();
         this.isDragging.set(false);
+        this.hoveredFolderId.set(null);
+        this.hoveredBreadcrumbKey.set(null);
     }
 
     async handleDrop(event: DragEvent): Promise<void> {
@@ -653,11 +1055,55 @@ export class IncomingFilesComponent implements OnInit {
         this.isDragging.set(false);
         this.hoveredFolderId.set(null);
         this.hoveredBreadcrumbKey.set(null);
+        // support folder drags
+        const folderData = event.dataTransfer?.getData('application/x-folder');
+        if (folderData) {
+            const folderId = parseInt(folderData, 10);
+            const targetParent = this.currentFolder()?.id ?? null;
+            if (folderId === targetParent) {
+                this.toastr.info('No se puede mover una carpeta dentro de sí misma');
+                return;
+            }
+
+            const draggedFolder = this.folders().find(f => Number(f.id) === folderId);
+            if (draggedFolder && (draggedFolder.parent ?? null) === targetParent) {
+                this.toastr.info('La carpeta ya está en esa ubicación');
+                return;
+            }
+
+            try {
+                const isDesc = await this.isDescendantFolder(targetParent, folderId);
+                if (isDesc) {
+                    this.toastr.error('No se puede mover una carpeta dentro de una de sus subcarpetas');
+                    return;
+                }
+            } catch (err) {
+                console.warn('isDescendantFolder check failed', err);
+            }
+
+            try {
+                await this.apiClient.moveFolderToFolder(folderId, targetParent);
+                this.toastr.success('Carpeta movida correctamente');
+                await this.refreshContent();
+            } catch (error) {
+                this.toastr.error('Error al mover carpeta');
+            }
+            return;
+        }
 
         const fileId = event.dataTransfer?.getData('application/json');
         if (fileId) {
+            const id = parseInt(fileId, 10);
+            const fileObj = this.files().find(x => Number(x.id) === id);
+            const currentFolderId = fileObj ? (fileObj.folder ?? null) : null;
+            const targetFolderId = this.currentFolder()?.id ?? null;
+            if (currentFolderId === targetFolderId) {
+                this.toastr.info('El archivo ya está en esa carpeta');
+                return;
+            }
+
             try {
-                await this.apiClient.moveFileToFolder(parseInt(fileId, 10), this.currentFolder()?.id ?? null);
+                await this.apiClient.moveFileToFolder(id, targetFolderId);
                 this.toastr.success('Archivo movido correctamente');
                 await this.refreshContent();
             } catch (error) {
@@ -668,7 +1114,8 @@ export class IncomingFilesComponent implements OnInit {
 
         const droppedFiles = event.dataTransfer?.files;
         if (droppedFiles && droppedFiles.length > 0 && this.user()) {
-            await this.handleUpload(droppedFiles[0]);
+            const files = Array.from(droppedFiles);
+            await this.uploadFiles(files);
         }
     }
 
@@ -719,6 +1166,12 @@ export class IncomingFilesComponent implements OnInit {
             this.uploadProgress.set(0);
         } finally {
             this.uploading.set(false);
+        }
+    }
+
+    async uploadFiles(files: File[]): Promise<void> {
+        for (const file of files) {
+            await this.handleUpload(file);
         }
     }
 
@@ -774,10 +1227,7 @@ export class IncomingFilesComponent implements OnInit {
         }
     }
 
-    private showMalwareWarning(
-        executableList: string,
-        moreCount: string
-    ): Promise<boolean> {
+    private showMalwareWarning(executableList: string, moreCount: string): Promise<boolean> {
         return new Promise((resolve) => {
             const warningToast = this.toastr.warning(
                 `
@@ -802,11 +1252,7 @@ export class IncomingFilesComponent implements OnInit {
         </div>
       `,
                 '',
-                {
-                    disableTimeOut: true,
-                    closeButton: false,
-                    enableHtml: true,
-                }
+                { disableTimeOut: true, closeButton: false, enableHtml: true }
             );
 
             setTimeout(() => {
@@ -830,54 +1276,31 @@ export class IncomingFilesComponent implements OnInit {
         });
     }
 
-    handleDelete(fileId: number): void {
-        const confirmToast = this.toastr.info(
-            `
-      <div style="display: flex; flex-direction: column; gap: 12px;">
-        <div style="font-weight: bold; font-size: 15px;">¿Eliminar archivo?</div>
-        <div style="font-size: 13px; opacity: 0.9;">Esta acción no se puede deshacer</div>
-        <div style="display: flex; gap: 8px; margin-top: 8px;">
-          <button id="confirm-delete-${fileId}" style="flex: 1; padding: 8px 16px; background: linear-gradient(135deg, #FF3366 0%, #CC0044 100%); border: none; border-radius: 6px; color: white; font-weight: bold; cursor: pointer; font-size: 13px;">Eliminar</button>
-          <button id="cancel-delete-${fileId}" style="flex: 1; padding: 8px 16px; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 6px; color: white; cursor: pointer; font-size: 13px;">Cancelar</button>
-        </div>
-      </div>
-    `,
-            '',
-            {
-                disableTimeOut: true,
-                closeButton: false,
-                enableHtml: true,
-            }
-        );
+    async handleDelete(fileId: number): Promise<void> {
+        const dialogRef = this.dialog.open<ConfirmDialogComponent, ConfirmDialogData, boolean>(ConfirmDialogComponent, {
+            data: {
+                title: 'Eliminar archivo',
+                message: 'Esta acción no se puede deshacer.',
+                confirmLabel: 'Eliminar',
+                cancelLabel: 'Cancelar',
+                destructive: true,
+            },
+        });
 
-        setTimeout(() => {
-            const confirmBtn = document.getElementById(`confirm-delete-${fileId}`);
-            const cancelBtn = document.getElementById(`cancel-delete-${fileId}`);
+        const confirmed = await firstValueFrom(dialogRef.afterClosed());
+        if (!confirmed) {
+            return;
+        }
 
-            if (confirmBtn) {
-                confirmBtn.onclick = () => {
-                    this.toastr.clear(confirmToast.toastId);
-                    this.performDelete(fileId);
-                };
-            }
-
-            if (cancelBtn) {
-                cancelBtn.onclick = () => {
-                    this.toastr.clear(confirmToast.toastId);
-                };
-            }
-        }, 100);
+        await this.performDelete(fileId);
     }
 
     async performDelete(fileId: number): Promise<void> {
         const idToDelete = Number(fileId);
-        const deleteToast = this.toastr.info('Eliminando archivo...', '', {
-            disableTimeOut: true,
-        });
+        const deleteToast = this.toastr.info('Eliminando archivo...', '', { disableTimeOut: true });
 
         console.log(`[Fileshare] performDelete for ID ${idToDelete}`);
 
-        // Optimistic update: remove from local state immediately
         this.files.update(fs => fs.filter(f => Number(f.id) !== idToDelete));
         this.selectedFile.set(null);
         this.clearSelection();
@@ -886,13 +1309,10 @@ export class IncomingFilesComponent implements OnInit {
             await this.apiClient.deleteFile(fileId);
             this.toastr.clear(deleteToast.toastId);
             this.toastr.success('Archivo eliminado correctamente');
-
-            // Small delay before refresh
             setTimeout(() => this.refreshContent(), 500);
         } catch (error) {
             this.toastr.error('Error al eliminar el archivo');
             this.toastr.clear(deleteToast.toastId);
-            // Revert state on error
             await this.refreshContent();
         }
     }
@@ -902,7 +1322,8 @@ export class IncomingFilesComponent implements OnInit {
     }
 
     getFileUrl(fileId: number): string {
-        return `http://localhost:8000/api/transfers/${fileId}/download/`;
+        // Use a relative URL so the browser resolves host/origin correctly.
+        return `/api/transfers/${fileId}/download/`;
     }
 
     closeModal(): void {
@@ -926,11 +1347,85 @@ export class IncomingFilesComponent implements OnInit {
         const dataTransfer = event.dataTransfer;
         if (!dataTransfer) return false;
         const types = Array.from(dataTransfer.types || []);
-        return types.includes('application/json');
+        // internal drags may be files or folders
+        return types.includes('application/json') || types.includes('application/x-folder');
+    }
+
+    handleFolderDragStart(event: DragEvent, folder: Folder): void {
+        const dataTransfer = event.dataTransfer;
+        if (!dataTransfer) return;
+
+        dataTransfer.setData('application/x-folder', folder.id.toString());
+        dataTransfer.effectAllowed = 'move';
+
+        // create a simple drag image for folder
+        this.createFolderDragPreview(dataTransfer, folder, event.target as HTMLElement);
+        this.currentDraggedFolderId = Number(folder.id);
+    }
+
+    private createFolderDragPreview(dataTransfer: DataTransfer, folder: Folder, target: HTMLElement): void {
+        if (this.dragPreviewElement) {
+            try { document.body.removeChild(this.dragPreviewElement); } catch (e) {}
+            this.dragPreviewElement = null;
+        }
+
+        const preview = document.createElement('div');
+        preview.className = 'dragPreview folderPreview';
+        // Use inline-flex + constrained max-width to avoid full-width previews
+        preview.style.display = 'inline-flex';
+        preview.style.alignItems = 'center';
+        preview.style.gap = '0.75rem';
+        preview.style.padding = '0.55rem 0.85rem';
+        preview.style.background = 'rgba(0, 0, 0, 0.6)';
+        preview.style.borderRadius = '9px';
+        preview.style.color = '#fff';
+        preview.style.boxSizing = 'border-box';
+        preview.style.maxWidth = '380px';
+        preview.style.width = 'auto';
+        preview.style.overflow = 'hidden';
+        preview.style.whiteSpace = 'nowrap';
+        preview.style.textOverflow = 'ellipsis';
+
+        const icon = document.createElement('div');
+        icon.textContent = '📁';
+        icon.style.fontSize = '1.6rem';
+        preview.appendChild(icon);
+
+        const label = document.createElement('span');
+        label.textContent = folder.name;
+        label.style.whiteSpace = 'nowrap';
+        label.style.overflow = 'hidden';
+        label.style.textOverflow = 'ellipsis';
+        label.style.maxWidth = '260px';
+        preview.appendChild(label);
+
+        document.body.appendChild(preview);
+
+        const rect = preview.getBoundingClientRect();
+        const offsetX = rect.width / 2;
+        const offsetY = rect.height / 2;
+        try {
+            dataTransfer.setDragImage(preview, offsetX, offsetY);
+        } catch (e) {
+            // ignore if not supported
+        }
+
+        this.dragPreviewElement = preview;
     }
 
     handleFolderDragEnter(event: DragEvent, folder: Folder): void {
         if (!this.isInternalFileDrag(event)) return;
+        // avoid marking the folder being dragged as a drop target
+        try {
+            const folderDragData = event.dataTransfer?.getData('application/x-folder');
+            if (folderDragData) {
+                const draggedId = parseInt(folderDragData, 10);
+                if (draggedId === folder.id) return;
+            }
+        } catch (e) {}
+
+        if (this.currentDraggedFolderId !== null && this.currentDraggedFolderId === Number(folder.id)) return;
+
         event.preventDefault();
         this.hoveredFolderId.set(folder.id);
         if (event.dataTransfer) {
@@ -994,17 +1489,60 @@ export class IncomingFilesComponent implements OnInit {
         event.preventDefault();
         event.stopPropagation();
 
-        const fileId = event.dataTransfer?.getData('application/json');
+        // support folder drags as well
+        const folderData = event.dataTransfer?.getData('application/x-folder');
         this.hoveredBreadcrumbKey.set(null);
+        const targetFolderId = crumb.id ?? null;
 
+        if (folderData) {
+            const folderId = parseInt(folderData, 10);
+            if (folderId === targetFolderId) {
+                this.toastr.info('No se puede mover una carpeta dentro de sí misma');
+                return;
+            }
+
+            const draggedFolder = this.folders().find(f => Number(f.id) === folderId);
+            if (draggedFolder && (draggedFolder.parent ?? null) === targetFolderId) {
+                this.toastr.info('La carpeta ya está en esa ubicación');
+                return;
+            }
+
+            try {
+                const isDesc = await this.isDescendantFolder(targetFolderId, folderId);
+                if (isDesc) {
+                    this.toastr.error('No se puede mover una carpeta dentro de una de sus subcarpetas');
+                    return;
+                }
+            } catch (err) {
+                console.warn('isDescendantFolder check failed', err);
+            }
+
+            try {
+                await this.apiClient.moveFolderToFolder(folderId, targetFolderId);
+                this.toastr.success(`Carpeta movida a ${crumb.name}`);
+                await this.refreshContent();
+            } catch (error) {
+                console.error('Error moving folder', error);
+                this.toastr.error('Error al mover carpeta');
+            }
+            return;
+        }
+
+        const fileId = event.dataTransfer?.getData('application/json');
         if (!fileId) {
             return;
         }
 
-        const targetFolderId = crumb.id ?? null;
+        const id = parseInt(fileId, 10);
+        const fileObj = this.files().find(x => Number(x.id) === id);
+        const currentFolderId = fileObj ? (fileObj.folder ?? null) : null;
+        if (currentFolderId === targetFolderId) {
+            this.toastr.info('El archivo ya está en esa carpeta');
+            return;
+        }
 
         try {
-            await this.apiClient.moveFileToFolder(parseInt(fileId, 10), targetFolderId);
+            await this.apiClient.moveFileToFolder(id, targetFolderId);
             const destinationName = crumb.name;
             this.toastr.success(`Movido a ${destinationName}`);
             await this.refreshContent();
@@ -1015,6 +1553,13 @@ export class IncomingFilesComponent implements OnInit {
 
     breadcrumbKey(crumb: Breadcrumb): string {
         return crumb.id === null ? 'root' : crumb.id.toString();
+    }
+
+    isOptionsActive(type: 'file' | 'folder' | 'background', item?: FileItem | Folder): boolean {
+        const active = this.activeOptions();
+        if (!active) return false;
+        const id = item && (item as any).id ? Number((item as any).id) : null;
+        return active.type === type && active.id === id;
     }
 
     async openMoveDialog(item: FileItem | Folder): Promise<void> {
@@ -1050,9 +1595,7 @@ export class IncomingFilesComponent implements OnInit {
         const item = this.moveTargetFile();
         if (!item || this.moveDialogBusy()) return;
 
-        // Verificar si es un archivo o carpeta
         if ('filename' in item) {
-            // Es un FileItem
             if ((item.folder ?? null) === targetFolderId) {
                 this.toastr.info('El archivo ya está en esa carpeta');
                 return;
@@ -1072,18 +1615,10 @@ export class IncomingFilesComponent implements OnInit {
                 this.moveDialogBusy.set(false);
             }
         } else {
-            // Es una carpeta
             this.moveDialogBusy.set(true);
 
             try {
-                // Para carpetas, necesitamos implementar moveFolderToFolder si existe
-                // o modificar el backend para manejar carpetas también con moveFileToFolder
-                // Por ahora, mostramos un mensaje de error
                 throw new Error('Mover carpetas no está implementado aún');
-
-                this.toastr.success('Carpeta movida correctamente');
-                await this.refreshContent();
-                this.closeMoveDialog();
             } catch (error) {
                 console.error('Error moving folder:', error);
                 this.toastr.error('Error al mover la carpeta: ' + (error instanceof Error ? error.message : 'Error desconocido'));
@@ -1124,15 +1659,23 @@ export class IncomingFilesComponent implements OnInit {
             return false;
         }
 
+        const isOwner = item.owner_username ? item.owner_username === currentUser.username : false;
+        const isUploader = item.uploader_username ? item.uploader_username === currentUser.username : false;
+        const hasExplicitAccess = !!item.has_access && !isOwner;
+
+        if (this.scope() === 'mine') {
+            return isOwner;
+        }
+
         if (this.scope() === 'sent') {
-            return false;
+            return isUploader && !isOwner;
         }
 
-        if (this.scope() === 'all' && item.sender_username && item.sender_username === currentUser.username) {
-            return false;
+        if (this.scope() === 'shared') {
+            return hasExplicitAccess;
         }
 
-        return true;
+        return false;
     }
 
     isSentScope(): boolean {
@@ -1274,20 +1817,39 @@ export class IncomingFilesComponent implements OnInit {
         dataTransfer.setDragImage(preview, offsetX, offsetY);
 
         this.dragPreviewElement = preview;
-
     }
 
-    @HostListener('document:click')
-    closeSortMenu() {
+    private async isDescendantFolder(targetFolderId: number | null, ancestorFolderId: number): Promise<boolean> {
+        if (targetFolderId == null) return false;
+        try {
+            let currentId: number | null = targetFolderId;
+            while (currentId != null) {
+                if (currentId === ancestorFolderId) return true;
+                const folder = await this.apiClient.getFolder(currentId);
+                if (!folder) break;
+                // folder.parent may be null or a number
+                const parent = (folder as any).parent ?? null;
+                if (parent == null) break;
+                currentId = parent as number;
+            }
+        } catch (err) {
+            console.warn('isDescendantFolder error', err);
+            return false;
+        }
+        return false;
+    }
+
+    closeSortMenu(): void {
         this.isSortMenuOpen.set(false);
     }
 
-    toggleSortMenu() {
+    toggleSortMenu(): void {
         this.isSortMenuOpen.update(v => !v);
     }
 
-    setSortConfig(config: Partial<SortConfig>) {
+    setSortConfig(config: Partial<SortConfig>): void {
         this.sortConfig.update(current => ({ ...current, ...config }));
+        this.showSortMenu.set(false);
     }
 
     getSortLabel(): string {
@@ -1314,7 +1876,7 @@ export class IncomingFilesComponent implements OnInit {
                 if (type === 'file') {
                     result = (a as FileItem).size - (b as FileItem).size;
                 } else {
-                    result = 0; // Folders don't have size currently, treat as equal
+                    result = 0;
                 }
                 break;
             case 'date':
@@ -1327,30 +1889,20 @@ export class IncomingFilesComponent implements OnInit {
         return config.order === 'asc' ? result : -result;
     }
 
-    /**
-     * Dispara el diálogo de selección de archivos
-     */
     triggerFileUpload(): void {
-        // Simplemente activa el input de archivo oculto
         const fileInput = document.getElementById('file-upload') as HTMLInputElement;
         if (fileInput) {
             fileInput.click();
         }
     }
 
-    /**
-     * Maneja la selección de archivos a través del input de tipo file
-     */
     onFileSelected(event: Event): void {
         const input = event.target as HTMLInputElement;
         if (input.files && input.files.length > 0) {
             const files = Array.from(input.files);
-
-            // Subir archivos secuencialmente para manejar mejor el progreso y la carpeta destino
             const uploadPromises = files.map(file => this.handleUpload(file));
 
             Promise.all(uploadPromises).then(() => {
-                // refreshContent ya se llama en cada handleUpload satisfactorio
                 if (input) {
                     input.value = '';
                 }
