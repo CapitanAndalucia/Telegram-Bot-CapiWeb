@@ -398,6 +398,58 @@ p {
     margin: 0.25rem 0;
 }
 
+/* Mobile floating action button */
+.mobile-fab-container {
+    position: fixed;
+    right: 16px;
+    bottom: 20px;
+    z-index: 1200;
+    display: flex;
+    /* show the menu above the button by reversing the column order */
+    flex-direction: column-reverse;
+    align-items: flex-end;
+    gap: 8px;
+}
+.mobile-fab {
+    width: 56px;
+    height: 56px;
+    min-width: 56px;
+    min-height: 56px;
+    aspect-ratio: 1 / 1;
+    padding: 0;
+    border-radius: 50%;
+    background: var(--accent-primary);
+    color: #fff;
+    border: none;
+    font-size: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+    cursor: pointer;
+}
+.mobile-fab-menu {
+    background: #1e1e1e;
+    border: 1px solid #333;
+    border-radius: 10px;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    /* ensure the menu appears above the FAB and aligns to the FAB's right edge */
+    transform-origin: bottom right;
+    margin-bottom: 6px;
+}
+.mobile-fab-item {
+    background: none;
+    border: none;
+    color: #fff;
+    padding: 8px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+}
+.mobile-fab-item:hover { background: rgba(255,255,255,0.04); }
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
     .incomingContent {

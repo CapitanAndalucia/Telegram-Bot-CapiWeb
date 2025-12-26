@@ -259,7 +259,19 @@
     <app-share-modal *ngIf="shareModalItem()" [item]="shareModalItem()!" [type]="shareModalType()"
         (close)="closeShareModal()" (shared)="refreshContent()">
     </app-share-modal>
-</div>
+
+        <!-- Mobile floating action button -->
+        <div *ngIf="isMobile()" class="mobile-fab-container">
+            <button class="mobile-fab" (click)="mobileFabOpen.set(!mobileFabOpen()); $event.stopPropagation()" title="Acciones">
+                +
+            </button>
+
+            <div *ngIf="mobileFabOpen()" class="mobile-fab-menu" (click)="$event.stopPropagation()">
+                <button class="mobile-fab-item" (click)="triggerFileUpload(); mobileFabOpen.set(false)">Subir archivo</button>
+                <button class="mobile-fab-item" (click)="openUpload.emit(); mobileFabOpen.set(false)">Enviar archivo</button>
+            </div>
+        </div>
+    </div>
 
 <!-- Input de archivo oculto para la carga de archivos -->
 <input type="file" id="file-upload" style="display: none" (change)="onFileSelected($event)" multiple>

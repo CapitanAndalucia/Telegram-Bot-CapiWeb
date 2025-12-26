@@ -60,6 +60,10 @@ export class IncomingFilesComponent implements OnInit {
 
     // Outputs
     unreadCountChange = output<number>();
+    openUpload = output<void>();
+
+    // Mobile FAB state
+    mobileFabOpen = signal(false);
 
     // Sort signals
     showSortMenu = signal(false);
@@ -121,6 +125,9 @@ export class IncomingFilesComponent implements OnInit {
     private touchPreviewElement: HTMLElement | null = null;
     // id of folder currently being dragged (desktop or touch) — used to hide selection UI
     private currentDraggedFolderId: number | null = null;
+    // navigation guard to prevent duplicate navigations
+    private lastNavigationTarget: number | null = null;
+    private lastNavigationTime: number = 0;
 
     // Computed sorted lists
     sortedFolders = computed(() => {
@@ -230,6 +237,14 @@ export class IncomingFilesComponent implements OnInit {
     }
 
     async navigateToFolder(folder: Folder | null, options?: { path?: Breadcrumb[] }): Promise<void> {
+        const now = Date.now();
+        const targetId = folder?.id ?? null;
+        if (this.lastNavigationTarget === targetId && (now - this.lastNavigationTime) < 700) {
+            console.debug('[incoming-files] Ignoring duplicate navigation to', targetId);
+            return;
+        }
+        this.lastNavigationTarget = targetId;
+        this.lastNavigationTime = now;
         console.log('navigateToFolder called for:', folder?.name);
 
         if (options?.path) {
@@ -571,7 +586,7 @@ export class IncomingFilesComponent implements OnInit {
         }
     }
 
-    handleItemTouchEnd(event: TouchEvent, type: 'file' | 'folder', item: any): void {
+    async handleItemTouchEnd(event: TouchEvent, type: 'file' | 'folder', item: any): Promise<void> {
         if (this.touchTimer) {
             clearTimeout(this.touchTimer);
             this.touchTimer = null;
@@ -643,15 +658,27 @@ export class IncomingFilesComponent implements OnInit {
         const touchDuration = touchEndTime - this.touchStartTime;
 
         if (touchDuration < this.TOUCH_DELAY && !this.hasSignificantMovement(event)) {
+            // Prevent subsequent click events and stop propagation immediately
+            try { event.preventDefault(); } catch (e) {}
+            try { event.stopPropagation(); } catch (e) {}
+
             if (type === 'folder') {
-                this.navigateToFolder(item as Folder);
+                await this.navigateToFolder(item as Folder);
             } else {
                 this.openFilePreview(item as FileItem);
             }
+
+            // cleanup drag state after navigation/preview
+            this.removeTouchPreview();
+            this.touchDragActive = false;
+            this.touchDraggingItem = null;
+            this.isDragging.set(false);
+            this.hoveredFolderId.set(null);
+            return;
         }
 
+        // cleanup drag state in case no short-tap occurred
         event.preventDefault();
-        // cleanup drag state in case no drop occurred
         this.removeTouchPreview();
         this.touchDragActive = false;
         this.touchDraggingItem = null;
@@ -877,8 +904,23 @@ export class IncomingFilesComponent implements OnInit {
         // If touch started on options button, ignore
         if (this.touchStartedOnOptions) return;
 
-        // Start emulated drag if movement significant
-        if (!this.touchDragActive && (deltaX > 15 || deltaY > 15) && this.touchDraggingItem) {
+        // If movement exceeds threshold, cancel any pending long-press selection
+        const MOVEMENT_THRESHOLD = 15;
+        const moved = deltaX > MOVEMENT_THRESHOLD || deltaY > MOVEMENT_THRESHOLD;
+        if (moved && this.touchTimer) {
+            clearTimeout(this.touchTimer);
+            this.touchTimer = null;
+        }
+
+        // If primarily vertical movement, treat as scroll: do not start emulated drag or select
+        if (moved && deltaY > deltaX) {
+            // ensure we don't accidentally show hover state while scrolling
+            this.hoveredFolderId.set(null);
+            return;
+        }
+
+        // Start emulated drag if movement significant and mostly horizontal
+        if (!this.touchDragActive && moved && this.touchDraggingItem) {
             this.touchDragActive = true;
             this.isDragging.set(true);
             this.createTouchPreview(touch.clientX, touch.clientY, this.touchDraggingItem);

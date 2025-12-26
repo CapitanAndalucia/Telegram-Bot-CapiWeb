@@ -69,7 +69,8 @@
                 @if (activeTab() === 'files') {
                 <app-incoming-files [user]="user()" [refreshTrigger]="refreshTrigger()" [scope]="activeScope()"
                     [forceResetCount]="forceResetCount()"
-                    (unreadCountChange)="onUnreadCountChange($event)"></app-incoming-files>
+                    (unreadCountChange)="onUnreadCountChange($event)"
+                    (openUpload)="setActiveTab('upload')"></app-incoming-files>
                 }
                 @if (activeTab() === 'upload') {
                 <app-file-upload [user]="user()" [selectedRecipient]="selectedRecipient()"
