@@ -18,7 +18,10 @@
                 <span>{{ req.from_user_username }} quiere ser tu amigo</span>
                 <div class="requestActions">
                     <button (click)="handleAccept(req.id)" class="acceptBtn">✓</button>
-                    <button (click)="handleReject(req.id)" class="rejectBtn">✕</button>
+                    <button (click)="handleReject(req.id)" class="rejectBtn icon-only">
+                        <img src="assets/icons/boton-x.png" alt="Rechazar" class="icon-close" />
+                        <span class="visually-hidden">Rechazar</span>
+                    </button>
                 </div>
             </li>
             }

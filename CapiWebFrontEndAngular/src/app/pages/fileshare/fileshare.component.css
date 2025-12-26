@@ -51,7 +51,7 @@
     background: #121212;
     overflow: hidden;
     position: relative;
-    padding: 1rem;
+    /* padding: 1rem; */
 }
 
 /* Image preview styling */
@@ -146,6 +146,13 @@
 }
 
 /* Options button */
+
+button {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    user-select: none;
+}
+
 .optionsBtn {
     cursor: pointer;
     padding: 0.25rem 0.5rem;
@@ -450,6 +457,45 @@ p {
 }
 .mobile-fab-item:hover { background: rgba(255,255,255,0.04); }
 
+/* Close icon image and icon-only button styles */
+.icon-close {
+    width: 18px;
+    height: 18px;
+    display: inline-block;
+    vertical-align: middle;
+    pointer-events: none;
+}
+
+.icon-only {
+    background: transparent;
+    border: none;
+    padding: 6px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+}
+
+.icon-only:focus {
+    outline: none;
+    box-shadow: none;
+}
+
+.visually-hidden {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    margin: -1px !important;
+    overflow: hidden !important;
+    clip: rect(0, 0, 0, 0) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
     .incomingContent {
@@ -634,17 +680,21 @@ p {
 }
 
 /* Folder Options Button Positioning (Absolute) */
-.folderCard .optionsBtn {
+/* .folderCard .optionsBtn {
     position: absolute;
     top: 8px;
     right: 8px;
-    z-index: 5;
-    display: none;
+    z-index: 5; */
+    /* display: none; */
     /* Hidden by default on PC */
-}
+/* } */
 
 /* Show on hover in PC */
-.folderCard:hover .optionsBtn {
+/* .folderCard:hover .optionsBtn {
+    display: flex;
+} */
+
+.optionsBtn {
     display: flex;
 }
 
@@ -1471,6 +1521,11 @@ p {
     justify-content: center;
     padding: 2rem;
     background: rgba(0, 0, 0, 0.3);
+
+    max-width: 100%;
+    height: auto;
+    object-fit: contain;
+    display: block;
 }
 
 .modalImage {
@@ -1726,7 +1781,7 @@ p {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 1rem;
+    /* padding: 1rem; */
     overflow: hidden;
     background: rgba(0, 0, 0, 0.1);
     width: 100%;
@@ -1982,14 +2037,14 @@ p {
     background: rgba(0, 242, 255, 0.1);
 }
 
-.folderCard .optionsBtn {
+/* .folderCard .optionsBtn { */
     /* hidden by default on desktop; shown on hover via .folderCard:hover .optionsBtn */
-    display: none;
-    position: absolute;
+    /* display: none; */
+    /* position: absolute;
     top: 8px;
     right: 8px;
     z-index: 5;
-}
+} */
 
 .fileCard.selected .fileNameList,
 .folderCard.selected .folderName {
@@ -2018,7 +2073,11 @@ p {
 }
 
 /* Show on hover in PC */
-.folderCard:hover .optionsBtn {
+/* .folderCard:hover .optionsBtn {
+    display: flex;
+} */
+
+.optionsBtn {
     display: flex;
 }
 

@@ -85,7 +85,10 @@
     <div *ngIf="!loading() && (files().length > 0 || folders().length > 0)">
         <div *ngIf="bulkSelectionActive()" class="selectionBar">
             <span>{{ selectedFileIds().size + selectedFolderIds().size }} seleccionados</span>
-            <button class="clearSelectionBtn" (click)="clearSelection()">✕ Cancelar</button>
+            <button class="clearSelectionBtn icon-only" (click)="clearSelection()">
+                <img src="assets/icons/boton-x.png" alt="Cancelar" class="icon-close" />
+                <span class="visually-hidden">Cancelar</span>
+            </button>
         </div>
 
         <div class="incomingContent" [class.listMode]="viewMode() === 'list'" [class.selectionMode]="isSelectionMode()"
@@ -115,10 +118,12 @@
                         <div class="cardHeader">
                             <div class="cardIconSmall">📁</div>
                             <div class="cardName">{{ folder.name }}</div>
-                            <span (click)="handleContextMenu($event, 'folder', folder); $event.stopPropagation()"
+                            <!-- <span (click)="handleContextMenu($event, 'folder', folder); $event.stopPropagation()"
                                 class="optionsBtn" [class.active]="isOptionsActive('folder', folder)" title="Opciones">
                                 ⋮
-                            </span>
+                            </span> -->
+                            <img src="assets/icons/menu.png" alt="Opciones" (click)="handleContextMenu($event, 'folder', folder); $event.stopPropagation()"
+                            class="optionsBtn" [class.active]="isOptionsActive('folder', folder)" title="Opciones"/>
                         </div>
                     </ng-container>
 
@@ -130,10 +135,12 @@
                         <div class="fileInfoList">
                             <span class="cardName">{{ folder.name }}</span>
                         </div>
-                        <span (click)="handleContextMenu($event, 'folder', folder); $event.stopPropagation()"
+                        <!-- <span (click)="handleContextMenu($event, 'folder', folder); $event.stopPropagation()"
                             class="optionsBtn listModeBtn" [class.active]="isOptionsActive('folder', folder)" title="Opciones">
                             ⋮
-                        </span>
+                        </span> -->
+                        <img src="assets/icons/menu.png" alt="Opciones" (click)="handleContextMenu($event, 'folder', folder); $event.stopPropagation()"
+                            class="optionsBtn" [class.active]="isOptionsActive('folder', folder)" title="Opciones"/>
                     </ng-container>
                 </div>
             </ng-container>
@@ -160,10 +167,13 @@
                                 <span *ngIf="!isImage(file.filename)">📄</span>
                             </div>
                             <div class="cardName">{{ file.filename }}</div>
-                            <span (click)="handleContextMenu($event, 'file', file); $event.stopPropagation()"
+                            <!-- <span (click)="handleContextMenu($event, 'file', file); $event.stopPropagation()"
                                 class="optionsBtn" [class.active]="isOptionsActive('file', file)" title="Opciones">
                                 ⋮
-                            </span>
+                            </span> -->
+                            <img src="assets/icons/menu.png" alt="Opciones" (click)="handleContextMenu($event, 'file', file); $event.stopPropagation()"
+                            class="optionsBtn" [class.active]="isOptionsActive('file', file)" title="Opciones"/>
+
                         </div>
                     </ng-container>
 
@@ -180,10 +190,12 @@
                             <span class="fileNameList">{{ file.filename }}</span>
                             <span class="fileSizeList">{{ (file.size / 1024).toFixed(1) }} KB</span>
                         </div>
-                        <span (click)="handleContextMenu($event, 'file', file); $event.stopPropagation()"
+                        <!-- <span (click)="handleContextMenu($event, 'file', file); $event.stopPropagation()"
                             class="optionsBtn listModeBtn" [class.active]="isOptionsActive('file', file)" title="Opciones">
                             ⋮
-                        </span>
+                        </span> -->
+                        <img src="assets/icons/menu.png" alt="Opciones" (click)="handleContextMenu($event, 'file', file); $event.stopPropagation()"
+                            class="optionsBtn listModeBtn" [class.active]="isOptionsActive('file', file)" title="Opciones"/>
                     </ng-container>
                 </div>
             </ng-container>
@@ -234,7 +246,10 @@
             <div class="mobile-context-sheet">
                 <header class="mobile-context-header">
                     <div class="mobile-context-title">Opciones</div>
-                    <button class="mobile-context-close" (click)="closeContextMenu()">✕</button>
+                    <button class="mobile-context-close icon-only" (click)="closeContextMenu()">
+                        <img src="assets/icons/boton-x.png" alt="Cerrar" class="icon-close" />
+                        <span class="visually-hidden">Cerrar</span>
+                    </button>
                 </header>
                 <div class="mobile-context-body">
                     <ng-container *ngIf="menu.type === 'file' || menu.type === 'folder'">
@@ -263,7 +278,7 @@
         <!-- Mobile floating action button -->
         <div *ngIf="isMobile()" class="mobile-fab-container">
             <button class="mobile-fab" (click)="mobileFabOpen.set(!mobileFabOpen()); $event.stopPropagation()" title="Acciones">
-                +
+                <img src="assets/icons/agregar-icono.png" alt="Cerrar" class="icon-close" />
             </button>
 
             <div *ngIf="mobileFabOpen()" class="mobile-fab-menu" (click)="$event.stopPropagation()">
@@ -284,7 +299,10 @@
         <div class="moveDialog" (click)="$event.stopPropagation()">
             <header class="moveDialogHeader">
                 <h3>Mover "{{ moveTargetDisplayName() }}"</h3>
-                <button class="moveDialogClose" (click)="closeMoveDialog()" [disabled]="moveDialogBusy()">✕</button>
+                <button class="moveDialogClose icon-only" (click)="closeMoveDialog()" [disabled]="moveDialogBusy()">
+                    <img src="assets/icons/boton-x.png" alt="Cerrar" class="icon-close" />
+                    <span class="visually-hidden">Cerrar</span>
+                </button>
             </header>
             <div class="moveDialogBody">
                 <div *ngIf="moveDialogLoading()" class="moveDialogLoading">Cargando carpetas...</div>

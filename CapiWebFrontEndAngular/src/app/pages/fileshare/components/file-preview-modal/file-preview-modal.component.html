@@ -1,6 +1,9 @@
 <div class="modalOverlay" (click)="onOverlayClick($event)">
     <div class="modalContent" (click)="$event.stopPropagation()">
-        <button class="closeModalBtn" (click)="onClose()">✕</button>
+        <button class="closeModalBtn icon-only" (click)="onClose()">
+            <img src="assets/icons/boton-x.png" alt="Cerrar" class="icon-close" />
+            <span class="visually-hidden">Cerrar</span>
+        </button>
 
         <div class="previewHeader">
             <h3>{{ file().filename }}</h3>

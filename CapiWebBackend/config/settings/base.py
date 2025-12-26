@@ -40,7 +40,7 @@ SECRET_KEY = env('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env('DEBUG')
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', '0.0.0.0', 'testserver', '192.168.1.21', '.trycloudflare.com', 'capitanandalucia.duckdns.org', # ¡Sin http://!
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', '0.0.0.0', 'testserver', '.trycloudflare.com', 'capitanandalucia.duckdns.org', # ¡Sin http://!
     'www.capitanandalucia.duckdns.org']
 
 
