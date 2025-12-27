@@ -5,6 +5,10 @@ django-filter
 django-axes
 django-cors-headers
 
+rarfile
+vt
+Pillow
+
 # Django environment variables
 # https://django-environ.readthedocs.io/
 django-environ
