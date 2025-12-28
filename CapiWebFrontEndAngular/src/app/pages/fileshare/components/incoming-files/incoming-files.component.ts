@@ -334,54 +334,28 @@ export class IncomingFilesComponent implements OnInit {
         this.activeOptions.set({ type, id });
     }
 
-    createFolder(): void {
-        const idSuffix = Date.now();
-        const inputId = `create-folder-input-${idSuffix}`;
-        const confirmId = `confirm-create-${idSuffix}`;
-        const cancelId = `cancel-create-${idSuffix}`;
+    async createFolder(): Promise<void> {
+        const dialogData: InputDialogData = {
+            title: 'Nueva carpeta',
+            label: 'Nombre de la carpeta',
+            placeholder: 'Ingrese el nombre de la carpeta',
+            confirmLabel: 'Crear',
+            cancelLabel: 'Cancelar'
+        };
 
-        const confirmToast = this.toastr.info(
-            `
-      <div style="display: flex; flex-direction: column; gap: 12px; min-width: 240px;">
-        <div style="font-weight: 600; font-size: 15px;">Nueva carpeta</div>
-        <div style="display: flex; flex-direction: column; gap: 8px;">
-          <label for="${inputId}" style="font-size: 12px; opacity: 0.8;">Nombre de la carpeta</label>
-          <input id="${inputId}" type="text" style="padding: 8px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.2); color: white;" />
-        </div>
-        <div style="display: flex; gap: 8px; margin-top: 4px;">
-          <button id="${confirmId}" style="flex: 1; padding: 8px 16px; background: linear-gradient(135deg, #4F9CFF 0%, #1D5DFF 100%); border: none; border-radius: 6px; color: white; font-weight: bold; cursor: pointer; font-size: 13px;">Crear</button>
-          <button id="${cancelId}" style="flex: 1; padding: 8px 16px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; color: white; cursor: pointer; font-size: 13px;">Cancelar</button>
-        </div>
-      </div>
-    `,
-            '',
-            { disableTimeOut: true, closeButton: false, enableHtml: true }
-        );
+        const dialogRef = this.dialog.open(InputDialogComponent, {
+            width: '350px',
+            data: dialogData
+        });
 
-        setTimeout(() => {
-            const inputEl = document.getElementById(inputId) as HTMLInputElement | null;
-            const confirmBtn = document.getElementById(confirmId);
-            const cancelBtn = document.getElementById(cancelId);
-
-            if (inputEl) {
-                inputEl.focus();
-                inputEl.select();
-            }
-
-            const closeToast = () => this.toastr.clear(confirmToast.toastId);
-
-            const submit = async () => {
-                const newName = inputEl?.value?.trim();
-                if (!newName) {
-                    this.toastr.warning('El nombre de la carpeta no puede estar vacío');
-                    return;
-                }
-
-                closeToast();
+        try {
+            const result = await firstValueFrom(dialogRef.afterClosed());
+            
+            if (result) {
                 const creatingToast = this.toastr.info('Creando carpeta...', '', { disableTimeOut: true });
-
+                
                 try {
-                    await this.apiClient.createFolder(newName, this.currentFolder()?.id ?? undefined);
+                    await this.apiClient.createFolder(result, this.currentFolder()?.id ?? undefined);
                     this.toastr.clear(creatingToast.toastId);
                     this.toastr.success('Carpeta creada correctamente');
                     await this.refreshContent();
@@ -390,30 +364,11 @@ export class IncomingFilesComponent implements OnInit {
                     this.toastr.clear(creatingToast.toastId);
                     this.toastr.error('Error al crear la carpeta');
                 }
-            };
-
-            if (confirmBtn) {
-                confirmBtn.onclick = () => void submit();
             }
-
-            if (inputEl) {
-                inputEl.addEventListener('keydown', (event) => {
-                    if (event.key === 'Enter') {
-                        event.preventDefault();
-                        void submit();
-                    }
-                    if (event.key === 'Escape') {
-                        closeToast();
-                    }
-                });
-            }
-
-            if (cancelBtn) {
-                cancelBtn.onclick = () => closeToast();
-            }
-        }, 100);
+        } catch (error) {
+            console.error('Error en el diálogo de creación de carpeta', error);
+        }
     }
-
     async renameItem(): Promise<void> {
         const menu = this.contextMenu();
         if (!menu || !menu.item || menu.type === 'background') {
