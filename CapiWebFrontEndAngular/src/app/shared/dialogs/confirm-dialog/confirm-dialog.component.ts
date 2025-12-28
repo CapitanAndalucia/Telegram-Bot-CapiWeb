@@ -40,7 +40,7 @@ export interface ConfirmDialogData {
     styles: [
         `:host {
             display: block;
-            min-width: 320px;
+            
         }
         :host ::ng-deep .mat-mdc-dialog-surface {
             background: rgba(20, 20, 25, 0.95);

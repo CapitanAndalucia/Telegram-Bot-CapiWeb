@@ -52,7 +52,7 @@ export interface InputDialogData {
     styles: [
         `:host {
             display: block;
-            min-width: 340px;
+            
         }
         :host ::ng-deep .mat-mdc-dialog-surface {
             background: rgba(20, 20, 25, 0.95);
@@ -159,6 +159,73 @@ export interface InputDialogData {
             color: rgba(255, 255, 255, 0.3);
             border-color: rgba(255, 255, 255, 0.1);
             cursor: not-allowed;
+        }
+
+        @media (max-width: 768px) {
+            .mobile-dialog .mat-mdc-dialog-container {
+    max-width: 90vw !important;
+    width: 90vw !important;
+    margin: 0 auto;
+}
+
+.mobile-dialog .mat-mdc-dialog-surface {
+    border-radius: 12px;
+    padding: 1rem;
+}
+
+.mobile-dialog .mat-mdc-dialog-title {
+    font-size: 1.1rem !important;
+    padding: 0.5rem 0 !important;
+    margin: 0 !important;
+}
+
+.mobile-dialog .mat-mdc-dialog-content {
+    padding: 1rem 0 !important;
+    margin: 0 !important;
+    max-height: 60vh !important;
+}
+
+.mobile-dialog .mat-mdc-form-field {
+    width: 100% !important;
+}
+
+.mobile-dialog .mat-mdc-input-element {
+    font-size: 1rem !important;
+    padding: 0.5rem !important;
+}
+
+.mobile-dialog .mat-mdc-dialog-actions {
+    padding: 1rem 0 0 0 !important;
+    margin: 0 !important;
+    gap: 0.5rem !important;
+}
+
+.mobile-dialog .mat-mdc-button {
+    flex: 1 !important;
+    min-height: 44px !important;
+    font-size: 1rem !important;
+}
+
+/* Specific styles for rename dialog */
+.mobile-dialog.rename-dialog-panel .mat-mdc-form-field {
+    margin-bottom: 0.5rem;
+}
+
+.mobile-dialog.rename-dialog-panel .mat-mdc-form-field-appearance-outline .mat-mdc-form-field-flex {
+    padding: 0.5rem 0.75rem !important;
+}
+
+.mobile-dialog.rename-dialog-panel .mat-mdc-form-field-infix {
+    padding: 0.25rem 0 !important;
+}
+
+/* Loading spinner positioning in mobile */
+.mobile-dialog .mat-spinner {
+    position: absolute !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+}
         }
     `,
     ],

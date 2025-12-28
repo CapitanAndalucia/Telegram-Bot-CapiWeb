@@ -225,74 +225,43 @@
 
     <!-- Context Menu: floating on desktop, bottom-sheet modal on mobile -->
     <ng-container *ngIf="contextMenu() as menu">
-        <div *ngIf="!isMobile()" class="context-menu" [style.top.px]="menu.y" [style.left.px]="menu.x"
-            (click)="$event.stopPropagation()">
-            <ng-container *ngIf="menu.type === 'file' || menu.type === 'folder'">
-                <button
-                    (click)="openShareModal(menu.item!, menu.type === 'file' ? 'file' : 'folder'); closeContextMenu()">
-                    <span class="icon">🔗</span> Compartir
-                </button>
-                <button
-                    (click)="menu.type === 'file' ? handleDownload(menu.item!.id, $any(menu.item!).filename) : handleFolderDownload($any(menu.item!)); closeContextMenu()">
-                    <span class="icon">⬇</span> Descargar
-                </button>
-                <ng-container *ngIf="menu.type === 'file'">
-                    <button (click)="openPreview(menu.item!); closeContextMenu()">
-                        <span class="icon">👁</span> Previsualizar
-                    </button>
-                </ng-container>
-                <button (click)="openMoveDialog(menu.item!); closeContextMenu()">
-                    <span class="icon">➡️</span> Mover a...
-                </button>
-                <button (click)="renameItem(); closeContextMenu()">
-                    <span class="icon">✏</span> Renombrar
-                </button>
-                <div class="divider"></div>
-                <button class="delete" (click)="deleteItem(); closeContextMenu()">
-                    <span class="icon">🗑</span> Eliminar
+    <div class="context-menu" [style.top.px]="menu.y" [style.left.px]="menu.x"
+        (click)="$event.stopPropagation()">
+        <ng-container *ngIf="menu.type === 'file' || menu.type === 'folder'">
+            <button
+                (click)="openShareModal(menu.item!, menu.type === 'file' ? 'file' : 'folder'); closeContextMenu()">
+                <span class="icon">🔗</span> Compartir
+            </button>
+            <button
+                (click)="menu.type === 'file' ? handleDownload(menu.item!.id, $any(menu.item!).filename) : handleFolderDownload($any(menu.item!)); closeContextMenu()">
+                <span class="icon">⬇</span> Descargar
+            </button>
+            <ng-container *ngIf="menu.type === 'file'">
+                <button (click)="openPreview(menu.item!); closeContextMenu()">
+                    <span class="icon">👁</span> Previsualizar
                 </button>
             </ng-container>
-            <ng-container *ngIf="menu.type !== 'file' && menu.type !== 'folder'">
-                <button (click)="triggerFileUpload(); closeContextMenu()">
-                    <span class="icon">📄</span> Subir archivo
-                </button>
-                <button (click)="createFolder(); closeContextMenu()">
-                    <span class="icon">📁</span> Nueva carpeta
-                </button>
-            </ng-container>
-        </div>
-
-        <!-- Mobile bottom sheet modal -->
-        <div *ngIf="isMobile()" class="mobile-context-modal" (click)="$event.stopPropagation()">
-            <div class="mobile-context-sheet">
-                <header class="mobile-context-header">
-                    <div class="mobile-context-title">Opciones</div>
-                    <button class="mobile-context-close icon-only" (click)="closeContextMenu()">
-                        <img src="assets/icons/boton-x.png" alt="Cerrar" class="icon-close" />
-                        <span class="visually-hidden">Cerrar</span>
-                    </button>
-                </header>
-                <div class="mobile-context-body">
-                    <ng-container *ngIf="menu.type === 'file' || menu.type === 'folder'">
-                        <button
-                            (click)="openShareModal(menu.item!, menu.type === 'file' ? 'file' : 'folder'); closeContextMenu()">Compartir</button>
-                        <button
-                            (click)="menu.type === 'file' ? handleDownload(menu.item!.id, $any(menu.item!).filename) : handleFolderDownload($any(menu.item!)); closeContextMenu()">Descargar</button>
-                        <ng-container *ngIf="menu.type === 'file'">
-                            <button (click)="openPreview(menu.item!); closeContextMenu()">Previsualizar</button>
-                        </ng-container>
-                        <button (click)="openMoveDialog(menu.item!); closeContextMenu()">Mover a...</button>
-                        <button (click)="renameItem(); closeContextMenu()">Renombrar</button>
-                        <button class="delete" (click)="deleteItem(); closeContextMenu()">Eliminar</button>
-                    </ng-container>
-                    <ng-container *ngIf="menu.type !== 'file' && menu.type !== 'folder'">
-                        <button (click)="triggerFileUpload(); closeContextMenu()">Subir archivo</button>
-                        <button (click)="createFolder(); closeContextMenu()">Nueva carpeta</button>
-                    </ng-container>
-                </div>
-            </div>
-        </div>
-    </ng-container>
+            <button (click)="openMoveDialog(menu.item!); closeContextMenu()">
+                <span class="icon">➡️</span> Mover a...
+            </button>
+            <button (click)="renameItem(); closeContextMenu()">
+                <span class="icon">✏</span> Renombrar
+            </button>
+            <div class="divider"></div>
+            <button class="delete" (click)="deleteItem(); closeContextMenu()">
+                <span class="icon">🗑</span> Eliminar
+            </button>
+        </ng-container>
+        <ng-container *ngIf="menu.type !== 'file' && menu.type !== 'folder'">
+            <button (click)="triggerFileUpload(); closeContextMenu()">
+                <span class="icon">📄</span> Subir archivo
+            </button>
+            <button (click)="createFolder(); closeContextMenu()">
+                <span class="icon">📁</span> Nueva carpeta
+            </button>
+        </ng-container>
+    </div>
+</ng-container>
 
     <app-share-modal *ngIf="shareModalItem()" [item]="shareModalItem()!" [type]="shareModalType()"
         (close)="closeShareModal()" (shared)="refreshContent()">

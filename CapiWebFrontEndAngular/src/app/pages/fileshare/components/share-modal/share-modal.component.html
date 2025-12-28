@@ -4,7 +4,6 @@
             <h3>Compartir {{ type === 'file' ? 'Archivo' : 'Carpeta' }}</h3>
             <button class="close-btn icon-only" (click)="close.emit()">
                 <img src="assets/icons/boton-x.png" alt="Cerrar" class="icon-close" />
-                <span class="visually-hidden">Cerrar</span>
             </button>
         </div>
 
@@ -37,7 +36,6 @@
                                 </div>
                                 <button class="revoke-btn icon-only" (click)="revokeAccess(access)" [disabled]="isSharing()">
                                     <img src="assets/icons/boton-x.png" alt="Revocar" class="icon-close" />
-                                    <span class="visually-hidden">Revocar</span>
                                 </button>
                             </li>
                         }

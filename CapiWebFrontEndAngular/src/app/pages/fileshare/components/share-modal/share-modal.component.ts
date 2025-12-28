@@ -72,8 +72,14 @@ export class ShareModalComponent implements OnChanges {
                 const access = await this.api.listFolderAccess(this.item.id);
                 this.accessList.set(access);
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error fetching access list', error);
+            // Si hay un error 405, mostrar mensaje más amigable
+            if (error.status === 405) {
+                this.toast.warning('La función de compartir archivos está temporalmente deshabilitada');
+            } else {
+                this.toast.error('No se pudo cargar la lista de acceso');
+            }
             this.accessList.set([]);
         } finally {
             this.loadingAccess.set(false);

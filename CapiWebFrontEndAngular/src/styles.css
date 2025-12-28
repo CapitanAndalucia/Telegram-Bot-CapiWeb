@@ -3,6 +3,21 @@
 @import '@fontsource/manrope';
 /* External Google Fonts moved to index.html to avoid inlining */
 
+/* Mobile dialog styles */
+.mobile-dialog .mat-mdc-dialog-surface {
+    margin: 16px !important;
+    width: calc(100vw - 32px) !important;
+    max-width: calc(100vw - 32px) !important;
+    border-radius: 12px !important;
+}
+
+.mobile-dialog .mat-mdc-dialog-container {
+    position: fixed !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+}
+
 :root {
     font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
     line-height: 1.5;

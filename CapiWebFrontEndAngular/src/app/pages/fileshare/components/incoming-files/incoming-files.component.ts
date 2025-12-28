@@ -396,6 +396,7 @@ export class IncomingFilesComponent implements OnInit {
             console.error('Error en el diálogo de creación de carpeta', error);
         }
     }
+    
     async renameItem(): Promise<void> {
         const menu = this.contextMenu();
         if (!menu || !menu.item || menu.type === 'background') {
@@ -408,7 +409,7 @@ export class IncomingFilesComponent implements OnInit {
             : (menu.item as FileItem).filename;
 
         const dialogRef = this.dialog.open<InputDialogComponent, InputDialogData, string>(InputDialogComponent, {
-            panelClass: 'rename-dialog-panel',
+            width: '400px',
             data: {
                 title: `Renombrar ${isFolder ? 'carpeta' : 'archivo'}`,
                 label: 'Nuevo nombre',
@@ -421,6 +422,10 @@ export class IncomingFilesComponent implements OnInit {
         });
 
         const result = await firstValueFrom(dialogRef.afterClosed());
+        
+        // AHORA sí cerramos el contexto después de que el diálogo se cerró
+        this.closeContextMenu();
+        
         const newName = result?.trim();
         if (!newName || newName === currentName) {
             return;
@@ -466,9 +471,16 @@ export class IncomingFilesComponent implements OnInit {
                 cancelLabel: 'Cancelar',
                 destructive: true,
             },
+            width: '400px',
+            disableClose: false,
+            hasBackdrop: true,
         });
 
-        const confirmed = await firstValueFrom(dialogRef.afterClosed());
+        const confirmed = (await firstValueFrom(dialogRef.afterClosed())) ?? false;
+        
+        // AHORA sí cerramos el contexto después de que el diálogo se cerró
+        this.closeContextMenu();
+        
         if (!confirmed) {
             return;
         }
@@ -1911,6 +1923,42 @@ export class IncomingFilesComponent implements OnInit {
         }
 
         return config.order === 'asc' ? result : -result;
+    }
+
+    closeContextMenuWithDelay(): void {
+        setTimeout(() => this.closeContextMenu(), 100);
+    }
+
+    closeContextMenuAfterShare(): void {
+        this.closeContextMenuWithDelay();
+    }
+
+    closeContextMenuAfterDownload(): void {
+        this.closeContextMenuWithDelay();
+    }
+
+    closeContextMenuAfterPreview(): void {
+        this.closeContextMenuWithDelay();
+    }
+
+    closeContextMenuAfterMove(): void {
+        this.closeContextMenuWithDelay();
+    }
+
+    closeContextMenuAfterRename(): void {
+        this.closeContextMenuWithDelay();
+    }
+
+    closeContextMenuAfterDelete(): void {
+        this.closeContextMenuWithDelay();
+    }
+
+    closeContextMenuAfterUpload(): void {
+        this.closeContextMenuWithDelay();
+    }
+
+    closeContextMenuAfterCreateFolder(): void {
+        this.closeContextMenuWithDelay();
     }
 
     triggerFileUpload(): void {
