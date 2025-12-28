@@ -41,7 +41,7 @@ SECRET_KEY = env('SECRET_KEY')
 DEBUG = env('DEBUG')
 
 ALLOWED_HOSTS = ['localhost', '127.0.0.1', '0.0.0.0', 'testserver', '.trycloudflare.com', 'capitanandalucia.duckdns.org', # ¡Sin http://!
-    'www.capitanandalucia.duckdns.org']
+    'www.capitanandalucia.duckdns.org', 'capitanandalucia.com', 'www.capitanandalucia.com', ]
 
 
 # Application definition
@@ -221,7 +221,8 @@ REST_FRAMEWORK = {
 }
 
 MEDIA_URL = '/media/'
-MEDIA_ROOT = CONFIG_BASE_DIR / 'media'
+#MEDIA_ROOT = CONFIG_BASE_DIR / 'media'
+
 
 # JWT Configuration
 from datetime import timedelta
@@ -233,6 +234,13 @@ from datetime import timedelta
 # de seguridad. Valores: 'dev' (default) | 'production'
 ENVIRONMENT = env('ENVIRONMENT')
 IS_PRODUCTION = ENVIRONMENT == 'production'
+
+
+# CONFIGURACION DE MEDIA
+if IS_PRODUCTION:
+    MEDIA_ROOT = '/mnt/media_storage/capiweb_media'
+else:
+    MEDIA_ROOT = CONFIG_BASE_DIR / 'media'
 
 # Validación de variables críticas en producción
 # Si falta alguna, Django no arrancará y mostrará un error claro
