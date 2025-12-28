@@ -143,3 +143,15 @@ dmypy.json
 /log/
 
 CapiWebBackend/config/media/
+
+
+#ARCHIVOS DE PRO
+CapiWebBackend/Dockerfile.prod
+CapiWebFrontEndAngular/Dockerfile.prod
+CapiWebFrontEndAngular/nginx/
+TelegramBot/Dockerfile
+docker-compose.prod.yml
+nginx/
+
+CapiWebFrontEndAngular/angular.json
+
