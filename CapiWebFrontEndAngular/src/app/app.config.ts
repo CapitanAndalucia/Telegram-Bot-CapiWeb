@@ -15,12 +15,14 @@ export const appConfig: ApplicationConfig = {
     provideAnimations(),
     importProvidersFrom(MatDialogModule),
     provideToastr({
-      timeOut: 6000,
-      positionClass: 'toast-bottom-right',
+      timeOut: 5000,
+      positionClass: 'toast-top-center',
       preventDuplicates: true,
       progressBar: true,
       closeButton: true,
-      newestOnTop: true
+      newestOnTop: true,
+      maxOpened: 3,
+      autoDismiss: true
     })
   ]
 };

@@ -75,14 +75,24 @@
 
     </div>
 
-    <p *ngIf="loading()">Cargando...</p>
+    <!-- Loading state - initial load -->
+    <p *ngIf="loading() && !isNavigating()"
+        style="flex: 1; display: flex; align-items: center; justify-content: center;">Cargando...</p>
 
-    <div *ngIf="!loading() && files().length === 0 && folders().length === 0" class="emptyState">
+    <!-- Navigation spinner - shown when navigating between folders -->
+    <div *ngIf="isNavigating()" class="navigation-spinner-container" style="flex: 1;">
+        <div class="navigation-spinner"></div>
+        <p class="navigation-text">Cargando carpeta...</p>
+    </div>
+
+    <div *ngIf="!loading() && !isNavigating() && files().length === 0 && folders().length === 0" class="emptyState"
+        style="flex: 1;">
         <p>Carpeta vacía</p>
         <p class="dragHint">Arrastra archivos aquí o click derecho para crear carpeta</p>
     </div>
 
-    <div *ngIf="!loading() && (files().length > 0 || folders().length > 0)">
+    <div *ngIf="!loading() && !isNavigating() && (files().length > 0 || folders().length > 0)"
+        style="flex: 1; display: flex; flex-direction: column;">
         <div *ngIf="bulkSelectionActive()" class="selectionBar">
             <span>{{ selectedFileIds().size + selectedFolderIds().size }} seleccionados</span>
             <button class="clearSelectionBtn icon-only" (click)="clearSelection()">
@@ -98,8 +108,7 @@
                 <div class="folderCard" [class.listMode]="viewMode() === 'list'" [attr.data-folder-id]="folder.id"
                     [class.selected]="isFolderSelected(folder.id)" [class.dropTarget]="hoveredFolderId() === folder.id"
                     (touchstart)="handleItemTouchStart($event, 'folder', folder)"
-                    (touchmove)="handleTouchMove($event, 'folder', folder)"
-                    (touchcancel)="handleTouchCancel($event)"
+                    (touchmove)="handleTouchMove($event, 'folder', folder)" (touchcancel)="handleTouchCancel($event)"
                     (touchend)="handleItemTouchEnd($event, 'folder', folder)"
                     (click)="handleItemClick($event, 'folder', folder)"
                     (contextmenu)="handleContextMenu($event, 'folder', folder)" (dblclick)="navigateToFolder(folder)"
@@ -122,8 +131,10 @@
                                 class="optionsBtn" [class.active]="isOptionsActive('folder', folder)" title="Opciones">
                                 ⋮
                             </span> -->
-                            <img src="assets/icons/menu.png" alt="Opciones" (click)="handleContextMenu($event, 'folder', folder); $event.stopPropagation()"
-                            class="optionsBtn" [class.active]="isOptionsActive('folder', folder)" title="Opciones"/>
+                            <img src="assets/icons/menu.png" alt="Opciones"
+                                (click)="handleContextMenu($event, 'folder', folder); $event.stopPropagation()"
+                                class="optionsBtn" [class.active]="isOptionsActive('folder', folder)"
+                                title="Opciones" />
                         </div>
                     </ng-container>
 
@@ -139,8 +150,9 @@
                             class="optionsBtn listModeBtn" [class.active]="isOptionsActive('folder', folder)" title="Opciones">
                             ⋮
                         </span> -->
-                        <img src="assets/icons/menu.png" alt="Opciones" (click)="handleContextMenu($event, 'folder', folder); $event.stopPropagation()"
-                            class="optionsBtn" [class.active]="isOptionsActive('folder', folder)" title="Opciones"/>
+                        <img src="assets/icons/menu.png" alt="Opciones"
+                            (click)="handleContextMenu($event, 'folder', folder); $event.stopPropagation()"
+                            class="optionsBtn" [class.active]="isOptionsActive('folder', folder)" title="Opciones" />
                     </ng-container>
                 </div>
             </ng-container>
@@ -150,7 +162,9 @@
                 <div class="fileCard" [class.listMode]="viewMode() === 'list'" [attr.data-file-id]="file.id"
                     [class.selected]="isFileSelected(file.id)" [draggable]="true"
                     (dragstart)="handleDragStart($event, file)" (dragend)="handleDragEnd()"
-                    (touchstart)="handleItemTouchStart($event, 'file', file)" (touchmove)="handleTouchMove($event, 'file', file)" (touchcancel)="handleTouchCancel($event)" (touchend)="handleItemTouchEnd($event, 'file', file)"
+                    (touchstart)="handleItemTouchStart($event, 'file', file)"
+                    (touchmove)="handleTouchMove($event, 'file', file)" (touchcancel)="handleTouchCancel($event)"
+                    (touchend)="handleItemTouchEnd($event, 'file', file)"
                     (click)="handleItemClick($event, 'file', file)" (dblclick)="handleFileClick(file)"
                     (contextmenu)="handleContextMenu($event, 'file', file)" style="cursor: pointer">
 
@@ -171,8 +185,9 @@
                                 class="optionsBtn" [class.active]="isOptionsActive('file', file)" title="Opciones">
                                 ⋮
                             </span> -->
-                            <img src="assets/icons/menu.png" alt="Opciones" (click)="handleContextMenu($event, 'file', file); $event.stopPropagation()"
-                            class="optionsBtn" [class.active]="isOptionsActive('file', file)" title="Opciones"/>
+                            <img src="assets/icons/menu.png" alt="Opciones"
+                                (click)="handleContextMenu($event, 'file', file); $event.stopPropagation()"
+                                class="optionsBtn" [class.active]="isOptionsActive('file', file)" title="Opciones" />
 
                         </div>
                     </ng-container>
@@ -194,11 +209,17 @@
                             class="optionsBtn listModeBtn" [class.active]="isOptionsActive('file', file)" title="Opciones">
                             ⋮
                         </span> -->
-                        <img src="assets/icons/menu.png" alt="Opciones" (click)="handleContextMenu($event, 'file', file); $event.stopPropagation()"
-                            class="optionsBtn listModeBtn" [class.active]="isOptionsActive('file', file)" title="Opciones"/>
+                        <img src="assets/icons/menu.png" alt="Opciones"
+                            (click)="handleContextMenu($event, 'file', file); $event.stopPropagation()"
+                            class="optionsBtn listModeBtn" [class.active]="isOptionsActive('file', file)"
+                            title="Opciones" />
                     </ng-container>
                 </div>
             </ng-container>
+        </div>
+        <!-- Filler area to capture clicks/drags in empty space below the grid -->
+        <div class="content-filler" (contextmenu)="handleContextMenu($event, 'background')"
+            (dragover)="handleDragOver($event)" (dragleave)="handleDragLeave($event)" (drop)="handleDrop($event)">
         </div>
     </div>
 
@@ -253,8 +274,10 @@
                 </header>
                 <div class="mobile-context-body">
                     <ng-container *ngIf="menu.type === 'file' || menu.type === 'folder'">
-                        <button (click)="openShareModal(menu.item!, menu.type === 'file' ? 'file' : 'folder'); closeContextMenu()">Compartir</button>
-                        <button (click)="menu.type === 'file' ? handleDownload(menu.item!.id, $any(menu.item!).filename) : handleFolderDownload($any(menu.item!)); closeContextMenu()">Descargar</button>
+                        <button
+                            (click)="openShareModal(menu.item!, menu.type === 'file' ? 'file' : 'folder'); closeContextMenu()">Compartir</button>
+                        <button
+                            (click)="menu.type === 'file' ? handleDownload(menu.item!.id, $any(menu.item!).filename) : handleFolderDownload($any(menu.item!)); closeContextMenu()">Descargar</button>
                         <ng-container *ngIf="menu.type === 'file'">
                             <button (click)="openPreview(menu.item!); closeContextMenu()">Previsualizar</button>
                         </ng-container>
@@ -275,18 +298,21 @@
         (close)="closeShareModal()" (shared)="refreshContent()">
     </app-share-modal>
 
-        <!-- Mobile floating action button -->
-        <div *ngIf="isMobile()" class="mobile-fab-container">
-            <button class="mobile-fab" (click)="mobileFabOpen.set(!mobileFabOpen()); $event.stopPropagation()" title="Acciones">
-                <img src="assets/icons/agregar-icono.png" alt="Cerrar" class="icon-close" />
-            </button>
+    <!-- Mobile floating action button -->
+    <div *ngIf="isMobile()" class="mobile-fab-container">
+        <button class="mobile-fab" (click)="mobileFabOpen.set(!mobileFabOpen()); $event.stopPropagation()"
+            title="Acciones">
+            <img src="assets/icons/agregar-icono.png" alt="Cerrar" class="icon-close" />
+        </button>
 
-            <div *ngIf="mobileFabOpen()" class="mobile-fab-menu" (click)="$event.stopPropagation()">
-                <button class="mobile-fab-item" (click)="triggerFileUpload(); mobileFabOpen.set(false)">Subir archivo</button>
-                <button class="mobile-fab-item" (click)="openUpload.emit(); mobileFabOpen.set(false)">Enviar archivo</button>
-            </div>
+        <div *ngIf="mobileFabOpen()" class="mobile-fab-menu" (click)="$event.stopPropagation()">
+            <button class="mobile-fab-item" (click)="triggerFileUpload(); mobileFabOpen.set(false)">Subir
+                archivo</button>
+            <button class="mobile-fab-item" (click)="openUpload.emit(); mobileFabOpen.set(false)">Enviar
+                archivo</button>
         </div>
     </div>
+</div>
 
 <!-- Input de archivo oculto para la carga de archivos -->
 <input type="file" id="file-upload" style="display: none" (change)="onFileSelected($event)" multiple>

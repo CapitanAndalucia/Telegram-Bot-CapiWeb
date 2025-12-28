@@ -100,14 +100,116 @@ button:focus-visible {
     }
 }
 
+/* ===== Material Dialog Dark Theme ===== */
+.dark-dialog-panel .mat-mdc-dialog-surface,
+.mat-mdc-dialog-container .mat-mdc-dialog-surface {
+    background: rgba(20, 20, 25, 0.98) !important;
+    backdrop-filter: blur(20px);
+    border-radius: 16px !important;
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.6) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Dialog backdrop */
+.cdk-overlay-dark-backdrop,
+.mat-mdc-dialog-container~.cdk-overlay-backdrop {
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(4px);
+}
+
+/* Form field dark theme for dialogs */
+.mat-mdc-dialog-container .mat-mdc-form-field {
+    --mdc-filled-text-field-container-color: rgba(255, 255, 255, 0.05);
+    --mdc-outlined-text-field-outline-color: rgba(255, 255, 255, 0.2);
+    --mdc-outlined-text-field-focus-outline-color: #00f2ff;
+    --mdc-outlined-text-field-hover-outline-color: rgba(0, 242, 255, 0.5);
+    --mdc-outlined-text-field-label-text-color: rgba(255, 255, 255, 0.6);
+    --mdc-outlined-text-field-focus-label-text-color: #00f2ff;
+    --mdc-outlined-text-field-input-text-color: #fff;
+    --mdc-outlined-text-field-caret-color: #00f2ff;
+}
+
+.mat-mdc-dialog-container .mdc-text-field--outlined .mdc-notched-outline .mdc-notched-outline__leading,
+.mat-mdc-dialog-container .mdc-text-field--outlined .mdc-notched-outline .mdc-notched-outline__notch,
+.mat-mdc-dialog-container .mdc-text-field--outlined .mdc-notched-outline .mdc-notched-outline__trailing {
+    border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+.mat-mdc-dialog-container .mdc-text-field--outlined.mdc-text-field--focused .mdc-notched-outline__leading,
+.mat-mdc-dialog-container .mdc-text-field--outlined.mdc-text-field--focused .mdc-notched-outline__notch,
+.mat-mdc-dialog-container .mdc-text-field--outlined.mdc-text-field--focused .mdc-notched-outline__trailing {
+    border-color: #00f2ff !important;
+}
+
+.mat-mdc-dialog-container .mat-mdc-input-element {
+    color: #fff !important;
+}
+
+.mat-mdc-dialog-container .mdc-floating-label {
+    color: rgba(255, 255, 255, 0.6) !important;
+}
+
+.mat-mdc-dialog-container .mdc-text-field--focused .mdc-floating-label {
+    color: #00f2ff !important;
+}
+
+/* Fix label background to prevent clipping */
+.mat-mdc-dialog-container .mdc-notched-outline__notch {
+    background: transparent;
+    border-top: none !important;
+}
+
+/* Force label to always be floated (above the input) */
+.mat-mdc-dialog-container .mdc-floating-label {
+    transform: translateY(-130%) scale(0.75) !important;
+    color: rgba(255, 255, 255, 0.7) !important;
+    background: rgba(20, 20, 25, 0.98);
+    padding: 0 4px;
+    margin-left: -4px;
+}
+
+.mat-mdc-dialog-container .mdc-text-field--focused .mdc-floating-label {
+    color: #00f2ff !important;
+}
+
+/* Hide the notch gap since label is always floated */
+.mat-mdc-dialog-container .mdc-notched-outline--notched .mdc-notched-outline__notch {
+    border-top: 1px solid rgba(255, 255, 255, 0.2) !important;
+}
+
+.mat-mdc-dialog-container .mdc-text-field--focused .mdc-notched-outline--notched .mdc-notched-outline__notch {
+    border-top: 2px solid #00f2ff !important;
+}
+
+/* Placeholder text color */
+.mat-mdc-dialog-container .mat-mdc-input-element::placeholder {
+    color: rgba(255, 255, 255, 0.4) !important;
+    opacity: 1 !important;
+}
+
+.mat-mdc-dialog-container input::placeholder {
+    color: rgba(255, 255, 255, 0.4) !important;
+    opacity: 1 !important;
+}
+
 /* Toastr custom styles */
 .toast-container {
     position: fixed;
-    bottom: 1.5rem;
-    right: 1.5rem;
-    z-index: 1100;
-    width: auto;
+    z-index: 9999;
     pointer-events: none;
+}
+
+/* Top center positioning */
+.toast-top-center {
+    top: 1rem;
+    left: 50%;
+    transform: translateX(-50%);
+    width: auto;
+    max-width: 90vw;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
 }
 
 .toast-container .ngx-toastr {
@@ -199,6 +301,8 @@ button:focus-visible {
     overflow-y: auto;
     display: flex;
     flex-direction: column;
+    min-height: 0;
+    /* Important for flexbox overflow */
 }
 
 .header {

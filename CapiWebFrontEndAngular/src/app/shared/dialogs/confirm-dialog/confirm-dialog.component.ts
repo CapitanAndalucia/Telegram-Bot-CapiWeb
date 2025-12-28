@@ -43,64 +43,84 @@ export interface ConfirmDialogData {
             min-width: 320px;
         }
         :host ::ng-deep .mat-mdc-dialog-surface {
-            background: #f7f8fb;
-            border-radius: 18px;
-            box-shadow: 0 20px 45px rgba(22, 28, 45, 0.18);
-            border: 1px solid rgba(15, 23, 42, 0.08);
+            background: rgba(20, 20, 25, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 16px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
         .dialog-root {
             display: flex;
             flex-direction: column;
             gap: 1.5rem;
-            color: #1f2933;
+            color: #fff;
+            padding: 0.5rem;
         }
         h2[mat-dialog-title] {
             margin: 0;
-            font-size: 1.2rem;
+            font-size: 1.25rem;
             font-weight: 600;
-            letter-spacing: 0.2px;
+            letter-spacing: 0.3px;
+            color: #fff;
         }
         .dialog-content {
             font-size: 0.95rem;
-            line-height: 1.5;
-            color: #475467;
+            line-height: 1.6;
+            color: rgba(255, 255, 255, 0.7);
         }
         .message {
-            margin: 0 0 0.3rem;
+            margin: 0 0 0.5rem;
         }
         .detail {
             margin: 0;
-            font-size: 0.88rem;
-            color: #1f2933;
+            padding: 0.75rem 1rem;
+            font-size: 0.9rem;
+            color: #fff;
             font-weight: 500;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
         }
         .dialog-actions {
             display: flex;
             gap: 0.75rem;
+            justify-content: flex-end;
+            padding-top: 0.5rem;
         }
         button[mat-button] {
             text-transform: none;
-            color: #2563eb;
+            color: rgba(255, 255, 255, 0.7);
+            border-radius: 8px;
+            padding: 0.5rem 1rem;
+            transition: all 0.2s ease;
+        }
+        button[mat-button]:hover {
+            background: rgba(255, 255, 255, 0.08);
+            color: #fff;
         }
         .action-button {
             text-transform: none;
             font-weight: 600;
             letter-spacing: 0.2px;
-            padding: 0.4rem 1.2rem;
-            border-radius: 999px;
-            background: rgba(37, 99, 235, 0.12);
-            color: #2563eb;
-            transition: background 0.2s ease, color 0.2s ease;
+            padding: 0.5rem 1.5rem;
+            border-radius: 8px;
+            background: linear-gradient(135deg, rgba(0, 242, 255, 0.2), rgba(139, 92, 246, 0.15));
+            color: #00f2ff;
+            border: 1px solid rgba(0, 242, 255, 0.3);
+            transition: all 0.2s ease;
         }
         .action-button:hover {
-            background: rgba(37, 99, 235, 0.18);
+            background: linear-gradient(135deg, rgba(0, 242, 255, 0.3), rgba(139, 92, 246, 0.25));
+            box-shadow: 0 4px 15px rgba(0, 242, 255, 0.2);
         }
         .action-button.destructive {
-            background: rgba(217, 48, 37, 0.12);
-            color: #d93025;
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(220, 38, 38, 0.15));
+            color: #ef4444;
+            border: 1px solid rgba(239, 68, 68, 0.3);
         }
         .action-button.destructive:hover {
-            background: rgba(217, 48, 37, 0.18);
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.3), rgba(220, 38, 38, 0.25));
+            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.2);
         }
     `,
     ],
@@ -109,7 +129,7 @@ export class ConfirmDialogComponent {
     constructor(
         @Inject(MAT_DIALOG_DATA) public data: ConfirmDialogData,
         private dialogRef: MatDialogRef<ConfirmDialogComponent>
-    ) {}
+    ) { }
 
     onCancel(): void {
         this.dialogRef.close(false);

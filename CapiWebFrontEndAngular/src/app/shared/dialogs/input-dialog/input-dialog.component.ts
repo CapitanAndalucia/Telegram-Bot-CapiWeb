@@ -52,25 +52,28 @@ export interface InputDialogData {
     styles: [
         `:host {
             display: block;
-            min-width: 320px;
+            min-width: 340px;
         }
         :host ::ng-deep .mat-mdc-dialog-surface {
-            background: #f7f8fb;
-            border-radius: 18px;
-            box-shadow: 0 20px 45px rgba(22, 28, 45, 0.18);
-            border: 1px solid rgba(15, 23, 42, 0.08);
+            background: rgba(20, 20, 25, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 16px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
         .dialog-root {
             display: flex;
             flex-direction: column;
-            gap: 1.4rem;
-            color: #1f2933;
+            gap: 1.5rem;
+            color: #fff;
+            padding: 0.5rem;
         }
         h2[mat-dialog-title] {
             margin: 0;
-            font-size: 1.2rem;
+            font-size: 1.25rem;
             font-weight: 600;
-            letter-spacing: 0.2px;
+            letter-spacing: 0.3px;
+            color: #fff;
         }
         .dialog-form {
             margin: 0;
@@ -79,43 +82,83 @@ export interface InputDialogData {
         .full-width {
             width: 100%;
         }
-        :host ::ng-deep .mat-mdc-form-field-flex {
-            border-radius: 12px;
+        /* Material form field dark theme overrides */
+        :host ::ng-deep .mat-mdc-form-field {
+            --mdc-filled-text-field-container-color: rgba(255, 255, 255, 0.05);
+            --mdc-outlined-text-field-outline-color: rgba(255, 255, 255, 0.2);
+            --mdc-outlined-text-field-focus-outline-color: #00f2ff;
+            --mdc-outlined-text-field-hover-outline-color: rgba(0, 242, 255, 0.5);
+            --mdc-outlined-text-field-label-text-color: rgba(255, 255, 255, 0.6);
+            --mdc-outlined-text-field-focus-label-text-color: #00f2ff;
+            --mdc-outlined-text-field-input-text-color: #fff;
+            --mdc-outlined-text-field-caret-color: #00f2ff;
         }
-        :host ::ng-deep .mdc-notched-outline__leading,
-        :host ::ng-deep .mdc-notched-outline__trailing {
-            border-color: rgba(37, 99, 235, 0.35) !important;
+        :host ::ng-deep .mat-mdc-form-field-flex {
+            border-radius: 10px;
+        }
+        :host ::ng-deep .mdc-text-field--outlined .mdc-notched-outline .mdc-notched-outline__leading,
+        :host ::ng-deep .mdc-text-field--outlined .mdc-notched-outline .mdc-notched-outline__notch,
+        :host ::ng-deep .mdc-text-field--outlined .mdc-notched-outline .mdc-notched-outline__trailing {
+            border-color: rgba(255, 255, 255, 0.2) !important;
+        }
+        :host ::ng-deep .mdc-text-field--outlined:not(.mdc-text-field--disabled).mdc-text-field--focused .mdc-notched-outline__leading,
+        :host ::ng-deep .mdc-text-field--outlined:not(.mdc-text-field--disabled).mdc-text-field--focused .mdc-notched-outline__notch,
+        :host ::ng-deep .mdc-text-field--outlined:not(.mdc-text-field--disabled).mdc-text-field--focused .mdc-notched-outline__trailing {
+            border-color: #00f2ff !important;
         }
         :host ::ng-deep .mat-mdc-form-field-focus-overlay {
-            background: rgba(37, 99, 235, 0.08);
+            background: rgba(0, 242, 255, 0.05);
         }
         :host ::ng-deep .mat-mdc-form-field-subscript-wrapper {
             margin-top: 0.4rem;
         }
+        :host ::ng-deep .mat-mdc-input-element {
+            color: #fff !important;
+        }
+        :host ::ng-deep .mat-mdc-form-field-label,
+        :host ::ng-deep .mdc-floating-label {
+            color: rgba(255, 255, 255, 0.6) !important;
+        }
+        :host ::ng-deep .mat-mdc-form-field.mat-focused .mdc-floating-label {
+            color: #00f2ff !important;
+        }
         .dialog-actions {
             display: flex;
             gap: 0.75rem;
+            justify-content: flex-end;
+            padding-top: 0.5rem;
         }
         button[mat-button] {
             text-transform: none;
-            color: #2563eb;
+            color: rgba(255, 255, 255, 0.7);
+            border-radius: 8px;
+            padding: 0.5rem 1rem;
+            transition: all 0.2s ease;
+        }
+        button[mat-button]:hover {
+            background: rgba(255, 255, 255, 0.08);
+            color: #fff;
         }
         .action-button {
             text-transform: none;
             font-weight: 600;
             letter-spacing: 0.2px;
-            padding: 0.4rem 1.2rem;
-            border-radius: 999px;
-            background: rgba(37, 99, 235, 0.12);
-            color: #2563eb;
-            transition: background 0.2s ease, color 0.2s ease;
+            padding: 0.5rem 1.5rem;
+            border-radius: 8px;
+            background: linear-gradient(135deg, rgba(0, 242, 255, 0.2), rgba(139, 92, 246, 0.15));
+            color: #00f2ff;
+            border: 1px solid rgba(0, 242, 255, 0.3);
+            transition: all 0.2s ease;
         }
-        .action-button:hover {
-            background: rgba(37, 99, 235, 0.18);
+        .action-button:hover:not(:disabled) {
+            background: linear-gradient(135deg, rgba(0, 242, 255, 0.3), rgba(139, 92, 246, 0.25));
+            box-shadow: 0 4px 15px rgba(0, 242, 255, 0.2);
         }
         .action-button:disabled {
-            background: rgba(148, 163, 184, 0.2);
-            color: rgba(148, 163, 184, 0.9);
+            background: rgba(255, 255, 255, 0.05);
+            color: rgba(255, 255, 255, 0.3);
+            border-color: rgba(255, 255, 255, 0.1);
+            cursor: not-allowed;
         }
     `,
     ],

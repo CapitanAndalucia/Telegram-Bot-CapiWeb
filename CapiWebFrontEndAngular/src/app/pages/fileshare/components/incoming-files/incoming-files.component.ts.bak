@@ -81,7 +81,6 @@ export class IncomingFilesComponent implements OnInit {
 
     // UI state signals
     loading = signal(true);
-    isNavigating = signal(false);
     isDragging = signal(false);
     uploading = signal(false);
     uploadProgress = signal(0);
@@ -196,38 +195,18 @@ export class IncomingFilesComponent implements OnInit {
 
     async refreshContent(): Promise<void> {
         const isInitialLoad = this.files().length === 0 && this.folders().length === 0;
-        const isNavigation = this.isNavigating();
-
-        if (isInitialLoad && !isNavigation) {
+        if (isInitialLoad) {
             this.loading.set(true);
         }
-
         try {
             await Promise.all([this.fetchFiles(), this.fetchFolders()]);
         } finally {
             this.loading.set(false);
-            this.isNavigating.set(false);
         }
     }
 
-    // ============== DEVELOPMENT LATENCY SIMULATION ==============
-    // Set to true to simulate random network latency for testing the spinner
-    // IMPORTANT: Set to false before deploying to production!
-    private readonly SIMULATE_LATENCY = false;
-    private readonly MIN_LATENCY_MS = 60;
-    private readonly MAX_LATENCY_MS = 300;
-
-    private async simulateLatency(): Promise<void> {
-        if (!this.SIMULATE_LATENCY) return;
-        const delay = Math.floor(Math.random() * (this.MAX_LATENCY_MS - this.MIN_LATENCY_MS + 1)) + this.MIN_LATENCY_MS;
-        console.log(`[DEV] Simulating latency: ${delay}ms`);
-        await new Promise(resolve => setTimeout(resolve, delay));
-    }
-    // ============================================================
-
     async fetchFiles(): Promise<void> {
         try {
-            await this.simulateLatency(); // DEV: Remove or disable for production
             const folderId = this.currentFolder()?.id;
             console.debug('[incoming-files] fetchFiles parentId=', folderId);
             const data = await this.apiClient.listFiles(folderId, this.scope());
@@ -247,7 +226,6 @@ export class IncomingFilesComponent implements OnInit {
 
     async fetchFolders(): Promise<void> {
         try {
-            await this.simulateLatency(); // DEV: Remove or disable for production
             const parentId = this.currentFolder()?.id;
             console.debug('[incoming-files] fetchFolders parentId=', parentId);
             const data = await this.apiClient.listFolders(parentId);
@@ -268,11 +246,6 @@ export class IncomingFilesComponent implements OnInit {
         this.lastNavigationTarget = targetId;
         this.lastNavigationTime = now;
         console.log('navigateToFolder called for:', folder?.name);
-
-        // Start navigation mode - clear data immediately to prevent "flash" of old content
-        this.isNavigating.set(true);
-        this.files.set([]);
-        this.folders.set([]);
 
         if (options?.path) {
             this.breadcrumbs.set(options.path);
@@ -364,10 +337,12 @@ export class IncomingFilesComponent implements OnInit {
     async createFolder(): Promise<void> {
         const dialogData: InputDialogData = {
             title: 'Nueva carpeta',
-            label: 'Nombre de la carpeta',
-            placeholder: 'Ingrese el nombre de la carpeta',
-            confirmLabel: 'Crear',
-            cancelLabel: 'Cancelar'
+            message: 'Ingrese el nombre de la carpeta:',
+            placeholder: 'Nombre de la carpeta',
+            confirmText: 'Crear',
+            cancelText: 'Cancelar',
+            inputType: 'text',
+            required: true
         };
 
         const dialogRef = this.dialog.open(InputDialogComponent, {
@@ -375,27 +350,32 @@ export class IncomingFilesComponent implements OnInit {
             data: dialogData
         });
 
-        try {
-            const result = await firstValueFrom(dialogRef.afterClosed());
-
+        dialogRef.afterClosed().subscribe(async (result: string | undefined) => {
             if (result) {
                 const creatingToast = this.toastr.info('Creando carpeta...', '', { disableTimeOut: true });
 
                 try {
                     await this.apiClient.createFolder(result, this.currentFolder()?.id ?? undefined);
                     this.toastr.clear(creatingToast.toastId);
-                    this.toastr.success('Carpeta creada correctamente');
-                    await this.refreshContent();
-                } catch (error) {
-                    console.error('Error al crear carpeta', error);
-                    this.toastr.clear(creatingToast.toastId);
-                    this.toastr.error('Error al crear la carpeta');
-                }
+                    }
+                });
+                await dialogRef.afterClosed().toPromise();
+                await this.refreshContent();
+            } catch (error) {
+                console.error('Error al crear carpeta', error);
+                const dialogRef = this.dialog.open(InputDialogComponent, {
+                    width: '350px',
+                    data: {
+                        title: 'Error al crear carpeta',
+                        message: 'Ha ocurrido un error al crear la carpeta.',
+                        confirmText: 'Aceptar',
+                        cancelText: '',
+                        inputType: 'text',
+                        required: false
+                    }
+                });
+                await dialogRef.afterClosed().toPromise();
             }
-        } catch (error) {
-            console.error('Error en el diálogo de creación de carpeta', error);
-        }
-    }
     async renameItem(): Promise<void> {
         const menu = this.contextMenu();
         if (!menu || !menu.item || menu.type === 'background') {
@@ -641,8 +621,8 @@ export class IncomingFilesComponent implements OnInit {
 
         if (touchDuration < this.TOUCH_DELAY && !this.hasSignificantMovement(event)) {
             // Prevent subsequent click events and stop propagation immediately
-            try { event.preventDefault(); } catch (e) { }
-            try { event.stopPropagation(); } catch (e) { }
+            try { event.preventDefault(); } catch (e) {}
+            try { event.stopPropagation(); } catch (e) {}
 
             if (type === 'folder') {
                 await this.navigateToFolder(item as Folder);
@@ -987,7 +967,7 @@ export class IncomingFilesComponent implements OnInit {
 
     private removeTouchPreview(): void {
         if (this.touchPreviewElement) {
-            try { document.body.removeChild(this.touchPreviewElement); } catch (e) { }
+            try { document.body.removeChild(this.touchPreviewElement); } catch (e) {}
             this.touchPreviewElement = null;
         }
     }
@@ -1389,7 +1369,7 @@ export class IncomingFilesComponent implements OnInit {
 
     private createFolderDragPreview(dataTransfer: DataTransfer, folder: Folder, target: HTMLElement): void {
         if (this.dragPreviewElement) {
-            try { document.body.removeChild(this.dragPreviewElement); } catch (e) { }
+            try { document.body.removeChild(this.dragPreviewElement); } catch (e) {}
             this.dragPreviewElement = null;
         }
 
@@ -1446,7 +1426,7 @@ export class IncomingFilesComponent implements OnInit {
                 const draggedId = parseInt(folderDragData, 10);
                 if (draggedId === folder.id) return;
             }
-        } catch (e) { }
+        } catch (e) {}
 
         if (this.currentDraggedFolderId !== null && this.currentDraggedFolderId === Number(folder.id)) return;
 

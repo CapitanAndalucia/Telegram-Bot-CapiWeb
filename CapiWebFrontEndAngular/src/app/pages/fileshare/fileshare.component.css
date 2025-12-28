@@ -9,7 +9,8 @@
 }
 
 /* Ensure file and folder cards take full height */
-.fileCard, .folderCard {
+.fileCard,
+.folderCard {
     height: 100%;
     min-height: 220px;
     display: flex;
@@ -76,7 +77,8 @@
 }
 
 /* Hover effects */
-.fileCard:hover, .folderCard:hover {
+.fileCard:hover,
+.folderCard:hover {
     transform: translateY(-2px);
     border-color: var(--accent-primary);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
@@ -417,6 +419,7 @@ p {
     align-items: flex-end;
     gap: 8px;
 }
+
 .mobile-fab {
     width: 56px;
     height: 56px;
@@ -432,9 +435,10 @@ p {
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
     cursor: pointer;
 }
+
 .mobile-fab-menu {
     background: #1e1e1e;
     border: 1px solid #333;
@@ -447,6 +451,7 @@ p {
     transform-origin: bottom right;
     margin-bottom: 6px;
 }
+
 .mobile-fab-item {
     background: none;
     border: none;
@@ -455,7 +460,10 @@ p {
     border-radius: 8px;
     cursor: pointer;
 }
-.mobile-fab-item:hover { background: rgba(255,255,255,0.04); }
+
+.mobile-fab-item:hover {
+    background: rgba(255, 255, 255, 0.04);
+}
 
 /* Close icon image and icon-only button styles */
 .icon-close {
@@ -503,7 +511,8 @@ p {
         gap: 1rem;
     }
 
-    .fileCard, .folderCard {
+    .fileCard,
+    .folderCard {
         min-height: 180px;
     }
 
@@ -511,15 +520,23 @@ p {
         font-size: 0.8rem;
     }
 
-    .fileIconPlaceholder, .folderIcon {
+    .fileIconPlaceholder,
+    .folderIcon {
         font-size: 2.5rem !important;
     }
 }
 
 /* Animation for list items */
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .incomingContent.animate .fileCard,
@@ -536,6 +553,38 @@ p {
 .incomingContent.animate .fileCard:nth-child(even),
 .incomingContent.animate .folderCard:nth-child(even) {
     animation-delay: 0.1s;
+}
+
+/* Navigation spinner - shown when navigating between folders */
+.navigation-spinner-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 1rem;
+    gap: 1rem;
+}
+
+.navigation-spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid rgba(255, 255, 255, 0.1);
+    border-top-color: var(--accent-primary, #00f2ff);
+    border-radius: 50%;
+    animation: navigationSpin 0.8s linear infinite;
+}
+
+@keyframes navigationSpin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.navigation-text {
+    color: #aaa;
+    font-size: 0.9rem;
+    margin: 0;
+    text-align: center;
 }
 
 
@@ -685,8 +734,8 @@ p {
     top: 8px;
     right: 8px;
     z-index: 5; */
-    /* display: none; */
-    /* Hidden by default on PC */
+/* display: none; */
+/* Hidden by default on PC */
 /* } */
 
 /* Show on hover in PC */
@@ -700,13 +749,15 @@ p {
 
 /* Mobile Styles */
 @media (max-width: 768px) {
+
     /* Mostrar siempre los botones de opciones en móvil */
     .folderCard .optionsBtn,
     .fileCard .optionsBtn {
         display: flex;
         opacity: 1;
         /* override desktop 'background' rule which used !important */
-        background: transparent !important; /* no circle by default */
+        background: transparent !important;
+        /* no circle by default */
         color: var(--text-secondary);
     }
 
@@ -716,7 +767,8 @@ p {
         overflow-x: auto;
         white-space: nowrap;
         -webkit-overflow-scrolling: touch;
-        display: flex !important; /* Force display */
+        display: flex !important;
+        /* Force display */
         background: rgba(30, 30, 30, 0.8);
         border-radius: 8px;
         margin: 0.5rem;
@@ -759,13 +811,15 @@ p {
     }
 
     /* Ajustar espaciado en móvil */
-    .fileCard, .folderCard {
+    .fileCard,
+    .folderCard {
         margin: 0;
         width: 100%;
     }
 
     /* Mejorar la interacción táctil */
-    .fileCard, .folderCard {
+    .fileCard,
+    .folderCard {
         -webkit-tap-highlight-color: transparent;
         touch-action: pan-y;
     }
@@ -781,7 +835,7 @@ p {
     .optionsBtn.active {
         background: rgba(0, 0, 0, 0.6) !important;
         color: white !important;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
     }
 
     /* Force overriding other rules that might add a subtle circle behind the options */
@@ -825,7 +879,7 @@ p {
     .touch-drag-preview {
         backdrop-filter: blur(4px);
         -webkit-backdrop-filter: blur(4px);
-        box-shadow: 0 6px 18px rgba(0,0,0,0.5);
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5);
         max-width: 160px;
         overflow: hidden;
         white-space: nowrap;
@@ -839,7 +893,7 @@ p {
         right: 0;
         bottom: 0;
         top: 0;
-        background: rgba(0,0,0,0.4);
+        background: rgba(0, 0, 0, 0.4);
         display: flex;
         align-items: flex-end;
         justify-content: center;
@@ -852,22 +906,41 @@ p {
         background: #111;
         border-top-left-radius: 12px;
         border-top-right-radius: 12px;
-        box-shadow: 0 -6px 24px rgba(0,0,0,0.6);
+        box-shadow: 0 -6px 24px rgba(0, 0, 0, 0.6);
         color: white;
         overflow: auto;
     }
 
     .mobile-context-header {
-        display:flex;
-        justify-content:space-between;
-        align-items:center;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
         padding: 12px 16px;
-        border-bottom: 1px solid rgba(255,255,255,0.04);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.04);
     }
 
-    .mobile-context-body { padding: 12px 16px; display:flex; flex-direction:column; gap:8px; }
-    .mobile-context-body button { padding: 12px; border-radius:8px; background: rgba(255,255,255,0.03); border:none; color:inherit; text-align:left }
-    .mobile-context-close { background:transparent; border:none; color:inherit; font-size:18px }
+    .mobile-context-body {
+        padding: 12px 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .mobile-context-body button {
+        padding: 12px;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.03);
+        border: none;
+        color: inherit;
+        text-align: left
+    }
+
+    .mobile-context-close {
+        background: transparent;
+        border: none;
+        color: inherit;
+        font-size: 18px
+    }
 }
 
 /* List Mode adjustments */
@@ -1233,7 +1306,11 @@ p {
 }
 
 .incomingFiles {
-    min-height: 300px;
+    flex: 1;
+    min-height: calc(100vh - 200px);
+    /* Extend to near bottom of viewport */
+    display: flex;
+    flex-direction: column;
     border: 2px dashed transparent;
     border-radius: 12px;
     transition: all 0.3s ease;
@@ -1244,6 +1321,13 @@ p {
     background: rgba(0, 242, 255, 0.15);
     box-shadow: 0 0 20px rgba(0, 242, 255, 0.2);
     transform: scale(1.01);
+}
+
+/* Filler element to capture clicks/drags in empty space below the grid */
+.content-filler {
+    flex: 1;
+    min-height: 100px;
+    cursor: default;
 }
 
 .dragHint {
@@ -1287,7 +1371,8 @@ p {
 
 .filesHeader .breadcrumbs {
     flex: 1 1 auto;
-    min-width: 0; /* allow flex child to shrink and enable overflow */
+    min-width: 0;
+    /* allow flex child to shrink and enable overflow */
 }
 
 .viewToggle {
@@ -1637,6 +1722,7 @@ p {
     margin-top: 1rem;
     width: 100%;
     flex: 1;
+    min-height: 0;
 }
 
 .tabContent {
@@ -1644,16 +1730,23 @@ p {
     flex-direction: column;
     width: 100%;
     flex: 1;
+    min-height: 0;
 }
 
 .tabContent app-incoming-files,
 .tabContent app-file-upload {
-    display: block;
+    display: flex;
+    flex-direction: column;
     width: 100%;
+    flex: 1;
 }
 
 .incomingFiles {
     width: 100%;
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
 }
 
 /* Main content grid consolidated */
@@ -2038,9 +2131,9 @@ p {
 }
 
 /* .folderCard .optionsBtn { */
-    /* hidden by default on desktop; shown on hover via .folderCard:hover .optionsBtn */
-    /* display: none; */
-    /* position: absolute;
+/* hidden by default on desktop; shown on hover via .folderCard:hover .optionsBtn */
+/* display: none; */
+/* position: absolute;
     top: 8px;
     right: 8px;
     z-index: 5;
