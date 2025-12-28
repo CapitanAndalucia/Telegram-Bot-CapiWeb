@@ -342,10 +342,37 @@ export class IncomingFilesComponent implements OnInit {
         let y = event.clientY;
         const menuWidth = 200;
         const menuHeight = 250;
+        const margin = 10; // Margen desde los bordes
 
         if (typeof window !== 'undefined') {
-            if (x + menuWidth > window.innerWidth) x = window.innerWidth - menuWidth - 10;
-            if (y + menuHeight > window.innerHeight) y = window.innerHeight - menuHeight - 10;
+            // Ajuste horizontal
+            if (x + menuWidth > window.innerWidth) {
+                // Si se sale por la derecha, mostrar a la izquierda
+                x = Math.max(margin, x - menuWidth);
+            } else if (x < margin) {
+                // Si está demasiado cerca del borde izquierdo
+                x = margin;
+            }
+
+            // Ajuste vertical - más inteligente
+            const spaceBelow = window.innerHeight - y;
+            const spaceAbove = y;
+            
+            if (spaceBelow < menuHeight && spaceAbove > menuHeight) {
+                // Hay más espacio arriba que abajo, mostrar hacia arriba
+                y = Math.max(margin, y - menuHeight);
+            } else if (spaceBelow < menuHeight && spaceAbove <= menuHeight) {
+                // No hay suficiente espacio ni arriba ni abajo
+                // Posicionar donde haya más espacio
+                if (spaceBelow > spaceAbove) {
+                    y = window.innerHeight - menuHeight - margin;
+                } else {
+                    y = margin;
+                }
+            } else if (y < margin) {
+                // Demasiado cerca del borde superior
+                y = margin;
+            }
         }
 
         // Cleanup any touch drag state before opening menu
