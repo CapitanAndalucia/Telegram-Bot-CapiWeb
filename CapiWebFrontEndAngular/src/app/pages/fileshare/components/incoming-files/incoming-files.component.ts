@@ -1,4 +1,5 @@
-import { Component, OnInit, input, output, signal, effect, HostListener, computed, untracked } from '@angular/core';
+import { Component, signal, computed, effect, inject, ChangeDetectorRef, HostListener, OnInit, input, output, untracked } from '@angular/core';
+import { UploadService } from '../../../../shared/services/upload.service';
 import { CommonModule } from '@angular/common';
 import { ApiClientService } from '../../../../services/api-client.service';
 import { ToastrService } from 'ngx-toastr';
@@ -144,7 +145,8 @@ export class IncomingFilesComponent implements OnInit {
     constructor(
         private apiClient: ApiClientService,
         private toastr: ToastrService,
-        private dialog: MatDialog
+        private dialog: MatDialog,
+        private uploadService: UploadService
     ) {
         // Watch for refresh trigger changes
         effect(() => {
@@ -482,12 +484,18 @@ export class IncomingFilesComponent implements OnInit {
     }
 
     async deleteItem(): Promise<void> {
+        // console.log(`[Fileshare] deleteItem called`);
         const menu = this.contextMenu();
-        if (!menu || !menu.item) return;
+        if (!menu || !menu.item) {
+            // console.log(`[Fileshare] deleteItem - no menu or item, returning`);
+            return;
+        }
 
         const isFolder = menu.type === 'folder';
         const itemId = Number(menu.item.id);
         const itemName = isFolder ? (menu.item as Folder).name : (menu.item as FileItem).filename;
+        
+        // console.log(`[Fileshare] deleteItem - isFolder: ${isFolder}, itemId: ${itemId}, itemName: ${itemName}`);
 
         const dialogRef = this.dialog.open<ConfirmDialogComponent, ConfirmDialogData, boolean>(ConfirmDialogComponent, {
             data: {
@@ -505,13 +513,17 @@ export class IncomingFilesComponent implements OnInit {
 
         const confirmed = (await firstValueFrom(dialogRef.afterClosed())) ?? false;
         
+        // console.log(`[Fileshare] deleteItem - dialog confirmed: ${confirmed}`);
+        
         // AHORA sí cerramos el contexto después de que el diálogo se cerró
         this.closeContextMenu();
         
         if (!confirmed) {
+            // console.log(`[Fileshare] deleteItem - user cancelled, returning`);
             return;
         }
 
+        // console.log(`[Fileshare] deleteItem - proceeding with deletion`);
         if (isFolder) {
             await this.performFolderDelete(itemId);
         } else {
@@ -521,13 +533,15 @@ export class IncomingFilesComponent implements OnInit {
 
     private async performFolderDelete(folderId: number): Promise<void> {
         const idToDelete = Number(folderId);
-        this.folders.update(fs => fs.filter(f => Number(f.id) !== idToDelete));
-        this.clearSelection();
-
         const deleteToast = this.toastr.info('Eliminando carpeta...', '', { disableTimeOut: true });
 
         try {
             await this.apiClient.deleteFolder(idToDelete);
+            
+            // Solo eliminar de la UI después de éxito en el servidor
+            this.folders.update(fs => fs.filter(f => Number(f.id) !== idToDelete));
+            this.clearSelection();
+            
             this.toastr.clear(deleteToast.toastId);
             this.toastr.success('Carpeta eliminada correctamente');
             setTimeout(() => this.refreshContent(), 500);
@@ -535,6 +549,7 @@ export class IncomingFilesComponent implements OnInit {
             console.error('Error al eliminar carpeta', error);
             this.toastr.clear(deleteToast.toastId);
             this.toastr.error('Error al eliminar la carpeta');
+            // Refrescar contenido para restaurar el estado correcto
             await this.refreshContent();
         }
     }
@@ -1156,28 +1171,20 @@ export class IncomingFilesComponent implements OnInit {
 
         const fileId = event.dataTransfer?.getData('application/json');
         if (fileId) {
-            const id = parseInt(fileId, 10);
-            const fileObj = this.files().find(x => Number(x.id) === id);
-            const currentFolderId = fileObj ? (fileObj.folder ?? null) : null;
-            const targetFolderId = this.currentFolder()?.id ?? null;
-            if (currentFolderId === targetFolderId) {
-                this.toastr.info('El archivo ya está en esa carpeta');
-                return;
-            }
-
-            try {
-                await this.apiClient.moveFileToFolder(id, targetFolderId);
-                this.toastr.success('Archivo movido correctamente');
-                await this.refreshContent();
-            } catch (error) {
-                this.toastr.error('Error al mover archivo');
-            }
             return;
         }
 
         const droppedFiles = event.dataTransfer?.files;
         if (droppedFiles && droppedFiles.length > 0 && this.user()) {
             const files = Array.from(droppedFiles);
+            
+            // Validar archivos antes de subir
+            const validationResult = this.validateFiles(files);
+            if (!validationResult.valid) {
+                this.toastr.error(validationResult.error);
+                return;
+            }
+            
             await this.uploadFiles(files);
         }
     }
@@ -1232,9 +1239,120 @@ export class IncomingFilesComponent implements OnInit {
         }
     }
 
-    async uploadFiles(files: File[]): Promise<void> {
+    validateFiles(files: File[]): { valid: boolean; error?: string } {
+        // Validar que el usuario esté autenticado
+        if (!this.user()) {
+            return { valid: false, error: 'Debes estar autenticado para subir archivos' };
+        }
+
+        // Validar que el usuario sea staff
+        if (!this.user()!.is_staff) {
+            return { valid: false, error: 'Solo usuarios staff pueden subir archivos' };
+        }
+
+        // Validar número de archivos
+        if (files.length === 0) {
+            return { valid: false, error: 'No se seleccionaron archivos' };
+        }
+
+        if (files.length > 10) {
+            return { valid: false, error: 'No puedes subir más de 10 archivos a la vez' };
+        }
+
+        // Validar cada archivo
         for (const file of files) {
-            await this.handleUpload(file);
+            // Validar tamaño (máximo 100MB por archivo)
+            const maxSize = 100 * 1024 * 1024; // 100MB
+            if (file.size > maxSize) {
+                return { valid: false, error: `El archivo ${file.name} excede el tamaño máximo de 100MB` };
+            }
+
+            // Validar tipo de archivo
+            const allowedTypes = [
+                'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml',
+                'application/pdf', 'text/plain', 'text/csv',
+                'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                'application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+                'application/zip', 'application/x-rar-compressed', 'application/x-7z-compressed',
+                'video/mp4', 'video/avi', 'video/mov', 'video/wmv',
+                'audio/mp3', 'audio/wav', 'audio/ogg'
+            ];
+
+            if (!allowedTypes.includes(file.type) && file.type !== '') {
+                return { valid: false, error: `Tipo de archivo no permitido: ${file.name} (${file.type})` };
+            }
+
+            // Validar nombre de archivo
+            if (file.name.length > 255) {
+                return { valid: false, error: `El nombre del archivo ${file.name} es demasiado largo` };
+            }
+        }
+
+        return { valid: true };
+    }
+
+    async uploadFiles(files: File[]): Promise<void> {
+        // Validar archivos antes de subir (doble seguridad)
+        const validationResult = this.validateFiles(files);
+        if (!validationResult.valid) {
+            this.toastr.error(validationResult.error);
+            return;
+        }
+
+        if (files.length === 1) {
+            // Si es solo un archivo, usar el método individual
+            await this.handleUpload(files[0]);
+            return;
+        }
+
+        // Para múltiples archivos, usar el UploadService con widget
+        // Establecer contexto de subida
+        this.uploadService.setUploadContext(
+            this.user()!.username,
+            this.currentFolder()?.id
+        );
+        
+        this.uploadService.uploadFiles(files);
+        
+        // Refrescar el contenido después de un tiempo para mostrar los archivos subidos
+        setTimeout(() => {
+            void this.refreshContent();
+        }, 1000);
+    }
+
+    async handleSingleUpload(file: File): Promise<void> {
+        this.uploading.set(true);
+        this.uploadProgress.set(0);
+
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('recipient_username', this.user()!.username);
+
+            if (this.currentFolder()) {
+                formData.append('folder', this.currentFolder()!.id.toString());
+            }
+
+            await this.apiClient.uploadFile(formData, (progressEvent: any) => {
+                const percentCompleted = Math.round(
+                    (progressEvent.loaded * 100) / progressEvent.total
+                );
+                this.uploadProgress.set(percentCompleted);
+            });
+
+            this.uploadProgress.set(0);
+        } catch (error: any) {
+            console.error('Upload failed', error);
+            let errorMessage = 'Error al subir el archivo';
+            if (error.payload && error.payload.file) {
+                errorMessage = error.payload.file;
+            } else if (error.message) {
+                errorMessage = error.message;
+            }
+            throw new Error(errorMessage);
+        } finally {
+            this.uploading.set(false);
         }
     }
 
@@ -1362,20 +1480,29 @@ export class IncomingFilesComponent implements OnInit {
         const idToDelete = Number(fileId);
         const deleteToast = this.toastr.info('Eliminando archivo...', '', { disableTimeOut: true });
 
-        console.log(`[Fileshare] performDelete for ID ${idToDelete}`);
-
-        this.files.update(fs => fs.filter(f => Number(f.id) !== idToDelete));
-        this.selectedFile.set(null);
-        this.clearSelection();
+        // console.log(`[Fileshare] ===== START DELETE PROCESS =====`);
+        // console.log(`[Fileshare] performDelete for ID ${idToDelete}`);
+        // console.log(`[Fileshare] File to delete:`, this.files().find(f => Number(f.id) === idToDelete));
 
         try {
+            // console.log(`[Fileshare] Calling apiClient.deleteFile(${fileId})`);
             await this.apiClient.deleteFile(fileId);
+            // console.log(`[Fileshare] apiClient.deleteFile SUCCESS for ID ${idToDelete}`);
+            
+            // Solo eliminar de la UI después de éxito en el servidor
+            this.files.update(fs => fs.filter(f => Number(f.id) !== idToDelete));
+            this.selectedFile.set(null);
+            this.clearSelection();
+            
             this.toastr.clear(deleteToast.toastId);
             this.toastr.success('Archivo eliminado correctamente');
             setTimeout(() => this.refreshContent(), 500);
         } catch (error) {
+            console.error(`[Fileshare] performDelete ERROR for ID ${idToDelete}:`, error);
+            // console.log(`[Fileshare] ===== END DELETE PROCESS (ERROR) =====`);
             this.toastr.error('Error al eliminar el archivo');
             this.toastr.clear(deleteToast.toastId);
+            // Refrescar contenido para restaurar el estado correcto
             await this.refreshContent();
         }
     }

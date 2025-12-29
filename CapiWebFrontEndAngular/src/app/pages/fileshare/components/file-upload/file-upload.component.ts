@@ -73,6 +73,11 @@ export class FileUploadComponent {
 
     async handleSubmit(event: Event): Promise<void> {
         event.preventDefault();
+        event.stopPropagation();
+        
+        // Guardar la posición actual del scroll
+        const scrollY = window.scrollY;
+        
         if (!this.file() || !this.recipient()) return;
 
         this.uploading.set(true);
@@ -103,6 +108,12 @@ export class FileUploadComponent {
             if (fileInput) {
                 fileInput.value = '';
             }
+            
+            // Restaurar la posición del scroll
+            setTimeout(() => {
+                window.scrollTo(0, scrollY);
+            }, 0);
+            
         } catch (err: any) {
             this.error.set(err.payload?.error || 'Error al subir archivo');
         } finally {

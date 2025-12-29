@@ -346,7 +346,7 @@ class FileTransferViewSet(viewsets.ModelViewSet):
         if instance.file:
             instance.file.delete()
         instance.delete()
-        return Response({'status': 'deleted'}, status=status.HTTP_204_NO_CONTENT)
+        return Response({'status': 'deleted'}, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=['post'])
     def move(self, request, pk=None):
@@ -368,7 +368,6 @@ class FileTransferViewSet(viewsets.ModelViewSet):
         instance.save()
         return Response({'status': 'moved'})
 
-    @action(detail=True, methods=['post'])
     def _has_file_access(self, user, instance: FileTransfer) -> bool:
         if user.is_anonymous:
             return False
@@ -380,20 +379,17 @@ class FileTransferViewSet(viewsets.ModelViewSet):
             return True
         return False
 
-    @action(detail=True, methods=['get'], url_path='access')
-    def list_access(self, request, pk=None):
-        instance = self.get_object()
-        if instance.owner != request.user:
-            return Response({'error': 'unauthorized'}, status=status.HTTP_403_FORBIDDEN)
-        serializer = FileAccessSerializer(instance.access_list.all(), many=True)
-        return Response(serializer.data)
-
-    @action(detail=True, methods=['post'], url_path='access')
-    def grant_access(self, request, pk=None):
+    @action(detail=True, methods=['get', 'post'], url_path='access')
+    def manage_access(self, request, pk=None):
         instance = self.get_object()
         if instance.owner != request.user:
             return Response({'error': 'unauthorized'}, status=status.HTTP_403_FORBIDDEN)
 
+        if request.method.lower() == 'get':
+            serializer = FileAccessSerializer(instance.access_list.all(), many=True)
+            return Response(serializer.data)
+
+        # POST method - grant access
         username = request.data.get('username')
         permission = request.data.get('permission', FileAccess.Permission.READ)
         expires_at = request.data.get('expires_at')
