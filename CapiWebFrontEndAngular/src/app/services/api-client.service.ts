@@ -65,6 +65,17 @@ export class ApiClientService {
             } else if (error.error?.error) {
                 message = error.error.error;
             }
+        } else if (error.status === 403) {
+            // Handle specific permission errors
+            if (error.error?.error === 'insufficient_permissions') {
+                message = error.error?.message || 'No tienes permisos suficientes para realizar esta acción';
+            } else if (error.error?.error === 'cannot_remove_original') {
+                message = error.error?.message || 'No puedes eliminar al usuario original que compartió este archivo';
+            } else if (error.error?.error) {
+                message = error.error.error;
+            } else {
+                message = 'No tienes permisos para realizar esta acción';
+            }
         } else if (error.error?.error) {
             message = error.error.error;
         } else if (error.statusText) {

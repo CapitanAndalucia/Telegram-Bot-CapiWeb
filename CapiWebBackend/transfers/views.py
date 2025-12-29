@@ -71,6 +71,50 @@ class FolderViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)
 
+    def _get_folder_permission(self, user, folder: Folder) -> str:
+        """Get the permission level for a user on a folder"""
+        if user.is_anonymous:
+            return 'none'
+        
+        # Owner has full permissions
+        if folder.owner_id == user.id:
+            return 'edit'
+        
+        # Check folder access
+        folder_access = folder.access_list.filter(granted_to=user).first()
+        if folder_access:
+            return folder_access.permission
+        
+        return 'none'
+
+    def update(self, request, *args, **kwargs):
+        """Override update to check permissions for renaming folders"""
+        instance = self.get_object()
+        
+        # Check if user has edit permission
+        permission = self._get_folder_permission(request.user, instance)
+        if permission not in ['edit']:
+            return Response({
+                'error': 'insufficient_permissions',
+                'message': 'No tienes permisos para renombrar esta carpeta'
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        return super().update(request, *args, **kwargs)
+
+    def partial_update(self, request, *args, **kwargs):
+        """Override partial_update to check permissions for renaming folders"""
+        instance = self.get_object()
+        
+        # Check if user has edit permission
+        permission = self._get_folder_permission(request.user, instance)
+        if permission not in ['edit']:
+            return Response({
+                'error': 'insufficient_permissions',
+                'message': 'No tienes permisos para renombrar esta carpeta'
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        return super().partial_update(request, *args, **kwargs)
+
     @action(detail=True, methods=['get'])
     def download(self, request, pk=None):
         """
@@ -137,8 +181,13 @@ class FolderViewSet(viewsets.ModelViewSet):
         """Delete folder and all its contents recursively"""
         folder = self.get_object()
         
-        if folder.owner != request.user:
-            return Response({'error': 'unauthorized'}, status=status.HTTP_403_FORBIDDEN)
+        # Check if user has edit permission
+        permission = self._get_folder_permission(request.user, folder)
+        if permission not in ['edit']:
+            return Response({
+                'error': 'insufficient_permissions',
+                'message': 'No tienes permisos para eliminar esta carpeta'
+            }, status=status.HTTP_403_FORBIDDEN)
         
         try:
             # Delete all files in this folder and subfolders recursively
@@ -175,13 +224,20 @@ class FolderViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['get', 'post'], url_path='access')
     def manage_access(self, request, pk=None):
         folder = self.get_object()
-        if folder.owner != request.user:
-            return Response({'error': 'unauthorized'}, status=status.HTTP_403_FORBIDDEN)
+        
+        # Check if user has edit permission to manage access
+        permission = self._get_folder_permission(request.user, folder)
+        if permission not in ['edit']:
+            return Response({
+                'error': 'insufficient_permissions',
+                'message': 'No tienes permisos para gestionar el acceso a esta carpeta'
+            }, status=status.HTTP_403_FORBIDDEN)
 
         if request.method.lower() == 'get':
             serializer = FolderAccessSerializer(folder.access_list.all(), many=True)
             return Response(serializer.data)
 
+        # POST method - grant access
         username = request.data.get('username')
         permission = request.data.get('permission', FolderAccess.Permission.READ)
         propagate_value = request.data.get('propagate', True)
@@ -197,6 +253,13 @@ class FolderViewSet(viewsets.ModelViewSet):
             user = User.objects.get(username=username)
         except User.DoesNotExist:
             return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        # Prevent removing original owner
+        if user.id == folder.owner_id:
+            return Response({
+                'error': 'cannot_remove_original',
+                'message': 'No puedes eliminar al usuario original de esta carpeta'
+            }, status=status.HTTP_400_BAD_REQUEST)
 
         access, _created = FolderAccess.objects.update_or_create(
             folder=folder,
@@ -215,11 +278,25 @@ class FolderViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['delete'], url_path='access/(?P<user_id>[^/.]+)')
     def revoke_access(self, request, pk=None, user_id=None):
         folder = self.get_object()
-        if folder.owner != request.user:
-            return Response({'error': 'unauthorized'}, status=status.HTTP_403_FORBIDDEN)
+        
+        # Check if user has edit permission to manage access
+        permission = self._get_folder_permission(request.user, folder)
+        if permission not in ['edit']:
+            return Response({
+                'error': 'insufficient_permissions',
+                'message': 'No tienes permisos para gestionar el acceso a esta carpeta'
+            }, status=status.HTTP_403_FORBIDDEN)
 
         try:
             access = folder.access_list.get(granted_to_id=user_id)
+            
+            # Prevent removing original owner
+            if user_id == folder.owner_id:
+                return Response({
+                    'error': 'cannot_remove_original',
+                    'message': 'No puedes eliminar al usuario original de esta carpeta'
+                }, status=status.HTTP_400_BAD_REQUEST)
+                
         except FolderAccess.DoesNotExist:
             return Response({'error': 'Access not found'}, status=status.HTTP_404_NOT_FOUND)
 
@@ -242,6 +319,34 @@ class FileTransferViewSet(viewsets.ModelViewSet):
             | Q(access_list__granted_to=user)
             | Q(folder__access_list__granted_to=user)
         ).order_by('-created_at').distinct()
+
+    def update(self, request, *args, **kwargs):
+        """Override update to check permissions for renaming files"""
+        instance = self.get_object()
+        
+        # Check if user has edit permission
+        permission = self._get_file_permission(request.user, instance)
+        if permission not in ['edit']:
+            return Response({
+                'error': 'insufficient_permissions',
+                'message': 'No tienes permisos para renombrar este archivo'
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        return super().update(request, *args, **kwargs)
+
+    def partial_update(self, request, *args, **kwargs):
+        """Override partial_update to check permissions for renaming files"""
+        instance = self.get_object()
+        
+        # Check if user has edit permission
+        permission = self._get_file_permission(request.user, instance)
+        if permission not in ['edit']:
+            return Response({
+                'error': 'insufficient_permissions',
+                'message': 'No tienes permisos para renombrar este archivo'
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        return super().partial_update(request, *args, **kwargs)
 
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
@@ -404,8 +509,14 @@ class FileTransferViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['delete'])
     def delete_file(self, request, pk=None):
         instance = self.get_object()
-        if request.user not in {instance.owner, instance.uploader}:
-            return Response({'status': 'unauthorized'}, status=status.HTTP_403_FORBIDDEN)
+        
+        # Check if user has edit permission
+        permission = self._get_file_permission(request.user, instance)
+        if permission not in ['edit']:
+            return Response({
+                'error': 'insufficient_permissions',
+                'message': 'No tienes permisos para eliminar este archivo'
+            }, status=status.HTTP_403_FORBIDDEN)
 
         if instance.file:
             instance.file.delete()
@@ -417,8 +528,13 @@ class FileTransferViewSet(viewsets.ModelViewSet):
         instance = self.get_object()
         folder_id = request.data.get('folder_id')
         
-        if request.user != instance.owner:
-             return Response({'status': 'unauthorized'}, status=status.HTTP_403_FORBIDDEN)
+        # Check if user has edit permission
+        permission = self._get_file_permission(request.user, instance)
+        if permission not in ['edit']:
+            return Response({
+                'error': 'insufficient_permissions',
+                'message': 'No tienes permisos para mover este archivo'
+            }, status=status.HTTP_403_FORBIDDEN)
              
         if folder_id:
             try:
@@ -543,19 +659,47 @@ class FileTransferViewSet(viewsets.ModelViewSet):
             return True
         return False
 
+    def _get_file_permission(self, user, instance: FileTransfer) -> str:
+        """Get the permission level for a user on a file"""
+        if user.is_anonymous:
+            return 'none'
+        
+        # Owner and uploader have full permissions
+        if instance.owner_id == user.id or instance.uploader_id == user.id:
+            return 'edit'
+        
+        # Check direct file access
+        file_access = instance.access_list.filter(granted_to=user).first()
+        if file_access:
+            return file_access.permission
+        
+        # Check folder access
+        if instance.folder:
+            folder_access = instance.folder.access_list.filter(granted_to=user).first()
+            if folder_access:
+                return folder_access.permission
+        
+        return 'none'
+
     @action(detail=True, methods=['get', 'post'], url_path='access')
     def manage_access(self, request, pk=None):
-        instance = self.get_object()
-        if instance.owner != request.user:
-            return Response({'error': 'unauthorized'}, status=status.HTTP_403_FORBIDDEN)
+        folder = self.get_object()
+        
+        # Check if user has edit permission to manage access
+        permission = self._get_folder_permission(request.user, folder)
+        if permission not in ['edit']:
+            return Response({
+                'error': 'insufficient_permissions',
+                'message': 'No tienes permisos para gestionar el acceso a esta carpeta'
+            }, status=status.HTTP_403_FORBIDDEN)
 
         if request.method.lower() == 'get':
-            serializer = FileAccessSerializer(instance.access_list.all(), many=True)
+            serializer = FolderAccessSerializer(folder.access_list.all(), many=True)
             return Response(serializer.data)
 
         # POST method - grant access
         username = request.data.get('username')
-        permission = request.data.get('permission', FileAccess.Permission.READ)
+        permission_level = request.data.get('permission', FileAccess.Permission.READ)
         expires_at = request.data.get('expires_at')
 
         if not username:
@@ -566,12 +710,19 @@ class FileTransferViewSet(viewsets.ModelViewSet):
         except User.DoesNotExist:
             return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
 
+        # Prevent removing original owner/uploader
+        if user.id in [instance.owner_id, instance.uploader_id]:
+            return Response({
+                'error': 'cannot_remove_original',
+                'message': 'No puedes eliminar al usuario original que compartió este archivo'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
         access, _created = FileAccess.objects.update_or_create(
             file=instance,
             granted_to=user,
             defaults={
                 'granted_by': request.user,
-                'permission': permission,
+                'permission': permission_level,
                 'expires_at': expires_at
             }
         )
@@ -582,11 +733,25 @@ class FileTransferViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['delete'], url_path='access/(?P<user_id>[^/.]+)')
     def revoke_access(self, request, pk=None, user_id=None):
         instance = self.get_object()
-        if instance.owner != request.user:
-            return Response({'error': 'unauthorized'}, status=status.HTTP_403_FORBIDDEN)
+        
+        # Check if user has edit permission to manage access
+        permission = self._get_file_permission(request.user, instance)
+        if permission not in ['edit']:
+            return Response({
+                'error': 'insufficient_permissions',
+                'message': 'No tienes permisos para gestionar el acceso a este archivo'
+            }, status=status.HTTP_403_FORBIDDEN)
 
         try:
             access = instance.access_list.get(granted_to_id=user_id)
+            
+            # Prevent removing original owner/uploader
+            if user_id in [instance.owner_id, instance.uploader_id]:
+                return Response({
+                    'error': 'cannot_remove_original',
+                    'message': 'No puedes eliminar al usuario original que compartió este archivo'
+                }, status=status.HTTP_400_BAD_REQUEST)
+                
         except FileAccess.DoesNotExist:
             return Response({'error': 'Access not found'}, status=status.HTTP_404_NOT_FOUND)
 
