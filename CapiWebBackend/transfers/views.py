@@ -40,8 +40,20 @@ class FolderViewSet(viewsets.ModelViewSet):
             Q(owner=user) | Q(access_list__granted_to=user)
         ).distinct()
 
-        # Only apply parent filtering for list views, not for detail/retrieve views
+        # Apply scope filtering for list views
         if self.action in ['list', None]:  # None for default list action
+            scope = self.request.query_params.get('scope', 'mine')
+            
+            if scope == 'shared':
+                queryset = queryset.filter(access_list__granted_to=user).exclude(owner=user)
+            elif scope == 'sent':
+                # For folders, 'sent' scope doesn't make much sense since folders are owned
+                # We'll interpret it as folders owned by user (same as 'mine')
+                queryset = queryset.filter(owner=user)
+            else:  # 'mine' or default
+                queryset = queryset.filter(owner=user)
+            
+            # Only apply parent filtering for list views, not for detail/retrieve views
             parent_id = self.request.query_params.get('parent')
             if parent_id == 'null':
                 queryset = queryset.filter(parent__isnull=True)

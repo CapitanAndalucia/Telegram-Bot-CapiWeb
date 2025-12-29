@@ -474,12 +474,15 @@ export class ApiClientService {
     }
 
     // ---- Folders -------------------------------------------------------------
-    listFolders(parentId?: number): Promise<any> {
+    listFolders(parentId?: number, scope?: 'mine' | 'shared' | 'sent'): Promise<any> {
         const params: any = {};
         if (parentId !== undefined) {
             params.parent = parentId;
         } else {
             params.parent = 'null';
+        }
+        if (scope) {
+            params.scope = scope;
         }
         return new Promise((resolve, reject) => {
             this.request('/folders/', 'GET', { params }).subscribe({

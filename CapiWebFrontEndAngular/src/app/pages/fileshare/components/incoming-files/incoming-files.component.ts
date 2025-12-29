@@ -251,8 +251,8 @@ export class IncomingFilesComponent implements OnInit {
         try {
             await this.simulateLatency(); // DEV: Remove or disable for production
             const parentId = this.currentFolder()?.id;
-            console.debug('[incoming-files] fetchFolders parentId=', parentId);
-            const data = await this.apiClient.listFolders(parentId);
+            console.debug('[incoming-files] fetchFolders parentId=', parentId, 'scope=', this.scope());
+            const data = await this.apiClient.listFolders(parentId, this.scope());
             this.folders.set(this.normalizeFolderResponse(data));
         } catch (error) {
             console.error('Error fetching folders', error);
@@ -2022,7 +2022,7 @@ export class IncomingFilesComponent implements OnInit {
             visited.add(parentId);
 
             try {
-                const response = await this.apiClient.listFolders(parentId ?? undefined);
+                const response = await this.apiClient.listFolders(parentId ?? undefined, this.scope());
                 const folders = this.normalizeFolderResponse(response);
                 const key = parentId === null ? 'root' : parentId.toString();
                 tree[key] = folders;
