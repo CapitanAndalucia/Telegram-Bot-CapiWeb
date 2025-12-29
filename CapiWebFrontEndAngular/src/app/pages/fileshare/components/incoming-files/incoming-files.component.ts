@@ -590,9 +590,39 @@ export class IncomingFilesComponent implements OnInit {
     }
 
     openShareModal(item: FileItem | Folder, type: 'file' | 'folder'): void {
-        this.shareModalItem.set(item);
-        this.shareModalType.set(type);
         this.closeContextMenu();
+        
+        // Verificar permisos ANTES de mostrar el modal
+        void this.checkSharePermissions(item, type);
+    }
+
+    async checkSharePermissions(item: FileItem | Folder, type: 'file' | 'folder'): Promise<void> {
+        try {
+            // Verificar si tiene permisos para gestionar acceso
+            if (type === 'file') {
+                await this.apiClient.listFileAccess(item.id);
+            } else {
+                await this.apiClient.listFolderAccess(item.id);
+            }
+            
+            // Si llegamos aquí, tiene permisos, mostrar el modal
+            this.shareModalItem.set(item);
+            this.shareModalType.set(type);
+            
+        } catch (error: any) {
+            console.error('Error checking share permissions', error);
+            
+            // Si es un error 403 de permisos denegados
+            if (error.status === 403) {
+                this.toastr.error('No tienes permisos para gestionar el acceso a este archivo', '', {
+                    timeOut: 5000,
+                });
+                return;
+            }
+            
+            // Otros errores
+            this.toastr.error('Error al verificar permisos');
+        }
     }
 
     closeShareModal(): void {

@@ -681,20 +681,48 @@ class FileTransferViewSet(viewsets.ModelViewSet):
         
         return 'none'
 
-    @action(detail=True, methods=['get', 'post'], url_path='access')
-    def manage_access(self, request, pk=None):
-        folder = self.get_object()
+    @action(detail=True, methods=['delete'], url_path='access/(?P<user_id>[^/.]+)')
+    def revoke_access(self, request, pk=None, user_id=None):
+        instance = self.get_object()
         
         # Check if user has edit permission to manage access
-        permission = self._get_folder_permission(request.user, folder)
+        permission = self._get_file_permission(request.user, instance)
         if permission not in ['edit']:
             return Response({
                 'error': 'insufficient_permissions',
-                'message': 'No tienes permisos para gestionar el acceso a esta carpeta'
+                'message': 'No tienes permisos para gestionar el acceso a este archivo'
+            }, status=status.HTTP_403_FORBIDDEN)
+
+        try:
+            access = instance.access_list.get(granted_to_id=user_id)
+            
+            # Prevent removing original owner/uploader
+            if user_id in [instance.owner_id, instance.uploader_id]:
+                return Response({
+                    'error': 'cannot_remove_original',
+                    'message': 'No puedes eliminar al usuario original que compartió este archivo'
+                }, status=status.HTTP_400_BAD_REQUEST)
+                
+        except FileAccess.DoesNotExist:
+            return Response({'error': 'Access not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        access.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @action(detail=True, methods=['get', 'post'], url_path='access')
+    def manage_access(self, request, pk=None):
+        instance = self.get_object()
+        
+        # Check if user has edit permission to manage access
+        permission = self._get_file_permission(request.user, instance)
+        if permission not in ['edit']:
+            return Response({
+                'error': 'insufficient_permissions',
+                'message': 'No tienes permisos para gestionar el acceso a este archivo'
             }, status=status.HTTP_403_FORBIDDEN)
 
         if request.method.lower() == 'get':
-            serializer = FolderAccessSerializer(folder.access_list.all(), many=True)
+            serializer = FileAccessSerializer(instance.access_list.all(), many=True)
             return Response(serializer.data)
 
         # POST method - grant access
@@ -729,31 +757,3 @@ class FileTransferViewSet(viewsets.ModelViewSet):
 
         serializer = FileAccessSerializer(access)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
-
-    @action(detail=True, methods=['delete'], url_path='access/(?P<user_id>[^/.]+)')
-    def revoke_access(self, request, pk=None, user_id=None):
-        instance = self.get_object()
-        
-        # Check if user has edit permission to manage access
-        permission = self._get_file_permission(request.user, instance)
-        if permission not in ['edit']:
-            return Response({
-                'error': 'insufficient_permissions',
-                'message': 'No tienes permisos para gestionar el acceso a este archivo'
-            }, status=status.HTTP_403_FORBIDDEN)
-
-        try:
-            access = instance.access_list.get(granted_to_id=user_id)
-            
-            # Prevent removing original owner/uploader
-            if user_id in [instance.owner_id, instance.uploader_id]:
-                return Response({
-                    'error': 'cannot_remove_original',
-                    'message': 'No puedes eliminar al usuario original que compartió este archivo'
-                }, status=status.HTTP_400_BAD_REQUEST)
-                
-        except FileAccess.DoesNotExist:
-            return Response({'error': 'Access not found'}, status=status.HTTP_404_NOT_FOUND)
-
-        access.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)

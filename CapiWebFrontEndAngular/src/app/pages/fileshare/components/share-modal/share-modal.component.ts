@@ -17,6 +17,7 @@ export class ShareModalComponent implements OnChanges {
     @Input() type!: 'file' | 'folder';
     @Output() close = new EventEmitter<void>();
     @Output() shared = new EventEmitter<void>();
+    @Output() permissionDenied = new EventEmitter<void>(); // Nuevo evento para permisos denegados
 
     private api = inject(ApiClientService);
     private toast = inject(ToastrService);
@@ -31,16 +32,68 @@ export class ShareModalComponent implements OnChanges {
     isSharing = signal(false);
     loadingAccess = signal(false);
     accessList = signal<(FileAccess | FolderAccess)[]>([]);
+    currentUser = signal<any>(null);
 
     constructor() {
         // Load friends initially
         this.loadFriends();
+        // Get current user
+        this.getCurrentUser();
     }
 
     ngOnChanges(changes: SimpleChanges): void {
         if (changes['item'] || changes['type']) {
             this.resetFormState();
-            void this.fetchAccessList();
+            // Cargar acceso normalmente (el modal solo se muestra si se verificaron permisos)
+            if (this.item && this.type) {
+                void this.loadAccessWithPermissionCheck();
+            }
+        }
+    }
+
+    // Método público para verificar permisos (llamado por el componente padre)
+    async checkPermissions(): Promise<boolean> {
+        try {
+            // Verificar si tiene permisos para gestionar acceso
+            if (this.type === 'file') {
+                await this.api.listFileAccess(this.item.id);
+            } else {
+                await this.api.listFolderAccess(this.item.id);
+            }
+            return true; // Tiene permisos
+        } catch (error: any) {
+            console.error('Error checking permissions', error);
+            
+            // Si es un error 403 de permisos denegados
+            if (error.status === 403) {
+                this.permissionDenied.emit(); // Notificar al componente padre
+                this.toast.error('No tienes permisos para gestionar el acceso a este archivo', '', {
+                    timeOut: 5000,
+                });
+                return false;
+            }
+            
+            // Otros errores
+            this.toast.error('Error al verificar permisos');
+            return false;
+        }
+    }
+
+    // Método para cargar acceso (solo si ya se verificaron permisos)
+    async loadAccessWithPermissionCheck(): Promise<void> {
+        try {
+            if (this.type === 'file') {
+                const access = await this.api.listFileAccess(this.item.id);
+                this.accessList.set(access);
+            } else {
+                const access = await this.api.listFolderAccess(this.item.id);
+                this.accessList.set(access);
+            }
+        } catch (error: any) {
+            console.error('Error loading access list', error);
+            this.accessList.set([]);
+        } finally {
+            this.loadingAccess.set(false);
         }
     }
 
@@ -74,6 +127,14 @@ export class ShareModalComponent implements OnChanges {
             }
         } catch (error: any) {
             console.error('Error fetching access list', error);
+            
+            // Si es un error 403 de permisos denegados, cerrar el modal y mostrar mensaje
+            if (error.status === 403) {
+                this.toast.warning('No tienes permisos para gestionar el acceso a este archivo');
+                this.close.emit(); // Cerrar el modal
+                return;
+            }
+            
             // Si hay un error 405, mostrar mensaje más amigable
             if (error.status === 405) {
                 this.toast.warning('La función de compartir archivos está temporalmente deshabilitada');
@@ -166,6 +227,42 @@ export class ShareModalComponent implements OnChanges {
 
     hasAccessEntries(): boolean {
         return this.accessList().length > 0;
+    }
+
+    getCurrentUser(): void {
+        // Get current user from localStorage or sessionStorage
+        const userStr = localStorage.getItem('currentUser') || sessionStorage.getItem('currentUser');
+        if (userStr) {
+            try {
+                this.currentUser.set(JSON.parse(userStr));
+            } catch (e) {
+                // Silently handle error
+                this.currentUser.set(null);
+            }
+        }
+    }
+
+    getOwnerInfo(): { username: string, isOriginal: boolean } {
+        if (!this.item) return { username: '', isOriginal: false };
+        
+        let ownerUsername = '';
+        let isOriginal = false;
+
+        if (this.type === 'file') {
+            const file = this.item as FileItem;
+            ownerUsername = file.owner_username || '';
+            // Si no hay usuario actual, asumimos que no es el original
+            const currentUser = this.currentUser();
+            isOriginal = currentUser && (file.owner_username === currentUser.username || file.uploader_username === currentUser.username);
+        } else {
+            const folder = this.item as Folder;
+            // Usar directamente el owner_username del item
+            ownerUsername = folder.owner_username || '';
+            const currentUser = this.currentUser();
+            isOriginal = currentUser && folder.owner_username === currentUser.username;
+        }
+
+        return { username: ownerUsername, isOriginal };
     }
 
     onBackdropClick(event: MouseEvent): void {

@@ -13,6 +13,18 @@
                 {{ type === 'file' ? $any(item).filename : $any(item).name }}
             </p>
 
+            <!-- Owner information -->
+            @if (getOwnerInfo().username && !getOwnerInfo().isOriginal) {
+                <div class="owner-info">
+                    <div class="owner-badge">
+                        <span class="owner-icon">👤</span>
+                        <span class="owner-text">
+                            Compartido por: <strong>{{ getOwnerInfo().username }}</strong>
+                        </span>
+                    </div>
+                </div>
+            }
+
             <section class="access-section">
                 <div class="access-header">
                     <h4>Usuarios con acceso</h4>

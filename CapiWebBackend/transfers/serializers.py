@@ -106,11 +106,12 @@ class FolderAccessSerializer(serializers.ModelSerializer):
 
 class FolderSerializer(serializers.ModelSerializer):
     access_list = FolderAccessSerializer(many=True, read_only=True)
+    owner_username = serializers.ReadOnlyField(source='owner.username')
 
     class Meta:
         model = Folder
-        fields = ['id', 'name', 'owner', 'parent', 'created_at', 'access_list']
-        read_only_fields = ['owner', 'created_at', 'access_list']
+        fields = ['id', 'name', 'owner', 'owner_username', 'parent', 'created_at', 'access_list']
+        read_only_fields = ['owner', 'owner_username', 'created_at', 'access_list']
         
     def create(self, validated_data):
         validated_data['owner'] = self.context['request'].user

@@ -354,6 +354,44 @@
     color: white;
 }
 
+.selected-user-summary .item-name {
+    margin: 0 0 1rem 0;
+    padding: 0.75rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    font-size: 0.9rem;
+    word-break: break-all;
+}
+
+.owner-info {
+    margin-bottom: 1rem;
+}
+
+.owner-badge {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    background: linear-gradient(135deg, rgba(76, 175, 80, 0.1), rgba(76, 175, 80, 0.05));
+    border: 1px solid rgba(76, 175, 80, 0.3);
+    border-radius: 8px;
+    font-size: 0.85rem;
+}
+
+.owner-icon {
+    font-size: 1rem;
+}
+
+.owner-text {
+    color: #4CAF50;
+    font-weight: 500;
+}
+
+.owner-text strong {
+    color: #66BB6A;
+    font-weight: 600;
+}
+
 .modal-footer {
     padding: 1rem 1.5rem;
     border-top: 1px solid rgba(255, 255, 255, 0.1);
