@@ -272,6 +272,10 @@ class FolderViewSet(viewsets.ModelViewSet):
             }
         )
 
+        # Si se debe propagar el acceso, aplicarlo a todos los elementos internos
+        if propagate:
+            self._propagate_access_to_contents(folder, user, request.user, permission, request.data.get('expires_at'))
+
         serializer = FolderAccessSerializer(access)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
@@ -302,6 +306,40 @@ class FolderViewSet(viewsets.ModelViewSet):
 
         access.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+    def _propagate_access_to_contents(self, folder, user, granted_by, permission, expires_at):
+        """
+        Propaga el acceso de una carpeta a todos sus contenidos (archivos y subcarpetas)
+        """
+        from django.db.models import Q
+        
+        # Propagar a subcarpetas
+        subfolders = Folder.objects.filter(parent=folder)
+        for subfolder in subfolders:
+            FolderAccess.objects.update_or_create(
+                folder=subfolder,
+                granted_to=user,
+                defaults={
+                    'granted_by': granted_by,
+                    'permission': permission,
+                    'expires_at': expires_at
+                }
+            )
+            # Recursividad para subcarpetas anidadas
+            self._propagate_access_to_contents(subfolder, user, granted_by, permission, expires_at)
+        
+        # Propagar a archivos
+        files = FileTransfer.objects.filter(folder=folder)
+        for file in files:
+            FileAccess.objects.update_or_create(
+                file=file,
+                granted_to=user,
+                defaults={
+                    'granted_by': granted_by,
+                    'permission': permission,
+                    'expires_at': expires_at
+                }
+            )
 
 class FileTransferViewSet(viewsets.ModelViewSet):
     serializer_class = FileTransferSerializer

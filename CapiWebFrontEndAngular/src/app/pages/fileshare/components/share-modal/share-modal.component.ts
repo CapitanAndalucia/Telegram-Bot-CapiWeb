@@ -27,7 +27,6 @@ export class ShareModalComponent implements OnChanges {
     friends = signal<any[]>([]);
     selectedUser = signal<any>(null);
     selectedPermission = signal<'read' | 'edit'>('read');
-    propagateAccess = signal(true);
     isLoading = signal(false);
     isSharing = signal(false);
     loadingAccess = signal(false);
@@ -102,7 +101,6 @@ export class ShareModalComponent implements OnChanges {
         this.searchQuery.set('');
         this.searchResults.set([]);
         this.selectedPermission.set('read');
-        this.propagateAccess.set(true);
     }
 
     async loadFriends(): Promise<void> {
@@ -192,7 +190,7 @@ export class ShareModalComponent implements OnChanges {
                     (this.item as Folder).id,
                     user.username,
                     this.selectedPermission(),
-                    this.propagateAccess(),
+                    true, // Siempre propagar acceso
                     undefined
                 );
             }

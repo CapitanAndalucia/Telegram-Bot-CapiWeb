@@ -96,12 +96,6 @@
                     </select>
                 </div>
 
-                @if (type === 'folder') {
-                    <label class="propagate-toggle">
-                        <input type="checkbox" [(ngModel)]="propagateAccess"> Aplicar a subcarpetas y archivos
-                    </label>
-                }
-
                 @if (selectedUser()) {
                 <div class="selected-user-summary">
                     Compartir con: <strong>{{ selectedUser().username }}</strong>
