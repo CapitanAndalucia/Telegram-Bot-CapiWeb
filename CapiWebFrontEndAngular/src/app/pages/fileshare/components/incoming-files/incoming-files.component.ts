@@ -327,7 +327,14 @@ export class IncomingFilesComponent implements OnInit {
     @HostListener('document:click', ['$event'])
     onDocumentClick(event: MouseEvent): void {
         const target = event.target as HTMLElement;
-        if (!target.closest('.context-menu') && !target.closest('.optionsBtn')) {
+        
+        // Cerrar menú si se hace click fuera del componente o en áreas ng-star-inserted que no sean el menú
+        const isInsideComponent = target.closest('.incomingFiles');
+        const isContextMenu = target.closest('.context-menu');
+        const isOptionsBtn = target.closest('.optionsBtn');
+        
+        // Si no está dentro del componente principal O está dentro pero no es el menú/botón
+        if (!isInsideComponent || (!isContextMenu && !isOptionsBtn && isInsideComponent)) {
             this.closeContextMenu();
         }
     }
@@ -340,40 +347,44 @@ export class IncomingFilesComponent implements OnInit {
             return;
         }
 
-        let x = event.clientX;
-        let y = event.clientY;
+        // Obtener coordenadas del mouse
+        let x = event.pageX || event.clientX + (document.documentElement.scrollLeft || document.body.scrollLeft);
+        let y = event.pageY || event.clientY + (document.documentElement.scrollTop || document.body.scrollTop);
+        
         const menuWidth = 200;
         const menuHeight = 250;
         const margin = 10; // Margen desde los bordes
 
         if (typeof window !== 'undefined') {
-            // Ajuste horizontal
-            if (x + menuWidth > window.innerWidth) {
+            // Ajuste horizontal - similar al vertical
+            const viewportX = x - window.scrollX;
+            const distanceFromRight = window.innerWidth - viewportX;
+            
+            // Si está a menos de 100px del borde derecho, mover 50px a la izquierda
+            if (distanceFromRight < 100) {
+                x = x + 30;
+            }
+            
+            // Ajuste extremo - si se sale completamente del viewport
+            if (x + menuWidth > window.innerWidth + window.scrollX) {
                 // Si se sale por la derecha, mostrar a la izquierda
-                x = Math.max(margin, x - menuWidth);
-            } else if (x < margin) {
+                x = Math.max(window.scrollX + margin, x - menuWidth);
+            } else if (x < window.scrollX + margin) {
                 // Si está demasiado cerca del borde izquierdo
-                x = margin;
+                x = window.scrollX + margin;
             }
 
-            // Ajuste vertical - más inteligente
-            const spaceBelow = window.innerHeight - y;
-            const spaceAbove = y;
+            // Ajuste vertical sutil - solo si está muy cerca del borde inferior
+            const viewportY = y - window.scrollY;
+            const distanceFromBottom = window.innerHeight - viewportY;
             
-            if (spaceBelow < menuHeight && spaceAbove > menuHeight) {
-                // Hay más espacio arriba que abajo, mostrar hacia arriba
-                y = Math.max(margin, y - menuHeight);
-            } else if (spaceBelow < menuHeight && spaceAbove <= menuHeight) {
-                // No hay suficiente espacio ni arriba ni abajo
-                // Posicionar donde haya más espacio
-                if (spaceBelow > spaceAbove) {
-                    y = window.innerHeight - menuHeight - margin;
-                } else {
-                    y = margin;
-                }
-            } else if (y < margin) {
-                // Demasiado cerca del borde superior
-                y = margin;
+            // Si está a menos de 100px del borde inferior, subir 50px
+            // if (distanceFromBottom < 100 && distanceFromBottom > 50) {
+            //     y = y - 50;
+            // }
+
+            if (distanceFromBottom < 100) {
+                y = y - 100;
             }
         }
 
@@ -383,7 +394,9 @@ export class IncomingFilesComponent implements OnInit {
         this.touchDraggingItem = null;
         this.isDragging.set(false);
         this.hoveredFolderId.set(null);
+        this.currentDraggedFolderId = null;
 
+        
         this.contextMenu.set({ x, y, type, item });
         // mark the clicked options button as active so mobile CSS can show the circle
         const id = item && (item as any).id ? Number((item as any).id) : null;
@@ -761,7 +774,14 @@ export class IncomingFilesComponent implements OnInit {
     @HostListener('document:mousedown', ['$event'])
     onDocumentMouseDown(event: MouseEvent): void {
         const target = event.target as HTMLElement;
-        if (!target.closest('.context-menu') && !target.closest('.optionsBtn')) {
+        
+        // Cerrar menú si se hace click fuera del componente o en áreas ng-star-inserted que no sean el menú
+        const isInsideComponent = target.closest('.incomingFiles');
+        const isContextMenu = target.closest('.context-menu');
+        const isOptionsBtn = target.closest('.optionsBtn');
+        
+        // Si no está dentro del componente principal O está dentro pero no es el menú/botón
+        if (!isInsideComponent || (!isContextMenu && !isOptionsBtn && isInsideComponent)) {
             this.closeContextMenu();
         }
     }
@@ -829,6 +849,136 @@ export class IncomingFilesComponent implements OnInit {
         this.selectedFolderIds.set(new Set());
         this.isSelectionMode.set(false);
         this.bulkSelectionActive.set(false);
+    }
+
+    async downloadSelected(): Promise<void> {
+        const selectedFileIds = this.selectedFileIds();
+        const selectedFolderIds = this.selectedFolderIds();
+        const totalSelected = selectedFileIds.size + selectedFolderIds.size;
+        
+        if (totalSelected === 0) {
+            return;
+        }
+
+        try {
+            // Si hay múltiples archivos o carpetas, crear un ZIP
+            if (totalSelected > 1) {
+                const downloadToast = this.toastr.info('Creando ZIP con archivos seleccionados...', '', {
+                    disableTimeOut: true
+                });
+
+                try {
+                    // Crear FormData con los IDs de archivos y carpetas
+                    const formData = new FormData();
+                    
+                    // Añadir IDs de archivos como array
+                    selectedFileIds.forEach(fileId => {
+                        formData.append('file_ids[]', fileId.toString());
+                    });
+                    
+                    // Añadir IDs de carpetas como array
+                    selectedFolderIds.forEach(folderId => {
+                        formData.append('folder_ids[]', folderId.toString());
+                    });
+
+                    // Llamar al endpoint de descarga múltiple
+                    const zipBlob = await this.apiClient.downloadMultiple(formData);
+                    
+                    // Crear URL y descargar el ZIP
+                    const url = window.URL.createObjectURL(zipBlob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `archivos_seleccionados_${new Date().getTime()}.zip`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    window.URL.revokeObjectURL(url);
+                    
+                    this.toastr.clear(downloadToast.toastId);
+                    this.toastr.success('ZIP descargado correctamente');
+                    this.clearSelection();
+                } catch (zipError) {
+                    this.toastr.clear(downloadToast.toastId);
+                    console.error('Error creating ZIP:', zipError);
+                    this.toastr.error('Error al crear el ZIP con los archivos seleccionados');
+                }
+            } else {
+                // Si es solo un archivo, descargarlo directamente
+                if (selectedFileIds.size === 1) {
+                    const fileId = Array.from(selectedFileIds)[0];
+                    await this.apiClient.downloadFile(fileId);
+                } else if (selectedFolderIds.size === 1) {
+                    const folderId = Array.from(selectedFolderIds)[0];
+                    await this.apiClient.downloadFolder(folderId);
+                }
+                
+                this.toastr.success('Descarga completada');
+                this.clearSelection();
+            }
+        } catch (error) {
+            console.error('Error downloading selected items:', error);
+            this.toastr.error('Error al descargar archivos seleccionados');
+        }
+    }
+
+    async deleteSelected(): Promise<void> {
+        const selectedFileIds = this.selectedFileIds();
+        const selectedFolderIds = this.selectedFolderIds();
+        const totalSelected = selectedFileIds.size + selectedFolderIds.size;
+        
+        if (totalSelected === 0) {
+            return;
+        }
+
+        // Construir mensaje específico si hay carpetas
+        let message = `Esta acción eliminará ${totalSelected} elemento(s) y no se puede deshacer.`;
+        let detail = '';
+        
+        if (selectedFolderIds.size > 0) {
+            message = `Esta acción eliminará ${totalSelected} elemento(s) incluyendo ${selectedFolderIds.size} carpeta(s) con todo su contenido.`;
+            detail = '⚠️ Todas las carpetas seleccionadas serán eliminadas junto con todos sus archivos y subcarpetas.';
+        }
+
+        const dialogRef = this.dialog.open<ConfirmDialogComponent, ConfirmDialogData, boolean>(ConfirmDialogComponent, {
+            data: {
+                title: 'Eliminar seleccionados',
+                message: message,
+                detail: detail,
+                confirmLabel: 'Eliminar',
+                cancelLabel: 'Cancelar',
+                destructive: true,
+            },
+            width: '400px',
+            disableClose: false,
+            hasBackdrop: true,
+        });
+
+        const confirmed = (await firstValueFrom(dialogRef.afterClosed())) ?? false;
+        
+        if (!confirmed) {
+            return;
+        }
+
+        try {
+            // Eliminar archivos seleccionados
+            for (const fileId of selectedFileIds) {
+                await this.apiClient.deleteFile(fileId);
+            }
+
+            // Eliminar carpetas seleccionadas
+            for (const folderId of selectedFolderIds) {
+                await this.apiClient.deleteFolder(folderId);
+            }
+
+            this.toastr.success(`${totalSelected} elemento(s) eliminados`);
+            await this.refreshContent();
+            this.clearSelection();
+        } catch (error) {
+            console.error('Error deleting selected items:', error);
+            this.toastr.error('Error al eliminar elementos seleccionados');
+            await this.refreshContent();
+            this.clearSelection();
+        }
     }
 
     isFileSelected(id: number): boolean {
@@ -1053,6 +1203,9 @@ export class IncomingFilesComponent implements OnInit {
         dataTransfer.setData('application/json', file.id.toString());
         dataTransfer.effectAllowed = 'move';
 
+        // No limpiar el estado de selección durante el arrastre
+        // La selección debe mantenerse visible durante todo el proceso
+        
         this.createDragPreview(dataTransfer, file, event.target as HTMLElement);
     }
 
@@ -1122,9 +1275,17 @@ export class IncomingFilesComponent implements OnInit {
 
     handleDragLeave(event: DragEvent): void {
         event.preventDefault();
-        this.isDragging.set(false);
-        this.hoveredFolderId.set(null);
-        this.hoveredBreadcrumbKey.set(null);
+        
+        // Solo limpiar si realmente estamos saliendo del contenedor principal
+        const currentTarget = event.currentTarget as HTMLElement;
+        const relatedTarget = event.relatedTarget as Node;
+        
+        // Verificar si relatedTarget es null o está fuera del currentTarget
+        if (!relatedTarget || !currentTarget.contains(relatedTarget)) {
+            this.isDragging.set(false);
+            this.hoveredFolderId.set(null);
+            this.hoveredBreadcrumbKey.set(null);
+        }
     }
 
     async handleDrop(event: DragEvent): Promise<void> {
@@ -1190,53 +1351,8 @@ export class IncomingFilesComponent implements OnInit {
     }
 
     async handleUpload(file: File): Promise<void> {
-        this.uploading.set(true);
-        this.uploadProgress.set(0);
-        const uploadToastId = this.toastr.info(`Subiendo ${file.name}... 0%`, '', {
-            disableTimeOut: true,
-            closeButton: false,
-        });
-
-        try {
-            const formData = new FormData();
-            formData.append('file', file);
-            formData.append('recipient_username', this.user()!.username);
-
-            if (this.currentFolder()) {
-                formData.append('folder', this.currentFolder()!.id.toString());
-            }
-
-            await this.apiClient.uploadFile(formData, (progressEvent: any) => {
-                const percentCompleted = Math.round(
-                    (progressEvent.loaded * 100) / progressEvent.total
-                );
-                this.uploadProgress.set(percentCompleted);
-                this.toastr.clear(uploadToastId.toastId);
-                this.toastr.info(`Subiendo ${file.name}... ${percentCompleted}%`, '', {
-                    disableTimeOut: true,
-                    closeButton: false,
-                });
-            });
-
-            this.toastr.clear(uploadToastId.toastId);
-            this.toastr.success('Archivo subido correctamente');
-            this.uploadProgress.set(0);
-            await this.refreshContent();
-        } catch (error: any) {
-            console.error('Upload failed', error);
-            let errorMessage = 'Error al subir el archivo';
-            if (error.payload && error.payload.file) {
-                errorMessage = error.payload.file;
-            } else if (error.message) {
-                errorMessage = error.message;
-            }
-
-            this.toastr.clear(uploadToastId.toastId);
-            this.toastr.error(errorMessage);
-            this.uploadProgress.set(0);
-        } finally {
-            this.uploading.set(false);
-        }
+        // Este método ya no se usa, redirigir al uploadFiles para usar el widget
+        await this.uploadFiles([file]);
     }
 
     validateFiles(files: File[]): { valid: boolean; error?: string } {
@@ -1300,13 +1416,7 @@ export class IncomingFilesComponent implements OnInit {
             return;
         }
 
-        if (files.length === 1) {
-            // Si es solo un archivo, usar el método individual
-            await this.handleUpload(files[0]);
-            return;
-        }
-
-        // Para múltiples archivos, usar el UploadService con widget
+        // Siempre usar el UploadService con widget (incluso para un solo archivo)
         // Establecer contexto de subida
         this.uploadService.setUploadContext(
             this.user()!.username,

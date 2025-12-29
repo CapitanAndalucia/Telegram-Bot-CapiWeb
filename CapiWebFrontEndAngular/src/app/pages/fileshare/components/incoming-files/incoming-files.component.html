@@ -93,12 +93,33 @@
 
     <div *ngIf="!loading() && !isNavigating() && (files().length > 0 || folders().length > 0)"
         style="flex: 1; display: flex; flex-direction: column;">
-        <div *ngIf="bulkSelectionActive()" class="selectionBar">
-            <span>{{ selectedFileIds().size + selectedFolderIds().size }} seleccionados</span>
-            <button class="clearSelectionBtn icon-only" (click)="clearSelection()">
-                <img src="assets/icons/boton-x.png" alt="Cancelar" class="icon-close" />
-                <span class="visually-hidden">Cancelar</span>
-            </button>
+        
+        <!-- Menú de selección - Sticky en PC, Fixed en móvil -->
+        <div *ngIf="bulkSelectionActive()" class="floatingSelectionMenu" [class.showing]="bulkSelectionActive()">
+            <div class="selectionInfo">
+                <div class="selectionCount">
+                    <span class="countNumber">{{ selectedFileIds().size + selectedFolderIds().size }}</span>
+                    <span class="countText">seleccionados</span>
+                </div>
+            </div>
+            
+            <div class="selectionActions">
+                <button class="actionBtn downloadBtn" (click)="downloadSelected()" 
+                        [disabled]="selectedFileIds().size === 0">
+                    <span class="btnIcon">⬇</span>
+                    <span class="btnText">Descargar</span>
+                </button>
+                
+                <button class="actionBtn deleteBtn" (click)="deleteSelected()">
+                    <span class="btnIcon">🗑</span>
+                    <span class="btnText">Eliminar</span>
+                </button>
+                
+                <button class="actionBtn cancelBtn" (click)="clearSelection()">
+                    <span class="btnIcon">✕</span>
+                    <span class="btnText">Cancelar</span>
+                </button>
+            </div>
         </div>
 
         <div class="incomingContent" [class.listMode]="viewMode() === 'list'" [class.selectionMode]="isSelectionMode()"

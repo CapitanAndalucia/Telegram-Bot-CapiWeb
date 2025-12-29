@@ -22,6 +22,9 @@ from .security_utils import (
     scan_file_for_malware
 )
 import os
+import zipfile
+import tempfile
+from io import BytesIO
 
 # Load security configuration
 SECURITY_CONFIG = load_security_config()
@@ -37,14 +40,16 @@ class FolderViewSet(viewsets.ModelViewSet):
             Q(owner=user) | Q(access_list__granted_to=user)
         ).distinct()
 
-        parent_id = self.request.query_params.get('parent')
-        if parent_id == 'null':
-            queryset = queryset.filter(parent__isnull=True)
-        elif parent_id:
-            queryset = queryset.filter(parent_id=parent_id)
-        else:
-            # Default to top-level folders owned or shared
-            queryset = queryset.filter(parent__isnull=True)
+        # Only apply parent filtering for list views, not for detail/retrieve views
+        if self.action in ['list', None]:  # None for default list action
+            parent_id = self.request.query_params.get('parent')
+            if parent_id == 'null':
+                queryset = queryset.filter(parent__isnull=True)
+            elif parent_id:
+                queryset = queryset.filter(parent_id=parent_id)
+            else:
+                # Default to top-level folders owned or shared
+                queryset = queryset.filter(parent__isnull=True)
 
         return queryset
         
@@ -111,6 +116,46 @@ class FolderViewSet(viewsets.ModelViewSet):
         if folder.owner_id == user.id:
             return True
         return folder.access_list.filter(granted_to=user).exists()
+
+    @action(detail=True, methods=['delete'])
+    def delete_folder(self, request, pk=None):
+        """Delete folder and all its contents recursively"""
+        folder = self.get_object()
+        
+        if folder.owner != request.user:
+            return Response({'error': 'unauthorized'}, status=status.HTTP_403_FORBIDDEN)
+        
+        try:
+            # Delete all files in this folder and subfolders recursively
+            self._delete_folder_contents(folder, request.user)
+            
+            # Delete the folder itself
+            folder.delete()
+            
+            return Response({'status': 'deleted', 'message': f'Carpeta "{folder.name}" y todo su contenido eliminados correctamente'})
+        except Exception as e:
+            print(f"Error deleting folder {folder.id}: {e}")
+            return Response({'error': 'Error al eliminar la carpeta'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    def _delete_folder_contents(self, folder, user):
+        """Recursively delete all files and subfolders in a folder"""
+        # Delete all files in this folder
+        files = FileTransfer.objects.filter(
+            folder=folder
+        ).filter(
+            Q(owner=user) | Q(uploader=user)
+        )
+        
+        for file in files:
+            if file.file and os.path.exists(file.file.path):
+                file.file.delete()  # Delete physical file
+            file.delete()  # Delete database record
+        
+        # Recursively delete subfolders
+        subfolders = Folder.objects.filter(parent=folder, owner=user)
+        for subfolder in subfolders:
+            self._delete_folder_contents(subfolder, user)  # Recursive call
+            subfolder.delete()  # Delete the subfolder
 
     @action(detail=True, methods=['get', 'post'], url_path='access')
     def manage_access(self, request, pk=None):
@@ -367,6 +412,106 @@ class FileTransferViewSet(viewsets.ModelViewSet):
             
         instance.save()
         return Response({'status': 'moved'})
+
+    @action(detail=False, methods=['post'], url_path='download_multiple')
+    def download_multiple(self, request):
+        """Download multiple files and folders as a ZIP"""
+        print("DOWNLOAD_MULTIPLE METHOD CALLED!")
+        
+        # Debug: log received data
+        print(f"DEBUG: request.data = {request.data}")
+        print(f"DEBUG: request.FILES = {request.FILES}")
+        
+        file_ids = request.data.getlist('file_ids[]', [])
+        folder_ids = request.data.getlist('folder_ids[]', [])
+        
+        print(f"DEBUG: file_ids = {file_ids}")
+        print(f"DEBUG: folder_ids = {folder_ids}")
+        
+        if not file_ids and not folder_ids:
+            return Response({'error': 'No files or folders specified'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Create a ZIP file in memory
+        zip_buffer = BytesIO()
+        
+        with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+            # Add files to ZIP
+            for file_id in file_ids:
+                try:
+                    file_transfer = FileTransfer.objects.filter(
+                        id=file_id
+                    ).filter(
+                        Q(owner=request.user) | Q(uploader=request.user) | Q(access_list__granted_to=request.user)
+                    ).first()
+                    
+                    if file_transfer and file_transfer.file and os.path.exists(file_transfer.file.path):
+                        # Add file to ZIP with original filename
+                        zip_file.write(
+                            file_transfer.file.path,
+                            os.path.basename(file_transfer.file.name)
+                        )
+                        print(f"Added file: {file_transfer.file.name}")
+                except Exception as e:
+                    print(f"Error adding file {file_id}: {e}")
+                    continue  # Skip files user doesn't have access to
+            
+            # Add folders to ZIP
+            for folder_id in folder_ids:
+                try:
+                    folder = Folder.objects.filter(
+                        id=folder_id
+                    ).filter(
+                        Q(owner=request.user) | Q(access_list__granted_to=request.user)
+                    ).first()
+                    if folder:
+                        # Add all files in this folder and subfolders
+                        self._add_folder_to_zip(zip_file, folder, request.user, '')
+                        print(f"Added folder: {folder.name}")
+                    
+                except Exception as e:
+                    print(f"Error adding folder {folder_id}: {e}")
+                    continue  # Skip folders user doesn't have access to
+        
+        zip_buffer.seek(0)
+        
+        # Create response with ZIP file
+        response = FileResponse(
+            zip_buffer,
+            as_attachment=True,
+            filename=f'archivos_seleccionados_{timezone.now().strftime("%Y%m%d_%H%M%S")}.zip'
+        )
+        response['Content-Type'] = 'application/zip'
+        
+        print(f"ZIP created successfully with {len(file_ids)} files and {len(folder_ids)} folders")
+        return response
+    
+    def _add_folder_to_zip(self, zip_file, folder, user, base_path):
+        """Recursively add folder contents to ZIP"""
+        folder_path = os.path.join(base_path, folder.name) if base_path else folder.name
+        
+        # Add files in this folder
+        files = FileTransfer.objects.filter(
+            folder=folder
+        ).filter(
+            Q(owner=user) | Q(uploader=user) | Q(access_list__granted_to=user)
+        )
+        
+        for file_transfer in files:
+            if file_transfer.file and os.path.exists(file_transfer.file.path):
+                zip_file.write(
+                    file_transfer.file.path,
+                    os.path.join(folder_path, os.path.basename(file_transfer.file.name))
+                )
+        
+        # Recursively add subfolders
+        subfolders = Folder.objects.filter(
+            parent=folder
+        ).filter(
+            Q(owner=user) | Q(access_list__granted_to=user)
+        )
+        
+        for subfolder in subfolders:
+            self._add_folder_to_zip(zip_file, subfolder, user, folder_path)
 
     def _has_file_access(self, user, instance: FileTransfer) -> bool:
         if user.is_anonymous:

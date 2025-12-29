@@ -522,7 +522,7 @@ export class ApiClientService {
 
     deleteFolder(id: number): Promise<any> {
         return new Promise((resolve, reject) => {
-            this.request(`/folders/${id}/`, 'DELETE').subscribe({
+            this.request(`/folders/${id}/delete_folder/`, 'DELETE').subscribe({
                 next: (data) => resolve(data),
                 error: (err) => reject(err)
             });
@@ -533,6 +533,18 @@ export class ApiClientService {
         return new Promise((resolve, reject) => {
             this.request<Blob>(`/folders/${id}/download/`, 'GET', {
                 responseType: 'blob'
+            }).subscribe({
+                next: (data) => resolve(data),
+                error: (err) => reject(err)
+            });
+        });
+    }
+
+    downloadMultiple(formData: FormData): Promise<Blob> {
+        return new Promise((resolve, reject) => {
+            this.http.post('/api/transfers/download_multiple/', formData, {
+                responseType: 'blob',
+                withCredentials: true
             }).subscribe({
                 next: (data) => resolve(data),
                 error: (err) => reject(err)
