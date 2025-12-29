@@ -17,22 +17,22 @@
 }
 
 /* Prevent initial layout shift */
-.incomingContent::before {
+/* .incomingContent::before {
     content: '';
     display: block;
     width: 0;
     height: 0;
-}
+} */
 
 /* Force immediate layout */
 .incomingContent > * {
     flex-shrink: 0 !important;
 }
 
-/* Ensure file and folder cards take full height */
+/* Ensure file and folder cards take consistent height */
 .fileCard,
 .folderCard {
-    height: 100%;
+    height: auto;
     min-height: 220px;
     display: flex;
     flex-direction: column;
@@ -73,6 +73,7 @@
     background: #121212;
     overflow: hidden;
     position: relative;
+    min-height: 140px;
     /* padding: 1rem; */
 }
 
@@ -2354,12 +2355,33 @@ p {
 }
 
 /* Mobile adaptations - Force 2 columns */
-.incomingContent {
+/* .incomingContent {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
     gap: 1.5rem;
     width: 100%;
+    align-items: start;
+} */
+
+
+/* File and folder cards - GRID LAYOUT */
+.incomingContent {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)) !important;
+    gap: 1.5rem !important;
+    padding: 1rem 0;
+    width: 100%;
+    box-sizing: border-box;
+    align-content: flex-start;
 }
+
+.incomingContent .fileCard,
+.incomingContent .folderCard {
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+}
+
 
 @media (max-width: 768px) {
     .incomingContent {
