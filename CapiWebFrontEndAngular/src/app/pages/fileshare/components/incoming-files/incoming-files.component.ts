@@ -1982,6 +1982,29 @@ export class IncomingFilesComponent implements OnInit {
         return this.scope() === 'sent';
     }
 
+    isShared(item: FileItem | Folder): boolean {
+        const currentUser = this.user();
+        if (!currentUser) return false;
+
+        // Para archivos (FileItem)
+        if ('filename' in item) {
+            const isOwner = item.owner_username ? item.owner_username === currentUser.username : false;
+            const hasExplicitAccess = !!item.has_access && !isOwner;
+            return hasExplicitAccess;
+        }
+        
+        // Para carpetas (Folder)
+        if ('name' in item) {
+            // Las carpetas están compartidas si tienen access_list y el usuario actual no es el owner
+            const isOwner = item.owner === (currentUser as any).id;
+            const hasAccessList = item.access_list && item.access_list.length > 0;
+            const hasExplicitAccess = hasAccessList ? !isOwner : false;
+            return hasExplicitAccess;
+        }
+        
+        return false;
+    }
+
     private normalizeFolderResponse(data: any): Folder[] {
         if (Array.isArray(data)) {
             return data;

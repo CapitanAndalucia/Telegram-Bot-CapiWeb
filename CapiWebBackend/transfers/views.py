@@ -51,7 +51,10 @@ class FolderViewSet(viewsets.ModelViewSet):
                 # Solo los archivos pueden ser 'enviados'. Retornar vacío para carpetas.
                 queryset = queryset.none()
             else:  # 'mine' or default
-                queryset = queryset.filter(owner=user)
+                # Mi unidad: mostrar todas las carpetas relacionadas con el usuario
+                # (propias y compartidas con él)
+                # El get_queryset() ya filtra por owner y accesos
+                pass
             
             # Only apply parent filtering for list views, not for detail/retrieve views
             parent_id = self.request.query_params.get('parent')
@@ -254,7 +257,10 @@ class FileTransferViewSet(viewsets.ModelViewSet):
             # Archivos que otros usuarios han enviado al usuario actual
             queryset = queryset.filter(uploader__in=User.objects.exclude(id=user.id), owner=user)
         else:
-            queryset = queryset.filter(owner=user)
+            # Mi unidad: mostrar todos los archivos relacionados con el usuario
+            # (propios, compartidos con él, y enviados a él)
+            # El get_queryset() ya filtra por owner, uploader, y accesos
+            pass
 
         folder_id = request.query_params.get('folder')
         if folder_id == 'null':

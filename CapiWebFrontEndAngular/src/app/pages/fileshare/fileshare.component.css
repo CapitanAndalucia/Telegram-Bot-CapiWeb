@@ -2715,3 +2715,23 @@ p {
     }
 }
 
+/* Estilos para elementos compartidos */
+.fileCard.shared,
+.folderCard.shared {
+    border-color: #4CAF50;
+    background: linear-gradient(135deg, rgba(76, 175, 80, 0.1), rgba(76, 175, 80, 0.05));
+}
+
+.fileCard.shared .cardName,
+.folderCard.shared .cardName {
+    color: #4CAF50;
+    font-weight: 500;
+}
+
+.fileCard.shared:hover,
+.folderCard.shared:hover {
+    border-color: #66BB6A;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.2);
+}
+
