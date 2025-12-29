@@ -38,7 +38,7 @@ class FolderViewSet(viewsets.ModelViewSet):
         user = self.request.user
         queryset = Folder.objects.filter(
             Q(owner=user) | Q(access_list__granted_to=user)
-        ).distinct()
+        ).prefetch_related('access_list').distinct()
 
         # Apply scope filtering for list views
         if self.action in ['list', None]:  # None for default list action
@@ -318,7 +318,7 @@ class FileTransferViewSet(viewsets.ModelViewSet):
             | Q(uploader=user)
             | Q(access_list__granted_to=user)
             | Q(folder__access_list__granted_to=user)
-        ).order_by('-created_at').distinct()
+        ).prefetch_related('access_list').order_by('-created_at').distinct()
 
     def update(self, request, *args, **kwargs):
         """Override update to check permissions for renaming files"""

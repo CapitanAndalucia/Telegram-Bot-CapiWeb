@@ -2019,17 +2019,39 @@ export class IncomingFilesComponent implements OnInit {
         // Para archivos (FileItem)
         if ('filename' in item) {
             const isOwner = item.owner_username ? item.owner_username === currentUser.username : false;
-            const hasExplicitAccess = !!item.has_access && !isOwner;
-            return hasExplicitAccess;
+            // Un archivo está compartido si tiene access_list con otros usuarios
+            // (independientemente de si el usuario actual es el owner)
+            const hasAccessList = item.access_list && item.access_list.length > 0;
+            
+            // Debug temporal
+            console.log('File isShared check:', {
+                filename: item.filename,
+                isOwner,
+                hasAccessList,
+                accessListLength: item.access_list?.length || 0,
+                accessList: item.access_list,
+                result: hasAccessList // Ahora solo depende de si tiene access_list
+            });
+            
+            return !!hasAccessList;
         }
         
         // Para carpetas (Folder)
         if ('name' in item) {
-            // Las carpetas están compartidas si tienen access_list y el usuario actual no es el owner
-            const isOwner = item.owner === (currentUser as any).id;
+            // Una carpeta está compartida si tiene access_list con otros usuarios
+            // (independientemente de si el usuario actual es el owner)
             const hasAccessList = item.access_list && item.access_list.length > 0;
-            const hasExplicitAccess = hasAccessList ? !isOwner : false;
-            return hasExplicitAccess;
+            
+            // Debug temporal
+            console.log('Folder isShared check:', {
+                name: item.name,
+                hasAccessList,
+                accessListLength: item.access_list?.length || 0,
+                accessList: item.access_list,
+                result: hasAccessList
+            });
+            
+            return !!hasAccessList;
         }
         
         return false;
