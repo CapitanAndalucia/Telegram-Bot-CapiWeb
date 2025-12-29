@@ -47,9 +47,9 @@ class FolderViewSet(viewsets.ModelViewSet):
             if scope == 'shared':
                 queryset = queryset.filter(access_list__granted_to=user).exclude(owner=user)
             elif scope == 'sent':
-                # For folders, 'sent' scope doesn't make much sense since folders are owned
-                # We'll interpret it as folders owned by user (same as 'mine')
-                queryset = queryset.filter(owner=user)
+                # Para carpetas, el scope 'sent' no aplica porque las carpetas no tienen uploader
+                # Solo los archivos pueden ser 'enviados'. Retornar vacío para carpetas.
+                queryset = queryset.none()
             else:  # 'mine' or default
                 queryset = queryset.filter(owner=user)
             
@@ -251,7 +251,8 @@ class FileTransferViewSet(viewsets.ModelViewSet):
                 | Q(folder__access_list__granted_to=user)
             )
         elif scope == 'sent':
-            queryset = queryset.filter(uploader=user).exclude(owner=user)
+            # Archivos que otros usuarios han enviado al usuario actual
+            queryset = queryset.filter(uploader__in=User.objects.exclude(id=user.id), owner=user)
         else:
             queryset = queryset.filter(owner=user)
 
