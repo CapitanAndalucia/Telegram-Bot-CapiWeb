@@ -224,9 +224,6 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
 
         try {
             await Promise.all([this.fetchFiles(), this.fetchFolders()]);
-
-            // Iniciar carga de imágenes después de cargar los archivos
-            this.initializeImageLoading();
         } finally {
             this.loading.set(false);
             this.isNavigating.set(false);
@@ -269,9 +266,9 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
             const data = await this.apiClient.listFiles(folderId, this.scope());
 
             if (data && data.results && Array.isArray(data.results)) {
-                this.files.set(data.results);
+                this.setFilesWithLoadingState(data.results);
             } else if (Array.isArray(data)) {
-                this.files.set(data);
+                this.setFilesWithLoadingState(data);
             } else {
                 this.files.set([]);
             }
@@ -279,6 +276,16 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
             console.error('Error fetching files', error);
             this.files.set([]);
         }
+    }
+
+
+    private setFilesWithLoadingState(files: FileItem[]): void {
+        const imageIds = files
+            .filter(f => this.isImage(f.filename))
+            .map(f => f.id);
+
+        this.loadingImages.set(new Set(imageIds));
+        this.files.set(files);
     }
 
     async fetchFolders(): Promise<void> {
@@ -1760,31 +1767,6 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
         return `/api/transfers/${fileId}/download/`;
     }
 
-    private initializeImageLoading(): void {
-        // Iniciar carga de todas las imágenes de archivos
-        const files = this.files();
-        const imageFiles = files.filter(file => this.isImage(file.filename));
-
-        // Iniciar carga asíncronamente para no bloquear el renderizado
-        setTimeout(() => {
-            imageFiles.forEach(file => {
-                if (!this.loadingImages().has(file.id)) {
-                    this.startImageLoad(file.id);
-                }
-            });
-        }, 0);
-    }
-
-    startImageLoad(fileId: number): void {
-        const currentLoading = new Set(this.loadingImages());
-        currentLoading.add(fileId);
-        this.loadingImages.set(currentLoading);
-    }
-
-    onImageLoadStart(fileId: number): void {
-        // Este método se llama cuando la imagen empieza a cargar
-        // El estado de carga ya fue iniciado por initializeImageLoading
-    }
 
     onImageLoad(fileId: number): void {
         const currentLoading = new Set(this.loadingImages());
