@@ -1,4 +1,4 @@
-import { Component, signal, computed, effect, inject, ChangeDetectorRef, HostListener, OnInit, input, output, untracked } from '@angular/core';
+import { Component, signal, computed, effect, inject, ChangeDetectorRef, HostListener, OnInit, input, output, untracked, OnDestroy } from '@angular/core';
 import { UploadService } from '../../../../shared/services/upload.service';
 import { CommonModule } from '@angular/common';
 import { ApiClientService } from '../../../../services/api-client.service';
@@ -9,7 +9,7 @@ import { FileItem, Folder } from '../../../../models/file-item.model';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../../../shared/dialogs/confirm-dialog/confirm-dialog.component';
 import { InputDialogComponent, InputDialogData } from '../../../../shared/dialogs/input-dialog/input-dialog.component';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, Subscription } from 'rxjs';
 
 interface User {
     username: string;
@@ -52,7 +52,7 @@ interface SortConfig {
     templateUrl: './incoming-files.component.html',
     styleUrls: ['../../fileshare.component.css'],
 })
-export class IncomingFilesComponent implements OnInit {
+export class IncomingFilesComponent implements OnInit, OnDestroy {
     // Inputs
     user = input.required<User | null>();
     refreshTrigger = input<number>(0);
@@ -100,6 +100,8 @@ export class IncomingFilesComponent implements OnInit {
     hoveredBreadcrumbKey = signal<string | null>(null);
     // Image loading state
     loadingImages = signal<Set<number>>(new Set());
+    // Upload completion subscription
+    private uploadCompletedSubscription: Subscription | null = null;
     animateList = signal(false);
     isSortMenuOpen = signal(false);
 
@@ -160,6 +162,12 @@ export class IncomingFilesComponent implements OnInit {
             }
         });
 
+        // Suscribirse al evento de completado de subidas
+        this.uploadCompletedSubscription = this.uploadService.allUploadsCompleted$.subscribe(() => {
+            // Mostrar spinner y recargar contenido después de que todas las subidas terminen
+            void this.refreshContentWithSpinner();
+        });
+
         // Scope effect
         effect(() => {
             const currentScope = this.scope();
@@ -210,6 +218,20 @@ export class IncomingFilesComponent implements OnInit {
         } finally {
             this.loading.set(false);
             this.isNavigating.set(false);
+        }
+    }
+
+    async refreshContentWithSpinner(): Promise<void> {
+        // Mostrar spinner por 500ms como solicitaste
+        this.loading.set(true);
+        
+        try {
+            await Promise.all([this.fetchFiles(), this.fetchFolders()]);
+            
+            // Esperar adicional para asegurar los 500ms de visualización del spinner
+            await new Promise(resolve => setTimeout(resolve, 500));
+        } finally {
+            this.loading.set(false);
         }
     }
 
@@ -1491,10 +1513,8 @@ export class IncomingFilesComponent implements OnInit {
         
         this.uploadService.uploadFiles(files);
         
-        // Refrescar el contenido después de un tiempo para mostrar los archivos subidos
-        setTimeout(() => {
-            void this.refreshContent();
-        }, 1000);
+        // El refresco ahora se maneja automáticamente cuando todas las subidas se completan
+        // a través de la suscripción a allUploadsCompleted$
     }
 
     async handleSingleUpload(file: File): Promise<void> {
@@ -2359,6 +2379,13 @@ export class IncomingFilesComponent implements OnInit {
             }).catch((error) => {
                 console.error('Error en carga por lotes:', error);
             });
+        }
+    }
+
+    ngOnDestroy(): void {
+        // Limpiar la suscripción para evitar memory leaks
+        if (this.uploadCompletedSubscription) {
+            this.uploadCompletedSubscription.unsubscribe();
         }
     }
 }

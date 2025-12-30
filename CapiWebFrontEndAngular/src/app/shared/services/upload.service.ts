@@ -36,6 +36,11 @@ export class UploadService {
   });
 
   public uploadState$ = this.uploadStateSubject.asObservable();
+  
+  // Nuevo: Subject para notificar cuando todas las subidas se completan
+  private allUploadsCompletedSubject = new BehaviorSubject<void>(undefined);
+  public allUploadsCompleted$ = this.allUploadsCompletedSubject.asObservable();
+  
   private originalScrollY = 0;
 
   constructor(private apiClient: ApiClientService) {
@@ -273,6 +278,9 @@ export class UploadService {
     if (allDone) {
       // Restaurar posición del scroll
       this.restoreScrollPosition();
+      
+      // Notificar que todas las subidas se completaron
+      this.allUploadsCompletedSubject.next();
       
       // Auto-ocultar después de 3 segundos
       setTimeout(() => this.hideUploadWidget(), 3000);
