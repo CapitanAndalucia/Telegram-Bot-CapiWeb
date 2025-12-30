@@ -342,8 +342,10 @@ export class ApiClientService {
 
             xhr.upload.addEventListener('progress', (e) => {
                 if (e.lengthComputable && onProgress) {
-                    const progress = Math.round((e.loaded / e.total) * 100);
-                    onProgress(progress);
+                    onProgress({
+                        loaded: e.loaded,
+                        total: e.total
+                    });
                 }
             });
 

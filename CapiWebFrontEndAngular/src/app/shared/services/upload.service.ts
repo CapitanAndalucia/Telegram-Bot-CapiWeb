@@ -236,21 +236,30 @@ export class UploadService {
   private calculateOverallProgress(tasks: UploadTask[]): number {
     if (tasks.length === 0) return 0;
     
-    // Calcular progreso basado en archivos completados + progreso de los que están subiendo
-    const completedTasks = tasks.filter(task => task.status === 'completed');
-    const uploadingTasks = tasks.filter(task => task.status === 'uploading');
-    
-    // Progreso de archivos completados (100% cada uno)
-    const completedProgress = completedTasks.length * 100;
-    
-    // Progreso de los archivos que se están subiendo actualmente
-    const uploadingProgress = uploadingTasks.reduce((sum, task) => sum + task.progress, 0);
-    
-    // Progreso total
-    const totalProgress = completedProgress + uploadingProgress;
+    // Calcular progreso basado en todos los archivos
+    const totalProgress = tasks.reduce((sum, task) => {
+      let taskProgress = 0;
+      
+      switch (task.status) {
+        case 'completed':
+          taskProgress = 100;
+          break;
+        case 'uploading':
+          taskProgress = task.progress;
+          break;
+        case 'pending':
+          taskProgress = 0;
+          break;
+        case 'error':
+          taskProgress = 0; // Los errores no cuentan para el progreso
+          break;
+      }
+      
+      return sum + taskProgress;
+    }, 0);
     
     // Calcular porcentaje sobre el total de archivos
-    const overallPercentage = (totalProgress / tasks.length);
+    const overallPercentage = totalProgress / tasks.length;
     
     return Math.min(Math.round(overallPercentage), 100);
   }
