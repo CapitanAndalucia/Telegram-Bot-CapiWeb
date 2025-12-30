@@ -38,7 +38,7 @@ class FolderViewSet(viewsets.ModelViewSet):
         user = self.request.user
         queryset = Folder.objects.filter(
             Q(owner=user) | Q(access_list__granted_to=user)
-        ).prefetch_related('access_list').distinct()
+        ).select_related('owner', 'uploader').prefetch_related('access_list').distinct()
 
         # Apply scope filtering for list views
         if self.action in ['list', None]:  # None for default list action
@@ -69,7 +69,28 @@ class FolderViewSet(viewsets.ModelViewSet):
         return queryset
         
     def perform_create(self, serializer):
-        serializer.save(owner=self.request.user)
+        """
+        Handle folder creation with inheritance of ownership and access
+        """
+        folder_data = serializer.validated_data
+        parent_folder = folder_data.get('parent')
+        
+        # Determine the owner based on parent folder
+        if parent_folder:
+            # If creating inside a shared folder, use the parent's owner
+            owner = parent_folder.owner
+            uploader = self.request.user
+        else:
+            # If creating at root level, creator is both owner and uploader
+            owner = self.request.user
+            uploader = self.request.user
+        
+        # Save with proper ownership
+        instance = serializer.save(owner=owner, uploader=uploader)
+        
+        # If created inside a shared folder, inherit access
+        if parent_folder:
+            self._inherit_folder_access(instance, parent_folder)
 
     def _get_folder_permission(self, user, folder: Folder) -> str:
         """Get the permission level for a user on a folder"""
@@ -341,6 +362,40 @@ class FolderViewSet(viewsets.ModelViewSet):
                 }
             )
 
+    def _inherit_folder_access(self, new_folder, parent_folder):
+        """
+        Hereda los accesos de la carpeta padre a la nueva carpeta
+        """
+        parent_accesses = FolderAccess.objects.filter(folder=parent_folder)
+        
+        for access in parent_accesses:
+            FolderAccess.objects.update_or_create(
+                folder=new_folder,
+                granted_to=access.granted_to,
+                defaults={
+                    'granted_by': access.granted_by,
+                    'permission': access.permission,
+                    'expires_at': access.expires_at
+                }
+            )
+
+    def _inherit_file_access(self, new_file, parent_folder):
+        """
+        Hereda los accesos de la carpeta padre al nuevo archivo
+        """
+        folder_accesses = FolderAccess.objects.filter(folder=parent_folder)
+        
+        for access in folder_accesses:
+            FileAccess.objects.update_or_create(
+                file=new_file,
+                granted_to=access.granted_to,
+                defaults={
+                    'granted_by': access.granted_by,
+                    'permission': access.permission,
+                    'expires_at': access.expires_at
+                }
+            )
+
 class FileTransferViewSet(viewsets.ModelViewSet):
     serializer_class = FileTransferSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -453,19 +508,46 @@ class FileTransferViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         """
         Set the sender to the current user and expires_at to 3 days from now
+        Handle inheritance of ownership and access for files in shared folders
         """
         # Sólo usuarios staff pueden subir archivos
         if not getattr(self.request.user, 'is_staff', False):
             from rest_framework.exceptions import PermissionDenied
             raise PermissionDenied('Solo usuarios staff pueden subir archivos.')
+        
         # Get file size from request
         file_obj = self.request.FILES.get('file')
         if file_obj:
             # Check rate limit before saving
             self.check_rate_limit(self.request.user, file_obj.size)
         
-        # Save the file
-        instance = serializer.save(expires_at=timezone.now() + timedelta(days=3))
+        # Determine ownership based on parent folder
+        folder = serializer.validated_data.get('folder')
+        received_owner = serializer.validated_data.get('owner')
+        
+        if received_owner:
+            # Use owner sent from frontend
+            owner = User.objects.get(id=received_owner.id)
+            uploader = self.request.user
+        elif folder:
+            # If uploading to a shared folder, use the folder's owner
+            owner = folder.owner
+            uploader = self.request.user
+        else:
+            # If uploading to root, uploader is both owner and uploader
+            owner = self.request.user
+            uploader = self.request.user
+        
+        # Save the file with proper ownership
+        instance = serializer.save(
+            owner=owner,
+            uploader=uploader,
+            expires_at=timezone.now() + timedelta(days=3)
+        )
+        
+        # If uploaded to a shared folder, inherit access
+        if folder:
+            self._inherit_file_access(instance, folder)
         
         # Scan file for malware
         if file_obj and hasattr(instance.file, 'path'):
@@ -795,3 +877,20 @@ class FileTransferViewSet(viewsets.ModelViewSet):
 
         serializer = FileAccessSerializer(access)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    def _inherit_file_access(self, new_file, parent_folder):
+        """
+        Hereda los accesos de la carpeta padre al nuevo archivo
+        """
+        folder_accesses = FolderAccess.objects.filter(folder=parent_folder)
+        
+        for access in folder_accesses:
+            FileAccess.objects.update_or_create(
+                file=new_file,
+                granted_to=access.granted_to,
+                defaults={
+                    'granted_by': access.granted_by,
+                    'permission': access.permission,
+                    'expires_at': access.expires_at
+                }
+            )

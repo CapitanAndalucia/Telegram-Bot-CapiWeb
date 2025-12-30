@@ -162,7 +162,6 @@ export class IncomingFilesComponent implements OnInit {
         effect(() => {
             const currentScope = this.scope();
             untracked(() => {
-                console.log('Scope changed to:', currentScope);
                 this.clearSelection();
                 this.currentFolder.set(null);
                 this.resetBreadcrumbs();
@@ -222,7 +221,6 @@ export class IncomingFilesComponent implements OnInit {
     private async simulateLatency(): Promise<void> {
         if (!this.SIMULATE_LATENCY) return;
         const delay = Math.floor(Math.random() * (this.MAX_LATENCY_MS - this.MIN_LATENCY_MS + 1)) + this.MIN_LATENCY_MS;
-        console.log(`[DEV] Simulating latency: ${delay}ms`);
         await new Promise(resolve => setTimeout(resolve, delay));
     }
     // ============================================================
@@ -269,7 +267,6 @@ export class IncomingFilesComponent implements OnInit {
         }
         this.lastNavigationTarget = targetId;
         this.lastNavigationTime = now;
-        console.log('navigateToFolder called for:', folder?.name);
 
         // Start navigation mode - clear data immediately to prevent "flash" of old content
         this.isNavigating.set(true);
@@ -1450,7 +1447,8 @@ export class IncomingFilesComponent implements OnInit {
         // Establecer contexto de subida
         this.uploadService.setUploadContext(
             this.user()!.username,
-            this.currentFolder()?.id
+            this.currentFolder()?.id,
+            this.currentFolder()?.owner
         );
         
         this.uploadService.uploadFiles(files);
@@ -1472,6 +1470,10 @@ export class IncomingFilesComponent implements OnInit {
 
             if (this.currentFolder()) {
                 formData.append('folder', this.currentFolder()!.id.toString());
+                // Enviar el owner de la carpeta para herencia de propiedad
+                if (this.currentFolder()!.owner) {
+                    formData.append('owner', this.currentFolder()!.owner.toString());
+                }
             }
 
             await this.apiClient.uploadFile(formData, (progressEvent: any) => {
@@ -2049,7 +2051,6 @@ export class IncomingFilesComponent implements OnInit {
 
     private resetBreadcrumbs(): void {
         const rootLabel = this.getScopeRootLabel();
-        console.log('Resetting breadcrumbs to root:', rootLabel);
         this.breadcrumbs.set([{ id: null, name: rootLabel, folder: null }]);
     }
 

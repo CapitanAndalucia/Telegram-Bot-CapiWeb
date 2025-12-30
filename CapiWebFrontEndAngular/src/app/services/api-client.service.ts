@@ -23,66 +23,48 @@ export class ApiClientService {
     private buildUrl(path: string, params?: Record<string, any>): string {
         const normalizedPath = path.startsWith('/') ? path : `/${path}`;
         const baseUrl = this.baseUrl;
-        // console.log(`[ApiClient] buildUrl - baseUrl: ${baseUrl}, path: ${normalizedPath}`);
         
         if (!params || Object.keys(params).length === 0) {
             const finalUrl = `${baseUrl}${normalizedPath}`;
-            // console.log(`[ApiClient] buildUrl - final URL (no params): ${finalUrl}`);
             return finalUrl;
         }
 
-        let httpParams = new HttpParams();
-        Object.entries(params).forEach(([key, value]) => {
-            if (value === undefined || value === null || value === '') return;
-            if (Array.isArray(value)) {
-                value.forEach(v => httpParams = httpParams.append(key, v));
-            } else {
-                httpParams = httpParams.append(key, value);
-            }
-        });
+        const httpParams = new HttpParams({ fromObject: params });
         const query = httpParams.toString();
         const finalUrl = query ? `${baseUrl}${normalizedPath}?${query}` : `${baseUrl}${normalizedPath}`;
-        // console.log(`[ApiClient] buildUrl - final URL (with params): ${finalUrl}`);
         return finalUrl;
     }
 
     private handleError(error: HttpErrorResponse): Observable<never> {
-        // console.log(`[ApiClient] handleError called with:`, {
-        //     status: error.status,
-        //     statusText: error.statusText,
-        //     error: error.error,
-        //     url: error.url
-        // });
-        
-        let message = 'Error en la solicitud';
+        let errorMessage = 'An unknown error occurred';
         
         if (error.status === 0) {
-            message = 'Error de conexión o el servidor no responde';
+            errorMessage = 'Error de conexión o el servidor no responde';
         } else if (error.status === 500) {
-            message = 'Error interno del servidor';
+            errorMessage = 'Error interno del servidor';
             if (error.error && typeof error.error === 'string') {
-                message = error.error;
+                errorMessage = error.error;
             } else if (error.error?.error) {
-                message = error.error.error;
+                errorMessage = error.error.error;
             }
         } else if (error.status === 403) {
             // Handle specific permission errors
             if (error.error?.error === 'insufficient_permissions') {
-                message = error.error?.message || 'No tienes permisos suficientes para realizar esta acción';
+                errorMessage = error.error?.message || 'No tienes permisos suficientes para realizar esta acción';
             } else if (error.error?.error === 'cannot_remove_original') {
-                message = error.error?.message || 'No puedes eliminar al usuario original que compartió este archivo';
+                errorMessage = error.error?.message || 'No puedes eliminar al usuario original que compartió este archivo';
             } else if (error.error?.error) {
-                message = error.error.error;
+                errorMessage = error.error.error;
             } else {
-                message = 'No tienes permisos para realizar esta acción';
+                errorMessage = 'No tienes permisos para realizar esta acción';
             }
         } else if (error.error?.error) {
-            message = error.error.error;
+            errorMessage = error.error.error;
         } else if (error.statusText) {
-            message = error.statusText;
+            errorMessage = error.statusText;
         }
         
-        return throwError(() => new ApiError(message, error.status, error.error));
+        return throwError(() => new ApiError(errorMessage, error.status, error.error));
     }
 
     private request<T>(
@@ -97,8 +79,6 @@ export class ApiClientService {
         } = {}
     ): Observable<T> {
         const url = this.buildUrl(path, options.params);
-        // console.log(`[ApiClient] Request: ${method} ${url}`);
-        // console.log(`[ApiClient] Request options:`, options);
         
         const silent = options.silent || false;
         const httpOptions: any = {
@@ -415,21 +395,13 @@ export class ApiClientService {
     }
 
     deleteFile(id: number): Promise<any> {
-        // console.log(`[ApiClient] deleteFile called with ID: ${id}`);
-        // console.log(`[ApiClient] deleteFile - starting function`);
         return new Promise((resolve, reject) => {
-            // console.log(`[ApiClient] deleteFile - about to call request`);
             this.request(`/transfers/${id}/delete_file/`, 'DELETE').subscribe({
                 next: (data) => {
-                    // console.log(`[ApiClient] deleteFile SUCCESS for ID ${id}:`, data);
                     // Para DELETE, usualmente esperamos respuesta vacía o success
                     resolve(data || { success: true });
                 },
                 error: (err) => {
-                    console.error(`[ApiClient] deleteFile ERROR for ID ${id}:`, err);
-                    // console.error(`[ApiClient] Error status:`, err.status);
-                    // console.error(`[ApiClient] Error message:`, err.message);
-                    // console.error(`[ApiClient] Error error:`, err.error);
                     reject(err);
                 }
             });

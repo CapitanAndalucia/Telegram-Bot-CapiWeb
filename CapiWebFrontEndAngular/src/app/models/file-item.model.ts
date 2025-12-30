@@ -18,6 +18,8 @@ export interface Folder {
     name: string;
     owner: number;
     owner_username?: string;
+    uploader?: number;
+    uploader_username?: string;
     parent: number | null;
     created_at: string;
     access_list?: FolderAccess[];

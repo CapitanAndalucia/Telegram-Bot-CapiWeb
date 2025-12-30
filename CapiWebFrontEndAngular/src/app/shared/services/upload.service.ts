@@ -19,6 +19,7 @@ export interface UploadState {
   overallProgress: number;
   currentUser?: string;
   currentFolder?: number;
+  currentFolderOwner?: number;
 }
 
 @Injectable({
@@ -47,12 +48,13 @@ export class UploadService {
   }
 
   // Método para establecer el contexto de subida
-  setUploadContext(username: string, folderId?: number): void {
+  setUploadContext(username: string, folderId?: number, folderOwnerId?: number): void {
     const currentState = this.uploadStateSubject.value;
     this.uploadStateSubject.next({
       ...currentState,
       currentUser: username,
-      currentFolder: folderId
+      currentFolder: folderId,
+      currentFolderOwner: folderOwnerId
     });
   }
 
@@ -98,6 +100,11 @@ export class UploadService {
 
       if (currentState.currentFolder) {
         formData.append('folder', currentState.currentFolder.toString());
+        
+        // Enviar el owner de la carpeta para herencia de propiedad
+        if (currentState.currentFolderOwner) {
+          formData.append('owner', currentState.currentFolderOwner.toString());
+        }
       }
 
       await this.apiClient.uploadFile(formData, (progressEvent: any) => {

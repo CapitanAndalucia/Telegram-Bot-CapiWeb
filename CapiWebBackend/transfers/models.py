@@ -9,7 +9,8 @@ def file_upload_path(instance, filename):
 
 class Folder(models.Model):
     name = models.CharField(max_length=255)
-    owner = models.ForeignKey(User, on_delete=models.CASCADE)
+    owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='owned_folders')
+    uploader = models.ForeignKey(User, on_delete=models.CASCADE, related_name='uploaded_folders', null=True, blank=True)
     parent = models.ForeignKey('self', null=True, blank=True, on_delete=models.CASCADE, related_name='subfolders')
     created_at = models.DateTimeField(auto_now_add=True)
     

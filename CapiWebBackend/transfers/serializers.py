@@ -107,11 +107,12 @@ class FolderAccessSerializer(serializers.ModelSerializer):
 class FolderSerializer(serializers.ModelSerializer):
     access_list = FolderAccessSerializer(many=True, read_only=True)
     owner_username = serializers.ReadOnlyField(source='owner.username')
+    uploader_username = serializers.ReadOnlyField(source='uploader.username')
 
     class Meta:
         model = Folder
-        fields = ['id', 'name', 'owner', 'owner_username', 'parent', 'created_at', 'access_list']
-        read_only_fields = ['owner', 'owner_username', 'created_at', 'access_list']
+        fields = ['id', 'name', 'owner', 'owner_username', 'uploader', 'uploader_username', 'parent', 'created_at', 'access_list']
+        read_only_fields = ['owner', 'owner_username', 'uploader', 'uploader_username', 'created_at', 'access_list']
         
     def create(self, validated_data):
         validated_data['owner'] = self.context['request'].user
@@ -141,6 +142,7 @@ class FileTransferSerializer(serializers.ModelSerializer):
     folder = serializers.PrimaryKeyRelatedField(queryset=Folder.objects.all(), required=False, allow_null=True)
     access_list = FileAccessSerializer(many=True, read_only=True)
     has_access = serializers.SerializerMethodField()
+    owner = serializers.PrimaryKeyRelatedField(queryset=User.objects.all(), required=False)
 
     class Meta:
         model = FileTransfer
@@ -151,7 +153,7 @@ class FileTransferSerializer(serializers.ModelSerializer):
             'has_executables', 'executable_files', 'access_list', 'has_access'
         ]
         read_only_fields = [
-            'uploader', 'uploader_username', 'owner', 'owner_username', 'size',
+            'uploader', 'uploader_username', 'owner_username', 'size',
             'filename', 'created_at', 'is_downloaded', 'is_viewed',
             'has_executables', 'executable_files', 'access_list', 'has_access'
         ]
@@ -176,7 +178,11 @@ class FileTransferSerializer(serializers.ModelSerializer):
         request = self.context['request']
         user = request.user
 
-        if recipient_username:
+        # Check if owner is already set (from folder inheritance)
+        if 'owner' in validated_data:
+            # Owner already set by perform_create (folder inheritance)
+            owner = validated_data['owner']
+        elif recipient_username:
             try:
                 owner = User.objects.get(username=recipient_username)
             except User.DoesNotExist:
@@ -187,8 +193,8 @@ class FileTransferSerializer(serializers.ModelSerializer):
         validated_data['owner'] = owner
         validated_data['uploader'] = user
 
-        if owner != user:
-            # Uploading to someone else: ensure folder belongs to target user
+        if owner != user and recipient_username and not validated_data.get('folder'):
+            # Uploading to someone else (direct upload, not to folder): ensure folder belongs to target user
             validated_data['folder'] = None
 
         file_obj = validated_data.get('file')
