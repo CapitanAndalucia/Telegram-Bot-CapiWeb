@@ -226,7 +226,8 @@
                                 class="fileImage" 
                                 (loadstart)="onImageLoadStart(file.id)"
                                 (load)="onImageLoad(file.id)"
-                                (error)="onImageError(file.id)" />
+                                (error)="onImageError(file.id)"
+                                [style.display]="isImageLoading(file.id) ? 'none' : 'block'" />
                             @if (isImageLoading(file.id)) {
                             <div class="imageLoadingSpinner">
                                 <div class="spinner"></div>

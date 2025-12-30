@@ -215,6 +215,9 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
 
         try {
             await Promise.all([this.fetchFiles(), this.fetchFolders()]);
+            
+            // Iniciar carga de imágenes después de cargar los archivos
+            this.initializeImageLoading();
         } finally {
             this.loading.set(false);
             this.isNavigating.set(false);
@@ -1756,10 +1759,30 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
         return `/api/transfers/${fileId}/download/`;
     }
 
-    onImageLoadStart(fileId: number): void {
+    private initializeImageLoading(): void {
+        // Iniciar carga de todas las imágenes de archivos
+        const files = this.files();
+        const imageFiles = files.filter(file => this.isImage(file.filename));
+        
+        // Iniciar carga asíncronamente para no bloquear el renderizado
+        setTimeout(() => {
+            imageFiles.forEach(file => {
+                if (!this.loadingImages().has(file.id)) {
+                    this.startImageLoad(file.id);
+                }
+            });
+        }, 0);
+    }
+
+    startImageLoad(fileId: number): void {
         const currentLoading = new Set(this.loadingImages());
         currentLoading.add(fileId);
         this.loadingImages.set(currentLoading);
+    }
+
+    onImageLoadStart(fileId: number): void {
+        // Este método se llama cuando la imagen empieza a cargar
+        // El estado de carga ya fue iniciado por initializeImageLoading
     }
 
     onImageLoad(fileId: number): void {
