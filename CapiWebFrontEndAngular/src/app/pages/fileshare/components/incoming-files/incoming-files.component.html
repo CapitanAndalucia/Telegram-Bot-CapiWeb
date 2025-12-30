@@ -220,9 +220,23 @@
 
                     <!-- New Phase: Preview Body -->
                     <div class="previewContainer">
-                        <img *ngIf="isImage(file.filename)" [src]="getFileUrl(file.id)" [alt]="file.filename"
-                            class="fileImage" />
-                        <div *ngIf="!isImage(file.filename)" class="fileIconPlaceholder">📄</div>
+                        @if (isImage(file.filename)) {
+                        <div class="imageWrapper">
+                            <img [src]="getFileUrl(file.id)" [alt]="file.filename"
+                                class="fileImage" 
+                                (loadstart)="onImageLoadStart(file.id)"
+                                (load)="onImageLoad(file.id)"
+                                (error)="onImageError(file.id)" />
+                            @if (isImageLoading(file.id)) {
+                            <div class="imageLoadingSpinner">
+                                <div class="spinner"></div>
+                                <span class="loadingText">Cargando...</span>
+                            </div>
+                            }
+                        </div>
+                        } @else {
+                        <div class="fileIconPlaceholder">📄</div>
+                        }
                     </div>
 
                     <!-- List View Fallback (keep existing logic for list mode) -->

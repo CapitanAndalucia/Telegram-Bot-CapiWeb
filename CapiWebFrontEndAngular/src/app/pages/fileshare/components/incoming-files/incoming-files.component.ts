@@ -98,6 +98,8 @@ export class IncomingFilesComponent implements OnInit {
     moveTargetFile = signal<FileItem | Folder | null>(null);
     hoveredFolderId = signal<number | null>(null);
     hoveredBreadcrumbKey = signal<string | null>(null);
+    // Image loading state
+    loadingImages = signal<Set<number>>(new Set());
     animateList = signal(false);
     isSortMenuOpen = signal(false);
 
@@ -1692,6 +1694,28 @@ export class IncomingFilesComponent implements OnInit {
     getFileUrl(fileId: number): string {
         // Use a relative URL so the browser resolves host/origin correctly.
         return `/api/transfers/${fileId}/download/`;
+    }
+
+    onImageLoadStart(fileId: number): void {
+        const currentLoading = new Set(this.loadingImages());
+        currentLoading.add(fileId);
+        this.loadingImages.set(currentLoading);
+    }
+
+    onImageLoad(fileId: number): void {
+        const currentLoading = new Set(this.loadingImages());
+        currentLoading.delete(fileId);
+        this.loadingImages.set(currentLoading);
+    }
+
+    onImageError(fileId: number): void {
+        const currentLoading = new Set(this.loadingImages());
+        currentLoading.delete(fileId);
+        this.loadingImages.set(currentLoading);
+    }
+
+    isImageLoading(fileId: number): boolean {
+        return this.loadingImages().has(fileId);
     }
 
     closeModal(): void {
