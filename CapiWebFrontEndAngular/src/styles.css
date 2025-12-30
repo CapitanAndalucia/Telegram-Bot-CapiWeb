@@ -401,7 +401,7 @@ button:focus-visible {
 
 .context-menu {
     position: fixed;
-    z-index: 3000;
+    z-index: 3100;
     min-width: 220px;
     background: rgba(15, 15, 15, 0.98);
     border: 1px solid var(--glass-border);

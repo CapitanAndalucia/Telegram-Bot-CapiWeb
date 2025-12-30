@@ -1,4 +1,4 @@
-import { Component, input, output } from '@angular/core';
+import { Component, input, output, HostBinding } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 interface FileItem {
@@ -22,6 +22,8 @@ export class FilePreviewModalComponent {
     download = output<{ id: number; filename: string }>();
     delete = output<number>();
 
+    @HostBinding('class.closing') isClosing = false;
+
     get isImage(): boolean {
         return /\.(jpg|jpeg|png|gif|webp)$/i.test(this.file().filename);
     }
@@ -31,7 +33,10 @@ export class FilePreviewModalComponent {
     }
 
     onClose(): void {
-        this.close.emit();
+        this.isClosing = true;
+        setTimeout(() => {
+            this.close.emit();
+        }, 250);
     }
 
     onDownload(): void {

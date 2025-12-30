@@ -1,5 +1,5 @@
-<div class="modalOverlay" (click)="onOverlayClick($event)">
-    <div class="modalContent" (click)="$event.stopPropagation()">
+<div class="modalOverlay" [class.closing]="isClosing" (click)="onOverlayClick($event)">
+    <div class="modalContent" [class.closing]="isClosing" (click)="$event.stopPropagation()">
         <button class="closeModalBtn icon-only" (click)="onClose()">
             <img src="assets/icons/boton-x.png" alt="Cerrar" class="icon-close" />
             <span class="visually-hidden">Cerrar</span>

@@ -200,7 +200,7 @@ button {
     border: 1px solid #444;
     border-radius: 8px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    z-index: 1000;
+    z-index: 3100;
     min-width: 180px;
     overflow: hidden;
 }
@@ -1744,6 +1744,12 @@ p {
     backdrop-filter: blur(4px);
 }
 
+.modalOverlay.closing {
+    background: rgba(0, 0, 0, 0);
+    backdrop-filter: blur(0px);
+    transition: background 0.25s ease-in, backdrop-filter 0.25s ease-in;
+}
+
 .modalContent {
     background: #1a1a1a;
     border: 1px solid var(--glass-border);
@@ -1755,6 +1761,24 @@ p {
     flex-direction: column;
     position: relative;
     overflow: hidden;
+    transform: scale(0.8) translateY(20px);
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease-out;
+    transition-delay: 0.1s;
+}
+
+.modalOverlay:not(.closing) .modalContent {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+    visibility: visible;
+}
+
+.modalContent.closing {
+    transform: scale(0.8) translateY(20px);
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.25s ease-in;
 }
 
 .closeModalBtn {
@@ -2733,5 +2757,17 @@ p {
     border-color: #66BB6A;
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(76, 175, 80, 0.2);
+}
+
+/* Disable interaction when context menu is open */
+.fileCard.context-menu-open,
+.folderCard.context-menu-open {
+    pointer-events: none;
+    opacity: 0.6;
+}
+
+.fileCard.context-menu-open .optionsBtn,
+.folderCard.context-menu-open .optionsBtn {
+    pointer-events: auto;
 }
 

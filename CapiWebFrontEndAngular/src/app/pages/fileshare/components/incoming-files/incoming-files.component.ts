@@ -325,13 +325,25 @@ export class IncomingFilesComponent implements OnInit {
     onDocumentClick(event: MouseEvent): void {
         const target = event.target as HTMLElement;
         
-        // Cerrar menú si se hace click fuera del componente o en áreas ng-star-inserted que no sean el menú
-        const isInsideComponent = target.closest('.incomingFiles');
-        const isContextMenu = target.closest('.context-menu');
-        const isOptionsBtn = target.closest('.optionsBtn');
+        // Si hay un menú contextual abierto, manejar su cierre
+        if (this.contextMenu()) {
+            const isContextMenu = target.closest('.context-menu');
+            const isOptionsBtn = target.closest('.optionsBtn');
+            
+            // Si el clic NO es en el menú ni en un botón de opciones, cerrar el menú y prevenir otras acciones
+            if (!isContextMenu && !isOptionsBtn) {
+                this.closeContextMenu();
+                event.stopPropagation();
+                event.preventDefault();
+                return;
+            }
+        }
         
-        // Si no está dentro del componente principal O está dentro pero no es el menú/botón
-        if (!isInsideComponent || (!isContextMenu && !isOptionsBtn && isInsideComponent)) {
+        // Lógica original para otros casos (cuando no hay menú abierto)
+        const isInsideComponent = target.closest('.incomingFiles');
+        
+        // Si no está dentro del componente principal, cerrar menú
+        if (!isInsideComponent) {
             this.closeContextMenu();
         }
     }
@@ -344,45 +356,38 @@ export class IncomingFilesComponent implements OnInit {
             return;
         }
 
-        // Obtener coordenadas del mouse
+        // Obtener coordenadas del click/touch
         let x = event.pageX || event.clientX + (document.documentElement.scrollLeft || document.body.scrollLeft);
         let y = event.pageY || event.clientY + (document.documentElement.scrollTop || document.body.scrollTop);
         
-        const menuWidth = 200;
-        const menuHeight = 250;
-        const margin = 10; // Margen desde los bordes
+        // Si es un click en botón de opciones, usar la posición del botón
+        if (type !== 'background' && item && event.target) {
+            const targetElement = event.target as HTMLElement;
+            const optionsBtn = targetElement.closest('.optionsBtn');
+            if (optionsBtn) {
+                const rect = optionsBtn.getBoundingClientRect();
+                // Coordenadas absolutas consistentes para position: fixed
+                x = rect.left;
+                y = rect.bottom;
+            }
+        }
+        
+        const menuWidth = 220;
+        const menuHeight = 300;
+        const margin = 10;
 
         if (typeof window !== 'undefined') {
-            // Ajuste horizontal - similar al vertical
-            const viewportX = x - window.scrollX;
-            const distanceFromRight = window.innerWidth - viewportX;
+            // Para position: fixed, usamos coordenadas del viewport directamente
+            const maxX = window.innerWidth - menuWidth - margin;
+            const maxY = window.innerHeight - menuHeight - margin;
+            const minX = margin;
+            const minY = margin;
             
-            // Si está a menos de 100px del borde derecho, mover 50px a la izquierda
-            if (distanceFromRight < 100) {
-                x = x + 30;
-            }
+            // Ajustar horizontalmente
+            x = Math.max(minX, Math.min(x, maxX));
             
-            // Ajuste extremo - si se sale completamente del viewport
-            if (x + menuWidth > window.innerWidth + window.scrollX) {
-                // Si se sale por la derecha, mostrar a la izquierda
-                x = Math.max(window.scrollX + margin, x - menuWidth);
-            } else if (x < window.scrollX + margin) {
-                // Si está demasiado cerca del borde izquierdo
-                x = window.scrollX + margin;
-            }
-
-            // Ajuste vertical sutil - solo si está muy cerca del borde inferior
-            const viewportY = y - window.scrollY;
-            const distanceFromBottom = window.innerHeight - viewportY;
-            
-            // Si está a menos de 100px del borde inferior, subir 50px
-            // if (distanceFromBottom < 100 && distanceFromBottom > 50) {
-            //     y = y - 50;
-            // }
-
-            if (distanceFromBottom < 100) {
-                y = y - 100;
-            }
+            // Ajustar verticalmente
+            y = Math.max(minY, Math.min(y, maxY));
         }
 
         // Cleanup any touch drag state before opening menu
@@ -398,6 +403,22 @@ export class IncomingFilesComponent implements OnInit {
         // mark the clicked options button as active so mobile CSS can show the circle
         const id = item && (item as any).id ? Number((item as any).id) : null;
         this.activeOptions.set({ type, id });
+    }
+
+    @HostListener('document:touchstart', ['$event'])
+    onDocumentTouchStart(event: TouchEvent): void {
+        if (this.contextMenu()) {
+            const touchedElement = event.target as HTMLElement;
+            const isContextMenu = touchedElement.closest('.context-menu');
+            const isOptionsBtn = touchedElement.closest('.optionsBtn');
+            
+            // Si el toque no es en el menú ni en un botón de opciones, cerrar el menú
+            if (!isContextMenu && !isOptionsBtn) {
+                this.closeContextMenu();
+                event.preventDefault();
+                event.stopPropagation();
+            }
+        }
     }
 
     async createFolder(): Promise<void> {
@@ -631,6 +652,10 @@ export class IncomingFilesComponent implements OnInit {
         return window.innerWidth <= 768;
     }
 
+    isContextMenuOpen(): boolean {
+        return !!this.contextMenu();
+    }
+
     handleItemTouchStart(event: TouchEvent, type?: 'file' | 'folder', item?: any): void {
         // If type and item are not provided, we can't proceed with selection logic
         if (type === undefined || item === undefined) {
@@ -666,6 +691,12 @@ export class IncomingFilesComponent implements OnInit {
         if (this.touchTimer) {
             clearTimeout(this.touchTimer);
             this.touchTimer = null;
+        }
+
+        // Si hay un menú contextual abierto, no hacer nada
+        if (this.contextMenu()) {
+            this.touchStartedOnOptions = false;
+            return;
         }
 
         // If the touch started on an options button, don't trigger previews or navigation here.
@@ -781,6 +812,11 @@ export class IncomingFilesComponent implements OnInit {
 
     handleItemClick(event: MouseEvent, type: 'file' | 'folder', item: FileItem | Folder): void {
         event.stopPropagation();
+
+        // Si hay un menú contextual abierto, no hacer nada
+        if (this.contextMenu()) {
+            return;
+        }
 
         if (this.isMobile()) return;
 
