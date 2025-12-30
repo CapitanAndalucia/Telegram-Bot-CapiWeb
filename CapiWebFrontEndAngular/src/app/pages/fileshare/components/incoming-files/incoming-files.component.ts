@@ -1767,6 +1767,11 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
         return `/api/transfers/${fileId}/download/`;
     }
 
+    getThumbnailUrl(fileId: number): string {
+        // Returns the thumbnail endpoint for optimized gallery preview
+        return `/api/transfers/${fileId}/thumbnail/`;
+    }
+
 
     onImageLoad(fileId: number): void {
         const currentLoading = new Set(this.loadingImages());

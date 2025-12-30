@@ -21,6 +21,7 @@ from .security_utils import (
     scan_archive_contents,
     scan_file_for_malware
 )
+from .thumbnail_utils import is_image_file, generate_thumbnail, get_thumbnail_filename
 import os
 import zipfile
 import tempfile
@@ -568,6 +569,13 @@ class FileTransferViewSet(viewsets.ModelViewSet):
                     # Store this information in the instance (you might want to add fields to the model)
                     # For now, we'll just log it
                     print(f"Archive contains executables: {executable_list}")
+            
+            # Generate thumbnail for image files
+            if is_image_file(instance.filename):
+                thumbnail_content = generate_thumbnail(instance.file.path)
+                if thumbnail_content:
+                    thumb_filename = get_thumbnail_filename(instance.filename)
+                    instance.thumbnail.save(thumb_filename, thumbnail_content, save=True)
 
     @action(detail=True, methods=['get'])
     def download(self, request, pk=None):
@@ -585,6 +593,47 @@ class FileTransferViewSet(viewsets.ModelViewSet):
             
         response = FileResponse(instance.file.open(), as_attachment=True, filename=instance.filename)
         return response
+
+    @action(detail=True, methods=['get'])
+    def thumbnail(self, request, pk=None):
+        """
+        Serve the thumbnail image for gallery preview.
+        Falls back to a placeholder if no thumbnail exists.
+        """
+        instance = self.get_object()
+        
+        if not self._has_file_access(request.user, instance):
+            return Response({'error': 'unauthorized'}, status=status.HTTP_403_FORBIDDEN)
+        
+        # Return thumbnail if it exists
+        if instance.thumbnail:
+            response = FileResponse(
+                instance.thumbnail.open(),
+                content_type='image/jpeg'
+            )
+            response['Cache-Control'] = 'public, max-age=86400'  # Cache for 24 hours
+            return response
+        
+        # If no thumbnail but it's an image, try to generate one on-the-fly
+        if is_image_file(instance.filename) and instance.file and hasattr(instance.file, 'path'):
+            try:
+                thumbnail_content = generate_thumbnail(instance.file.path)
+                if thumbnail_content:
+                    thumb_filename = get_thumbnail_filename(instance.filename)
+                    instance.thumbnail.save(thumb_filename, thumbnail_content, save=True)
+                    instance.refresh_from_db()
+                    
+                    response = FileResponse(
+                        instance.thumbnail.open(),
+                        content_type='image/jpeg'
+                    )
+                    response['Cache-Control'] = 'public, max-age=86400'
+                    return response
+            except Exception as e:
+                print(f"Error generating thumbnail on-the-fly for {instance.id}: {e}")
+        
+        # No thumbnail available
+        return Response({'error': 'no_thumbnail'}, status=status.HTTP_404_NOT_FOUND)
 
     @action(detail=True, methods=['get'])
     def check_archive(self, request, pk=None):

@@ -32,6 +32,7 @@ class FileTransfer(models.Model):
     expires_at = models.DateTimeField(null=True, blank=True)
     is_downloaded = models.BooleanField(default=False)
     is_viewed = models.BooleanField(default=False)
+    thumbnail = models.ImageField(upload_to='thumbnails/', null=True, blank=True)
 
     def save(self, *args, **kwargs):
         if self.file and not self.size:

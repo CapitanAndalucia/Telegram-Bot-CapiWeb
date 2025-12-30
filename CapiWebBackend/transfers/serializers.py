@@ -142,6 +142,7 @@ class FileTransferSerializer(serializers.ModelSerializer):
     folder = serializers.PrimaryKeyRelatedField(queryset=Folder.objects.all(), required=False, allow_null=True)
     access_list = FileAccessSerializer(many=True, read_only=True)
     has_access = serializers.SerializerMethodField()
+    has_thumbnail = serializers.SerializerMethodField()
     owner = serializers.PrimaryKeyRelatedField(queryset=User.objects.all(), required=False)
 
     class Meta:
@@ -150,12 +151,12 @@ class FileTransferSerializer(serializers.ModelSerializer):
             'id', 'uploader', 'uploader_username', 'owner', 'owner_username', 'recipient_username',
             'file', 'filename', 'size', 'description', 'folder',
             'created_at', 'expires_at', 'is_downloaded', 'is_viewed',
-            'has_executables', 'executable_files', 'access_list', 'has_access'
+            'has_executables', 'executable_files', 'access_list', 'has_access', 'has_thumbnail'
         ]
         read_only_fields = [
             'uploader', 'uploader_username', 'owner_username', 'size',
             'filename', 'created_at', 'is_downloaded', 'is_viewed',
-            'has_executables', 'executable_files', 'access_list', 'has_access'
+            'has_executables', 'executable_files', 'access_list', 'has_access', 'has_thumbnail'
         ]
 
     def get_has_access(self, obj):
@@ -172,6 +173,9 @@ class FileTransferSerializer(serializers.ModelSerializer):
         if obj.folder and obj.folder.access_list.filter(granted_to=user).exists():
             return True
         return False
+
+    def get_has_thumbnail(self, obj):
+        return bool(obj.thumbnail)
 
     def create(self, validated_data):
         recipient_username = validated_data.pop('recipient_username', None)

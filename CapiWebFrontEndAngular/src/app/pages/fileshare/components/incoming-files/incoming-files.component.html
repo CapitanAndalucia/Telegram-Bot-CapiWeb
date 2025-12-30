@@ -223,7 +223,7 @@
                     <div class="previewContainer">
                         @if (isImage(file.filename)) {
                         <div class="imageWrapper">
-                            <img [src]="getFileUrl(file.id)" [alt]="file.filename" class="fileImage"
+                            <img [src]="getThumbnailUrl(file.id)" [alt]="file.filename" class="fileImage"
                                 (load)="onImageLoad(file.id)" (error)="onImageError(file.id)"
                                 [style.display]="isImageLoading(file.id) ? 'none' : 'block'" />
                             @if (isImageLoading(file.id)) {
