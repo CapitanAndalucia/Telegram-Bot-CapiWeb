@@ -1,4 +1,4 @@
-import { Component, signal, computed, effect, inject, ChangeDetectorRef, HostListener, OnInit, input, output, untracked, OnDestroy } from '@angular/core';
+import { Component, signal, computed, effect, inject, ChangeDetectorRef, HostListener, OnInit, input, output, untracked, OnDestroy, ViewChild, ElementRef } from '@angular/core';
 import { UploadService } from '../../../../shared/services/upload.service';
 import { CommonModule } from '@angular/common';
 import { ApiClientService } from '../../../../services/api-client.service';
@@ -136,6 +136,8 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
     private lastNavigationTarget: number | null = null;
     private lastNavigationTime: number = 0;
 
+    @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
+
     // Computed sorted lists
     sortedFolders = computed(() => {
         const folders = this.folders();
@@ -222,7 +224,7 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
 
         try {
             await Promise.all([this.fetchFiles(), this.fetchFolders()]);
-            
+
             // Iniciar carga de imágenes después de cargar los archivos
             this.initializeImageLoading();
         } finally {
@@ -234,10 +236,10 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
     async refreshContentWithSpinner(): Promise<void> {
         // Mostrar spinner por 500ms como solicitaste
         this.loading.set(true);
-        
+
         try {
             await Promise.all([this.fetchFiles(), this.fetchFolders()]);
-            
+
             // Esperar adicional para asegurar los 500ms de visualización del spinner
             await new Promise(resolve => setTimeout(resolve, 500));
         } finally {
@@ -358,12 +360,12 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
     @HostListener('document:click', ['$event'])
     onDocumentClick(event: MouseEvent): void {
         const target = event.target as HTMLElement;
-        
+
         // Si hay un menú FAB móvil abierto, manejar su cierre
         if (this.mobileFabOpen()) {
             const isFabButton = target.closest('.mobile-fab');
             const isFabMenu = target.closest('.mobile-fab-menu');
-            
+
             // Si el clic NO es en el botón FAB ni en el menú, cerrar el menú FAB y prevenir otras acciones
             if (!isFabButton && !isFabMenu) {
                 this.mobileFabOpen.set(false);
@@ -371,18 +373,16 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
                 event.preventDefault();
                 return;
             }
-            
-            // Si el clic es en el botón FAB o menú, permitir que continúe pero prevenir otras acciones
-            event.stopPropagation();
-            event.preventDefault();
+
+            // Si el clic es en el botón FAB o menú, no hacer nada para permitir que el evento llegue al botón
             return;
         }
-        
+
         // Si hay un menú contextual abierto, manejar su cierre
         if (this.contextMenu()) {
             const isContextMenu = target.closest('.context-menu');
             const isOptionsBtn = target.closest('.optionsBtn');
-            
+
             // Si el clic NO es en el menú ni en un botón de opciones, cerrar el menú y prevenir otras acciones
             if (!isContextMenu && !isOptionsBtn) {
                 this.closeContextMenu();
@@ -391,10 +391,10 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
                 return;
             }
         }
-        
+
         // Lógica original para otros casos (cuando no hay menú abierto)
         const isInsideComponent = target.closest('.incomingFiles');
-        
+
         // Si no está dentro del componente principal, cerrar menú
         if (!isInsideComponent) {
             this.closeContextMenu();
@@ -404,12 +404,12 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
     @HostListener('document:touchstart', ['$event'])
     onDocumentTouchStart(event: TouchEvent): void {
         const target = event.target as HTMLElement;
-        
+
         // Si hay un menú FAB móvil abierto, manejar su cierre
         if (this.mobileFabOpen()) {
             const isFabButton = target.closest('.mobile-fab');
             const isFabMenu = target.closest('.mobile-fab-menu');
-            
+
             // Si el toque NO es en el botón FAB ni en el menú, cerrar el menú FAB y prevenir otras acciones
             if (!isFabButton && !isFabMenu) {
                 this.mobileFabOpen.set(false);
@@ -417,18 +417,16 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
                 event.preventDefault();
                 return;
             }
-            
-            // Si el toque es en el botón FAB o menú, permitir que continúe pero prevenir otras acciones
-            event.stopPropagation();
-            event.preventDefault();
+
+            // Si el toque es en el botón FAB o menú, no hacer nada para permitir el evento click y scroll
             return;
         }
-        
+
         if (this.contextMenu()) {
             const touchedElement = event.target as HTMLElement;
             const isContextMenu = touchedElement.closest('.context-menu');
             const isOptionsBtn = touchedElement.closest('.optionsBtn');
-            
+
             if (!isContextMenu && !isOptionsBtn) {
                 this.closeContextMenu();
                 event.stopPropagation();
@@ -485,7 +483,7 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
         // Obtener coordenadas del click/touch
         let x = event.pageX || event.clientX + (document.documentElement.scrollLeft || document.body.scrollLeft);
         let y = event.pageY || event.clientY + (document.documentElement.scrollTop || document.body.scrollTop);
-        
+
         // Si es un click en botón de opciones, usar la posición del botón
         if (type !== 'background' && item && event.target) {
             const targetElement = event.target as HTMLElement;
@@ -497,7 +495,7 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
                 y = rect.bottom;
             }
         }
-        
+
         const menuWidth = 220;
         const menuHeight = 300;
         const margin = 10;
@@ -508,10 +506,10 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
             const maxY = window.innerHeight - menuHeight - margin;
             const minX = margin;
             const minY = margin;
-            
+
             // Ajustar horizontalmente
             x = Math.max(minX, Math.min(x, maxX));
-            
+
             // Ajustar verticalmente
             y = Math.max(minY, Math.min(y, maxY));
         }
@@ -524,13 +522,13 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
         this.hoveredFolderId.set(null);
         this.currentDraggedFolderId = null;
 
-        
+
         this.contextMenu.set({ x, y, type, item });
         // mark the clicked options button as active so mobile CSS can show the circle
         const id = item && (item as any).id ? Number((item as any).id) : null;
         this.activeOptions.set({ type, id });
     }
-    
+
     async renameItem(): Promise<void> {
         const menu = this.contextMenu();
         if (!menu || !menu.item || menu.type === 'background') {
@@ -556,10 +554,10 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
         });
 
         const result = await firstValueFrom(dialogRef.afterClosed());
-        
+
         // AHORA sí cerramos el contexto después de que el diálogo se cerró
         this.closeContextMenu();
-        
+
         const newName = result?.trim();
         if (!newName || newName === currentName) {
             return;
@@ -599,7 +597,7 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
         const isFolder = menu.type === 'folder';
         const itemId = Number(menu.item.id);
         const itemName = isFolder ? (menu.item as Folder).name : (menu.item as FileItem).filename;
-        
+
         // console.log(`[Fileshare] deleteItem - isFolder: ${isFolder}, itemId: ${itemId}, itemName: ${itemName}`);
 
         const dialogRef = this.dialog.open<ConfirmDialogComponent, ConfirmDialogData, boolean>(ConfirmDialogComponent, {
@@ -617,12 +615,12 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
         });
 
         const confirmed = (await firstValueFrom(dialogRef.afterClosed())) ?? false;
-        
+
         // console.log(`[Fileshare] deleteItem - dialog confirmed: ${confirmed}`);
-        
+
         // AHORA sí cerramos el contexto después de que el diálogo se cerró
         this.closeContextMenu();
-        
+
         if (!confirmed) {
             // console.log(`[Fileshare] deleteItem - user cancelled, returning`);
             return;
@@ -642,11 +640,11 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
 
         try {
             await this.apiClient.deleteFolder(idToDelete);
-            
+
             // Solo eliminar de la UI después de éxito en el servidor
             this.folders.update(fs => fs.filter(f => Number(f.id) !== idToDelete));
             this.clearSelection();
-            
+
             this.toastr.clear(deleteToast.toastId);
             this.toastr.success('Carpeta eliminada correctamente');
             setTimeout(() => this.refreshContent(), 500);
@@ -683,7 +681,7 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
 
     openShareModal(item: FileItem | Folder, type: 'file' | 'folder'): void {
         this.closeContextMenu();
-        
+
         // Verificar permisos ANTES de mostrar el modal
         void this.checkSharePermissions(item, type);
     }
@@ -696,14 +694,14 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
             } else {
                 await this.apiClient.listFolderAccess(item.id);
             }
-            
+
             // Si llegamos aquí, tiene permisos, mostrar el modal
             this.shareModalItem.set(item);
             this.shareModalType.set(type);
-            
+
         } catch (error: any) {
             console.error('Error checking share permissions', error);
-            
+
             // Si es un error 403 de permisos denegados
             if (error.status === 403) {
                 this.toastr.error('No tienes permisos para gestionar el acceso a este archivo', '', {
@@ -711,7 +709,7 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
                 });
                 return;
             }
-            
+
             // Otros errores
             this.toastr.error('Error al verificar permisos');
         }
@@ -911,12 +909,12 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
     @HostListener('document:mousedown', ['$event'])
     onDocumentMouseDown(event: MouseEvent): void {
         const target = event.target as HTMLElement;
-        
+
         // Cerrar menú si se hace click fuera del componente o en áreas ng-star-inserted que no sean el menú
         const isInsideComponent = target.closest('.incomingFiles');
         const isContextMenu = target.closest('.context-menu');
         const isOptionsBtn = target.closest('.optionsBtn');
-        
+
         // Si no está dentro del componente principal O está dentro pero no es el menú/botón
         if (!isInsideComponent || (!isContextMenu && !isOptionsBtn && isInsideComponent)) {
             this.closeContextMenu();
@@ -992,7 +990,7 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
         const selectedFileIds = this.selectedFileIds();
         const selectedFolderIds = this.selectedFolderIds();
         const totalSelected = selectedFileIds.size + selectedFolderIds.size;
-        
+
         if (totalSelected === 0) {
             return;
         }
@@ -1007,12 +1005,12 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
                 try {
                     // Crear FormData con los IDs de archivos y carpetas
                     const formData = new FormData();
-                    
+
                     // Añadir IDs de archivos como array
                     selectedFileIds.forEach(fileId => {
                         formData.append('file_ids[]', fileId.toString());
                     });
-                    
+
                     // Añadir IDs de carpetas como array
                     selectedFolderIds.forEach(folderId => {
                         formData.append('folder_ids[]', folderId.toString());
@@ -1020,7 +1018,7 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
 
                     // Llamar al endpoint de descarga múltiple
                     const zipBlob = await this.apiClient.downloadMultiple(formData);
-                    
+
                     // Crear URL y descargar el ZIP
                     const url = window.URL.createObjectURL(zipBlob);
                     const a = document.createElement('a');
@@ -1030,7 +1028,7 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
                     a.click();
                     document.body.removeChild(a);
                     window.URL.revokeObjectURL(url);
-                    
+
                     this.toastr.clear(downloadToast.toastId);
                     this.toastr.success('ZIP descargado correctamente');
                     this.clearSelection();
@@ -1048,7 +1046,7 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
                     const folderId = Array.from(selectedFolderIds)[0];
                     await this.apiClient.downloadFolder(folderId);
                 }
-                
+
                 this.toastr.success('Descarga completada');
                 this.clearSelection();
             }
@@ -1062,7 +1060,7 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
         const selectedFileIds = this.selectedFileIds();
         const selectedFolderIds = this.selectedFolderIds();
         const totalSelected = selectedFileIds.size + selectedFolderIds.size;
-        
+
         if (totalSelected === 0) {
             return;
         }
@@ -1070,7 +1068,7 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
         // Construir mensaje específico si hay carpetas
         let message = `Esta acción eliminará ${totalSelected} elemento(s) y no se puede deshacer.`;
         let detail = '';
-        
+
         if (selectedFolderIds.size > 0) {
             message = `Esta acción eliminará ${totalSelected} elemento(s) incluyendo ${selectedFolderIds.size} carpeta(s) con todo su contenido.`;
             detail = '⚠️ Todas las carpetas seleccionadas serán eliminadas junto con todos sus archivos y subcarpetas.';
@@ -1091,7 +1089,7 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
         });
 
         const confirmed = (await firstValueFrom(dialogRef.afterClosed())) ?? false;
-        
+
         if (!confirmed) {
             return;
         }
@@ -1342,7 +1340,7 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
 
         // No limpiar el estado de selección durante el arrastre
         // La selección debe mantenerse visible durante todo el proceso
-        
+
         this.createDragPreview(dataTransfer, file, event.target as HTMLElement);
     }
 
@@ -1412,11 +1410,11 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
 
     handleDragLeave(event: DragEvent): void {
         event.preventDefault();
-        
+
         // Solo limpiar si realmente estamos saliendo del contenedor principal
         const currentTarget = event.currentTarget as HTMLElement;
         const relatedTarget = event.relatedTarget as Node;
-        
+
         // Verificar si relatedTarget es null o está fuera del currentTarget
         if (!relatedTarget || !currentTarget.contains(relatedTarget)) {
             this.isDragging.set(false);
@@ -1475,14 +1473,14 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
         const droppedFiles = event.dataTransfer?.files;
         if (droppedFiles && droppedFiles.length > 0 && this.user()) {
             const files = Array.from(droppedFiles);
-            
+
             // Validar archivos antes de subir
             const validationResult = this.validateFiles(files);
             if (!validationResult.valid) {
                 this.toastr.error(validationResult.error);
                 return;
             }
-            
+
             await this.uploadFiles(files);
         }
     }
@@ -1556,9 +1554,9 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
             this.currentFolder()?.id,
             this.currentFolder()?.owner
         );
-        
+
         this.uploadService.uploadFiles(files);
-        
+
         // El refresco ahora se maneja automáticamente cuando todas las subidas se completan
         // a través de la suscripción a allUploadsCompleted$
     }
@@ -1734,12 +1732,12 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
             // console.log(`[Fileshare] Calling apiClient.deleteFile(${fileId})`);
             await this.apiClient.deleteFile(fileId);
             // console.log(`[Fileshare] apiClient.deleteFile SUCCESS for ID ${idToDelete}`);
-            
+
             // Solo eliminar de la UI después de éxito en el servidor
             this.files.update(fs => fs.filter(f => Number(f.id) !== idToDelete));
             this.selectedFile.set(null);
             this.clearSelection();
-            
+
             this.toastr.clear(deleteToast.toastId);
             this.toastr.success('Archivo eliminado correctamente');
             setTimeout(() => this.refreshContent(), 500);
@@ -1766,7 +1764,7 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
         // Iniciar carga de todas las imágenes de archivos
         const files = this.files();
         const imageFiles = files.filter(file => this.isImage(file.filename));
-        
+
         // Iniciar carga asíncronamente para no bloquear el renderizado
         setTimeout(() => {
             imageFiles.forEach(file => {
@@ -2171,7 +2169,7 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
             const hasAccessList = item.access_list && item.access_list.length > 0;
             return !!hasAccessList;
         }
-        
+
         // Para carpetas (Folder)
         if ('name' in item) {
             // Una carpeta está compartida si tiene access_list con otros usuarios
@@ -2179,7 +2177,7 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
             const hasAccessList = item.access_list && item.access_list.length > 0;
             return !!hasAccessList;
         }
-        
+
         return false;
     }
 
@@ -2426,10 +2424,20 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
     }
 
     triggerFileUpload(): void {
-        const fileInput = document.getElementById('file-upload') as HTMLInputElement;
-        if (fileInput) {
-            fileInput.click();
+        if (this.fileInput && this.fileInput.nativeElement) {
+            this.fileInput.nativeElement.click();
         }
+    }
+
+    handleMobileUpload(): void {
+        // Trigger the click immediately
+        this.triggerFileUpload();
+
+        // Delay closing the menu to prevent the browser from cancelling the file picker
+        // caused by DOM changes/loss of focus immediately after the click
+        setTimeout(() => {
+            this.mobileFabOpen.set(false);
+        }, 300);
     }
 
     onFileSelected(event: Event): void {

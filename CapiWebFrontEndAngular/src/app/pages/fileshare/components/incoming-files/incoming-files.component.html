@@ -93,7 +93,7 @@
 
     <div *ngIf="!loading() && !isNavigating() && (files().length > 0 || folders().length > 0)"
         style="flex: 1; display: flex; flex-direction: column; width: 100%; overflow-x: hidden;">
-        
+
         <!-- Menú de selección - Sticky en PC, Fixed en móvil -->
         <div *ngIf="bulkSelectionActive()" class="floatingSelectionMenu" [class.showing]="bulkSelectionActive()">
             <div class="selectionInfo">
@@ -102,19 +102,19 @@
                     <span class="countText">seleccionados</span>
                 </div>
             </div>
-            
+
             <div class="selectionActions">
-                <button class="actionBtn downloadBtn" (click)="downloadSelected()" 
-                        [disabled]="selectedFileIds().size === 0">
+                <button class="actionBtn downloadBtn" (click)="downloadSelected()"
+                    [disabled]="selectedFileIds().size === 0">
                     <span class="btnIcon">⬇</span>
                     <span class="btnText">Descargar</span>
                 </button>
-                
+
                 <button class="actionBtn deleteBtn" (click)="deleteSelected()">
                     <span class="btnIcon">🗑</span>
                     <span class="btnText">Eliminar</span>
                 </button>
-                
+
                 <button class="actionBtn cancelBtn" (click)="clearSelection()">
                     <span class="btnIcon">✕</span>
                     <span class="btnText">Cancelar</span>
@@ -128,13 +128,13 @@
             <ng-container *ngFor="let folder of sortedFolders()">
                 <div class="folderCard" [class.listMode]="viewMode() === 'list'" [attr.data-folder-id]="folder.id"
                     [class.selected]="isFolderSelected(folder.id)" [class.dropTarget]="hoveredFolderId() === folder.id"
-                    [class.shared]="isShared(folder)"
-                    [class.context-menu-open]="isContextMenuOpen()"
+                    [class.shared]="isShared(folder)" [class.context-menu-open]="isContextMenuOpen()"
                     (touchstart)="!isContextMenuOpen() && handleItemTouchStart($event, 'folder', folder)"
-                    (touchmove)="!isContextMenuOpen() && handleTouchMove($event, 'folder', folder)" (touchcancel)="handleTouchCancel($event)"
+                    (touchmove)="!isContextMenuOpen() && handleTouchMove($event, 'folder', folder)"
+                    (touchcancel)="handleTouchCancel($event)"
                     (touchend)="!isContextMenuOpen() && handleItemTouchEnd($event, 'folder', folder)"
                     (click)="!isContextMenuOpen() && handleItemClick($event, 'folder', folder)"
-                    (contextmenu)="handleContextMenu($event, 'folder', folder)" 
+                    (contextmenu)="handleContextMenu($event, 'folder', folder)"
                     (dblclick)="!isContextMenuOpen() && navigateToFolder(folder)"
                     (dragover)="handleFolderDragOver($event, folder)"
                     (dragenter)="handleFolderDragEnter($event, folder)"
@@ -185,12 +185,13 @@
             <ng-container *ngFor="let file of sortedFiles()">
                 <div class="fileCard" [class.listMode]="viewMode() === 'list'" [attr.data-file-id]="file.id"
                     [class.selected]="isFileSelected(file.id)" [class.shared]="isShared(file)" [draggable]="true"
-                    [class.context-menu-open]="isContextMenuOpen()"
-                    (dragstart)="handleDragStart($event, file)" (dragend)="handleDragEnd()"
+                    [class.context-menu-open]="isContextMenuOpen()" (dragstart)="handleDragStart($event, file)"
+                    (dragend)="handleDragEnd()"
                     (touchstart)="!isContextMenuOpen() && handleItemTouchStart($event, 'file', file)"
-                    (touchmove)="!isContextMenuOpen() && handleTouchMove($event, 'file', file)" (touchcancel)="handleTouchCancel($event)"
+                    (touchmove)="!isContextMenuOpen() && handleTouchMove($event, 'file', file)"
+                    (touchcancel)="handleTouchCancel($event)"
                     (touchend)="!isContextMenuOpen() && handleItemTouchEnd($event, 'file', file)"
-                    (click)="!isContextMenuOpen() && handleItemClick($event, 'file', file)" 
+                    (click)="!isContextMenuOpen() && handleItemClick($event, 'file', file)"
                     (dblclick)="!isContextMenuOpen() && handleFileClick(file)"
                     (contextmenu)="handleContextMenu($event, 'file', file)" style="cursor: pointer">
 
@@ -222,10 +223,8 @@
                     <div class="previewContainer">
                         @if (isImage(file.filename)) {
                         <div class="imageWrapper">
-                            <img [src]="getFileUrl(file.id)" [alt]="file.filename"
-                                class="fileImage" 
-                                (loadstart)="onImageLoadStart(file.id)"
-                                (load)="onImageLoad(file.id)"
+                            <img [src]="getFileUrl(file.id)" [alt]="file.filename" class="fileImage"
+                                (loadstart)="onImageLoadStart(file.id)" (load)="onImageLoad(file.id)"
                                 (error)="onImageError(file.id)"
                                 [style.display]="isImageLoading(file.id) ? 'none' : 'block'" />
                             @if (isImageLoading(file.id)) {
@@ -266,43 +265,42 @@
 
     <!-- Context Menu: floating on desktop, bottom-sheet modal on mobile -->
     <ng-container *ngIf="contextMenu() as menu">
-    <div class="context-menu" [style.top.px]="menu.y" [style.left.px]="menu.x"
-        (click)="$event.stopPropagation()">
-        <ng-container *ngIf="menu.type === 'file' || menu.type === 'folder'">
-            <button
-                (click)="openShareModal(menu.item!, menu.type === 'file' ? 'file' : 'folder'); closeContextMenu()">
-                <span class="icon">🔗</span> Compartir
-            </button>
-            <button
-                (click)="menu.type === 'file' ? handleDownload(menu.item!.id, $any(menu.item!).filename) : handleFolderDownload($any(menu.item!)); closeContextMenu()">
-                <span class="icon">⬇</span> Descargar
-            </button>
-            <ng-container *ngIf="menu.type === 'file'">
-                <button (click)="openPreview(menu.item!); closeContextMenu()">
-                    <span class="icon">👁</span> Previsualizar
+        <div class="context-menu" [style.top.px]="menu.y" [style.left.px]="menu.x" (click)="$event.stopPropagation()">
+            <ng-container *ngIf="menu.type === 'file' || menu.type === 'folder'">
+                <button
+                    (click)="openShareModal(menu.item!, menu.type === 'file' ? 'file' : 'folder'); closeContextMenu()">
+                    <span class="icon">🔗</span> Compartir
+                </button>
+                <button
+                    (click)="menu.type === 'file' ? handleDownload(menu.item!.id, $any(menu.item!).filename) : handleFolderDownload($any(menu.item!)); closeContextMenu()">
+                    <span class="icon">⬇</span> Descargar
+                </button>
+                <ng-container *ngIf="menu.type === 'file'">
+                    <button (click)="openPreview(menu.item!); closeContextMenu()">
+                        <span class="icon">👁</span> Previsualizar
+                    </button>
+                </ng-container>
+                <button (click)="openMoveDialog(menu.item!); closeContextMenu()">
+                    <span class="icon">➡️</span> Mover a...
+                </button>
+                <button (click)="renameItem(); closeContextMenu()">
+                    <span class="icon">✏</span> Renombrar
+                </button>
+                <div class="divider"></div>
+                <button class="delete" (click)="deleteItem(); closeContextMenu()">
+                    <span class="icon">🗑</span> Eliminar
                 </button>
             </ng-container>
-            <button (click)="openMoveDialog(menu.item!); closeContextMenu()">
-                <span class="icon">➡️</span> Mover a...
-            </button>
-            <button (click)="renameItem(); closeContextMenu()">
-                <span class="icon">✏</span> Renombrar
-            </button>
-            <div class="divider"></div>
-            <button class="delete" (click)="deleteItem(); closeContextMenu()">
-                <span class="icon">🗑</span> Eliminar
-            </button>
-        </ng-container>
-        <ng-container *ngIf="menu.type !== 'file' && menu.type !== 'folder'">
-            <button (click)="triggerFileUpload(); closeContextMenu()">
-                <span class="icon">📄</span> Subir archivo
-            </button>
-            <button (click)="createFolder(); closeContextMenu()">
-                <span class="icon">📁</span> Nueva carpeta
-            </button>
-        </ng-container>
-    </div>
-</ng-container>
+            <ng-container *ngIf="menu.type !== 'file' && menu.type !== 'folder'">
+                <button (click)="triggerFileUpload(); closeContextMenu()">
+                    <span class="icon">📄</span> Subir archivo
+                </button>
+                <button (click)="createFolder(); closeContextMenu()">
+                    <span class="icon">📁</span> Nueva carpeta
+                </button>
+            </ng-container>
+        </div>
+    </ng-container>
 
     <app-share-modal *ngIf="shareModalItem()" [item]="shareModalItem()!" [type]="shareModalType()"
         (close)="closeShareModal()" (shared)="refreshContent()">
@@ -316,8 +314,9 @@
         </button>
 
         <div *ngIf="mobileFabOpen()" class="mobile-fab-menu" (click)="$event.stopPropagation()">
-            <button class="mobile-fab-item" (click)="triggerFileUpload(); mobileFabOpen.set(false)">Subir
-                archivo</button>
+            <label for="file-upload" class="mobile-fab-item" (click)="mobileFabOpen.set(false)"
+                style="cursor: pointer; margin: 0;">Subir
+                archivo</label>
             <button class="mobile-fab-item" (click)="openUpload.emit(); mobileFabOpen.set(false)">Enviar
                 archivo</button>
             <button class="mobile-fab-item" (click)="createFolder(); mobileFabOpen.set(false)">Crear
@@ -327,7 +326,7 @@
 </div>
 
 <!-- Input de archivo oculto para la carga de archivos -->
-<input type="file" id="file-upload" style="display: none" (change)="onFileSelected($event)" multiple>
+<input type="file" #fileInput id="file-upload" style="display: none" (change)="onFileSelected($event)" multiple>
 
 <app-file-preview-modal *ngIf="selectedFile()" [file]="selectedFile()!" (close)="closeModal()"
     (download)="handleDownload($event.id, $event.filename)" (delete)="handleDelete($event)"></app-file-preview-modal>
