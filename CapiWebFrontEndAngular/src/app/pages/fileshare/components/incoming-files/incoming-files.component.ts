@@ -102,6 +102,7 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
     loadingImages = signal<Set<number>>(new Set());
     // Upload completion subscription
     private uploadCompletedSubscription: Subscription | null = null;
+    private partialUploadSubscription: Subscription | null = null;
     animateList = signal(false);
     isSortMenuOpen = signal(false);
 
@@ -166,6 +167,12 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
         this.uploadCompletedSubscription = this.uploadService.allUploadsCompleted$.subscribe(() => {
             // Mostrar spinner y recargar contenido después de que todas las subidas terminen
             void this.refreshContentWithSpinner();
+        });
+
+        // Suscribirse al evento de subidas parciales (con errores pero al menos una exitosa)
+        this.partialUploadSubscription = this.uploadService.partialUploadCompleted$.subscribe(() => {
+            // Recargar contenido para mostrar los archivos que sí se subieron
+            void this.refreshContent();
         });
 
         // Scope effect
@@ -1501,10 +1508,6 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
             return { valid: false, error: 'No se seleccionaron archivos' };
         }
 
-        if (files.length > 10) {
-            return { valid: false, error: 'No puedes subir más de 10 archivos a la vez' };
-        }
-
         // Validar cada archivo
         for (const file of files) {
             // Validar tamaño (máximo 100MB por archivo)
@@ -2446,9 +2449,12 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
     }
 
     ngOnDestroy(): void {
-        // Limpiar la suscripción para evitar memory leaks
+        // Limpiar las suscripciones para evitar memory leaks
         if (this.uploadCompletedSubscription) {
             this.uploadCompletedSubscription.unsubscribe();
+        }
+        if (this.partialUploadSubscription) {
+            this.partialUploadSubscription.unsubscribe();
         }
     }
 }

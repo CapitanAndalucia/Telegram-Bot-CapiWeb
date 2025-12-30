@@ -37,6 +37,10 @@ export class UploadService {
 
   public uploadState$ = this.uploadStateSubject.asObservable();
   
+  // Nuevo: Subject para notificar cuando hay errores pero al menos una subida fue exitosa
+  private partialUploadCompletedSubject = new BehaviorSubject<void>(undefined);
+  public partialUploadCompleted$ = this.partialUploadCompletedSubject.asObservable();
+  
   // Nuevo: Subject para notificar cuando todas las subidas se completan
   private allUploadsCompletedSubject = new BehaviorSubject<void>(undefined);
   public allUploadsCompleted$ = this.allUploadsCompletedSubject.asObservable();
@@ -279,8 +283,17 @@ export class UploadService {
       // Restaurar posición del scroll
       this.restoreScrollPosition();
       
-      // Notificar que todas las subidas se completaron
-      this.allUploadsCompletedSubject.next();
+      // Verificar si hay al menos una subida exitosa
+      const hasSuccessfulUploads = state.completedFiles > 0;
+      const hasErrors = state.failedFiles > 0;
+      
+      if (hasSuccessfulUploads && hasErrors) {
+        // Hay errores pero al menos una subida fue exitosa
+        this.partialUploadCompletedSubject.next();
+      } else if (hasSuccessfulUploads && !hasErrors) {
+        // Todas las subidas fueron exitosas
+        this.allUploadsCompletedSubject.next();
+      }
       
       // Auto-ocultar después de 3 segundos
       setTimeout(() => this.hideUploadWidget(), 3000);
