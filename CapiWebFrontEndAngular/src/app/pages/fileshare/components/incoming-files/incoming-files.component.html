@@ -308,7 +308,7 @@
     </app-share-modal>
 
     <!-- Mobile floating action button -->
-    <div *ngIf="isMobile()" class="mobile-fab-container">
+    <div *ngIf="isMobile()" class="mobile-fab-container" [class.context-menu-open]="mobileFabOpen()">
         <button class="mobile-fab" (click)="mobileFabOpen.set(!mobileFabOpen()); $event.stopPropagation()"
             title="Acciones">
             <img src="assets/icons/agregar-icono.png" alt="Cerrar" class="icon-close" />
@@ -319,6 +319,8 @@
                 archivo</button>
             <button class="mobile-fab-item" (click)="openUpload.emit(); mobileFabOpen.set(false)">Enviar
                 archivo</button>
+            <button class="mobile-fab-item" (click)="createFolder(); mobileFabOpen.set(false)">Crear
+                carpeta</button>
         </div>
     </div>
 </div>

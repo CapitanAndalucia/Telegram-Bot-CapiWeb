@@ -349,6 +349,25 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
     onDocumentClick(event: MouseEvent): void {
         const target = event.target as HTMLElement;
         
+        // Si hay un menú FAB móvil abierto, manejar su cierre
+        if (this.mobileFabOpen()) {
+            const isFabButton = target.closest('.mobile-fab');
+            const isFabMenu = target.closest('.mobile-fab-menu');
+            
+            // Si el clic NO es en el botón FAB ni en el menú, cerrar el menú FAB y prevenir otras acciones
+            if (!isFabButton && !isFabMenu) {
+                this.mobileFabOpen.set(false);
+                event.stopPropagation();
+                event.preventDefault();
+                return;
+            }
+            
+            // Si el clic es en el botón FAB o menú, permitir que continúe pero prevenir otras acciones
+            event.stopPropagation();
+            event.preventDefault();
+            return;
+        }
+        
         // Si hay un menú contextual abierto, manejar su cierre
         if (this.contextMenu()) {
             const isContextMenu = target.closest('.context-menu');
@@ -369,6 +388,79 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
         // Si no está dentro del componente principal, cerrar menú
         if (!isInsideComponent) {
             this.closeContextMenu();
+        }
+    }
+
+    @HostListener('document:touchstart', ['$event'])
+    onDocumentTouchStart(event: TouchEvent): void {
+        const target = event.target as HTMLElement;
+        
+        // Si hay un menú FAB móvil abierto, manejar su cierre
+        if (this.mobileFabOpen()) {
+            const isFabButton = target.closest('.mobile-fab');
+            const isFabMenu = target.closest('.mobile-fab-menu');
+            
+            // Si el toque NO es en el botón FAB ni en el menú, cerrar el menú FAB y prevenir otras acciones
+            if (!isFabButton && !isFabMenu) {
+                this.mobileFabOpen.set(false);
+                event.stopPropagation();
+                event.preventDefault();
+                return;
+            }
+            
+            // Si el toque es en el botón FAB o menú, permitir que continúe pero prevenir otras acciones
+            event.stopPropagation();
+            event.preventDefault();
+            return;
+        }
+        
+        if (this.contextMenu()) {
+            const touchedElement = event.target as HTMLElement;
+            const isContextMenu = touchedElement.closest('.context-menu');
+            const isOptionsBtn = touchedElement.closest('.optionsBtn');
+            
+            if (!isContextMenu && !isOptionsBtn) {
+                this.closeContextMenu();
+                event.stopPropagation();
+                event.preventDefault();
+                return;
+            }
+        }
+    }
+
+    async createFolder(): Promise<void> {
+        const dialogData: InputDialogData = {
+            title: 'Nueva carpeta',
+            label: 'Nombre de la carpeta',
+            placeholder: 'Ingrese el nombre de la carpeta',
+            confirmLabel: 'Crear',
+            cancelLabel: 'Cancelar'
+        };
+
+        const dialogRef = this.dialog.open(InputDialogComponent, {
+            width: '350px',
+            data: dialogData
+        });
+
+        try {
+            const result = await firstValueFrom(dialogRef.afterClosed());
+
+            if (result) {
+                const creatingToast = this.toastr.info('Creando carpeta...', '', { disableTimeOut: true });
+
+                try {
+                    await this.apiClient.createFolder(result, this.currentFolder()?.id ?? undefined);
+                    this.toastr.clear(creatingToast.toastId);
+                    this.toastr.success('Carpeta creada correctamente');
+                    await this.refreshContent();
+                } catch (error) {
+                    console.error('Error al crear carpeta', error);
+                    this.toastr.clear(creatingToast.toastId);
+                    this.toastr.error('Error al crear la carpeta');
+                }
+            }
+        } catch (error) {
+            console.error('Error en el diálogo de creación de carpeta', error);
         }
     }
 
@@ -427,58 +519,6 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
         // mark the clicked options button as active so mobile CSS can show the circle
         const id = item && (item as any).id ? Number((item as any).id) : null;
         this.activeOptions.set({ type, id });
-    }
-
-    @HostListener('document:touchstart', ['$event'])
-    onDocumentTouchStart(event: TouchEvent): void {
-        if (this.contextMenu()) {
-            const touchedElement = event.target as HTMLElement;
-            const isContextMenu = touchedElement.closest('.context-menu');
-            const isOptionsBtn = touchedElement.closest('.optionsBtn');
-            
-            // Si el toque no es en el menú ni en un botón de opciones, cerrar el menú
-            if (!isContextMenu && !isOptionsBtn) {
-                this.closeContextMenu();
-                event.preventDefault();
-                event.stopPropagation();
-            }
-        }
-    }
-
-    async createFolder(): Promise<void> {
-        const dialogData: InputDialogData = {
-            title: 'Nueva carpeta',
-            label: 'Nombre de la carpeta',
-            placeholder: 'Ingrese el nombre de la carpeta',
-            confirmLabel: 'Crear',
-            cancelLabel: 'Cancelar'
-        };
-
-        const dialogRef = this.dialog.open(InputDialogComponent, {
-            width: '350px',
-            data: dialogData
-        });
-
-        try {
-            const result = await firstValueFrom(dialogRef.afterClosed());
-
-            if (result) {
-                const creatingToast = this.toastr.info('Creando carpeta...', '', { disableTimeOut: true });
-
-                try {
-                    await this.apiClient.createFolder(result, this.currentFolder()?.id ?? undefined);
-                    this.toastr.clear(creatingToast.toastId);
-                    this.toastr.success('Carpeta creada correctamente');
-                    await this.refreshContent();
-                } catch (error) {
-                    console.error('Error al crear carpeta', error);
-                    this.toastr.clear(creatingToast.toastId);
-                    this.toastr.error('Error al crear la carpeta');
-                }
-            }
-        } catch (error) {
-            console.error('Error en el diálogo de creación de carpeta', error);
-        }
     }
     
     async renameItem(): Promise<void> {
@@ -677,7 +717,7 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
     }
 
     isContextMenuOpen(): boolean {
-        return !!this.contextMenu();
+        return !!this.contextMenu() || this.mobileFabOpen();
     }
 
     handleItemTouchStart(event: TouchEvent, type?: 'file' | 'folder', item?: any): void {
