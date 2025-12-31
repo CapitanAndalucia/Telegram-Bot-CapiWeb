@@ -223,6 +223,104 @@
     font-size: 0.9rem;
 }
 
+/* Custom Dropdown Styles */
+.custom-dropdown-container {
+    position: relative;
+    display: inline-block;
+}
+
+.permission-badge {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.75rem;
+    color: var(--text-secondary, #aaa);
+    padding: 2px 6px;
+    border-radius: 4px;
+    border: 1px solid transparent;
+    transition: all 0.2s;
+}
+
+.permission-badge.editable {
+    cursor: pointer;
+    border-color: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.05);
+    color: white;
+}
+
+.permission-badge.editable:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.4);
+}
+
+.arrow-icon {
+    font-size: 0.6em;
+    opacity: 0.7;
+}
+
+.custom-dropdown-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    min-width: 120px;
+    background: #252525;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    padding: 4px 0;
+    margin-top: 4px;
+    z-index: 1000;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    animation: fadeIn 0.15s ease-out;
+}
+
+.dropdown-item {
+    padding: 6px 12px;
+    font-size: 0.85rem;
+    color: #e0e0e0;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: background 0.2s;
+}
+
+.dropdown-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+}
+
+.dropdown-item span {
+    color: var(--accent-primary, #00f2ff);
+    font-size: 0.8em;
+}
+
+.mini-permission-select {
+    background: #333;
+    /* Dark background */
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    padding: 2px 6px;
+    color: white;
+    font-size: 0.75rem;
+    cursor: pointer;
+    margin-top: 2px;
+}
+
+.mini-permission-select option {
+    background-color: #333;
+    color: white;
+}
+
+.mini-permission-select:hover {
+    border-color: rgba(255, 255, 255, 0.4);
+    background: #444;
+}
+
+.mini-permission-select:focus {
+    outline: none;
+    border-color: var(--accent-primary, #00f2ff);
+}
+
 .propagate-toggle {
     display: flex;
     align-items: center;

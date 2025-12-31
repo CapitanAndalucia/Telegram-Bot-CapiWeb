@@ -32,6 +32,7 @@ export class ShareModalComponent implements OnChanges {
     loadingAccess = signal(false);
     accessList = signal<(FileAccess | FolderAccess)[]>([]);
     currentUser = signal<any>(null);
+    openDropdownId = signal<number | null>(null);
 
     constructor() {
         // Load friends initially
@@ -62,7 +63,7 @@ export class ShareModalComponent implements OnChanges {
             return true; // Tiene permisos
         } catch (error: any) {
             console.error('Error checking permissions', error);
-            
+
             // Si es un error 403 de permisos denegados
             if (error.status === 403) {
                 this.permissionDenied.emit(); // Notificar al componente padre
@@ -71,7 +72,7 @@ export class ShareModalComponent implements OnChanges {
                 });
                 return false;
             }
-            
+
             // Otros errores
             this.toast.error('Error al verificar permisos');
             return false;
@@ -125,14 +126,14 @@ export class ShareModalComponent implements OnChanges {
             }
         } catch (error: any) {
             console.error('Error fetching access list', error);
-            
+
             // Si es un error 403 de permisos denegados, cerrar el modal y mostrar mensaje
             if (error.status === 403) {
                 this.toast.warning('No tienes permisos para gestionar el acceso a este archivo');
                 this.close.emit(); // Cerrar el modal
                 return;
             }
-            
+
             // Si hay un error 405, mostrar mensaje más amigable
             if (error.status === 405) {
                 this.toast.warning('La función de compartir archivos está temporalmente deshabilitada');
@@ -223,26 +224,80 @@ export class ShareModalComponent implements OnChanges {
         }
     }
 
+    async updatePermission(access: FileAccess | FolderAccess, newPermission: 'read' | 'edit'): Promise<void> {
+        this.isSharing.set(true);
+        try {
+            if (this.type === 'file') {
+                await this.api.shareFile(
+                    (this.item as FileItem).id,
+                    access.granted_to_username,
+                    newPermission,
+                    undefined
+                );
+            } else {
+                await this.api.shareFolder(
+                    (this.item as Folder).id,
+                    access.granted_to_username,
+                    newPermission,
+                    true, // Mantener propagación por defecto al actualizar
+                    undefined
+                );
+            }
+            this.toast.success(`Permisos actualizados para ${access.granted_to_username}`);
+            // Recargar lista para confirmar cambios y actualizar UI
+            await this.fetchAccessList();
+            this.shared.emit();
+        } catch (error: any) {
+            const message = error?.message || error?.payload?.error || 'Error al actualizar permisos';
+            this.toast.error(message);
+        } finally {
+            this.isSharing.set(false);
+        }
+    }
+
+    togglePermissionDropdown(accessId: number, event: Event): void {
+        event.stopPropagation();
+        if (this.openDropdownId() === accessId) {
+            this.openDropdownId.set(null);
+        } else {
+            this.openDropdownId.set(accessId);
+        }
+    }
+
+    closeDropdown(): void {
+        this.openDropdownId.set(null);
+    }
+
+    onChangePermissionClick(access: FileAccess | FolderAccess, newPermission: 'read' | 'edit', event: Event): void {
+        event.stopPropagation();
+        this.closeDropdown();
+        if (access.permission !== newPermission) {
+            this.updatePermission(access, newPermission);
+        }
+    }
+
     hasAccessEntries(): boolean {
         return this.accessList().length > 0;
     }
 
-    getCurrentUser(): void {
-        // Get current user from localStorage or sessionStorage
-        const userStr = localStorage.getItem('currentUser') || sessionStorage.getItem('currentUser');
-        if (userStr) {
-            try {
-                this.currentUser.set(JSON.parse(userStr));
-            } catch (e) {
-                // Silently handle error
-                this.currentUser.set(null);
+    async getCurrentUser(): Promise<void> {
+        try {
+            const response = await this.api.checkAuth();
+            if (response && response.user) {
+                this.currentUser.set(response.user);
+            } else if (response && response.username) {
+                // Fallback if response is just the user object
+                this.currentUser.set(response);
             }
+        } catch (error) {
+            console.warn('Could not get current user info', error);
+            this.currentUser.set(null);
         }
     }
 
     getOwnerInfo(): { username: string, isOriginal: boolean } {
         if (!this.item) return { username: '', isOriginal: false };
-        
+
         let ownerUsername = '';
         let isOriginal = false;
 
