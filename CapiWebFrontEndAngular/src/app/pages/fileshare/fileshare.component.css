@@ -1758,6 +1758,7 @@ p {
 }
 
 /* File Preview Modal */
+/* File Preview Modal */
 .modalOverlay {
     position: fixed;
     top: 0;
@@ -1770,6 +1771,31 @@ p {
     justify-content: center;
     z-index: 2000;
     backdrop-filter: blur(4px);
+    animation: overlayEnter 0.3s ease-out forwards;
+}
+
+@keyframes overlayEnter {
+    from {
+        background: rgba(0, 0, 0, 0);
+        backdrop-filter: blur(0px);
+    }
+
+    to {
+        background: rgba(0, 0, 0, 0.85);
+        backdrop-filter: blur(4px);
+    }
+}
+
+@keyframes modalEnter {
+    from {
+        opacity: 0;
+        transform: scale(0.8) translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
 }
 
 .modalOverlay.closing {
@@ -1789,25 +1815,24 @@ p {
     flex-direction: column;
     position: relative;
     overflow: hidden;
-    transform: scale(0.8) translateY(20px);
-    opacity: 0;
-    visibility: hidden;
-    transition: all 0.3s ease-out;
-    transition-delay: 0.1s;
+    /* Animation for entry */
+    animation: modalEnter 0.3s 0.1s cubic-bezier(0.16, 1, 0.3, 1) backwards;
 }
 
-.modalOverlay:not(.closing) .modalContent {
-    transform: scale(1) translateY(0);
-    opacity: 1;
-    visibility: visible;
-}
+/* Fallback/Explicit state for when not closing (though animation handles the entry) */
+/* We keep this to ensure it stays visible after animation ends if forwards wasn't used, 
+   but since we used standard animation, we just need to ensure .closing overrides it */
 
 .modalContent.closing {
     transform: scale(0.8) translateY(20px);
     opacity: 0;
     visibility: hidden;
     transition: all 0.25s ease-in;
+    /* Override animation properties to prevent conflict */
+    animation: none;
 }
+
+
 
 .closeModalBtn {
     position: absolute;
