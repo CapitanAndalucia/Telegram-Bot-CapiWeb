@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, Observable } from 'rxjs';
+import { BehaviorSubject, Observable, Subject } from 'rxjs';
 import { ApiClientService } from '../../services/api-client.service';
 
 export interface UploadTask {
@@ -36,15 +36,17 @@ export class UploadService {
   });
 
   public uploadState$ = this.uploadStateSubject.asObservable();
-  
-  // Nuevo: Subject para notificar cuando hay errores pero al menos una subida fue exitosa
-  private partialUploadCompletedSubject = new BehaviorSubject<void>(undefined);
+
+  // Subject para notificar cuando hay errores pero al menos una subida fue exitosa
+  // Usar Subject (no BehaviorSubject) para que solo emita cuando hay un evento real
+  private partialUploadCompletedSubject = new Subject<void>();
   public partialUploadCompleted$ = this.partialUploadCompletedSubject.asObservable();
-  
-  // Nuevo: Subject para notificar cuando todas las subidas se completan
-  private allUploadsCompletedSubject = new BehaviorSubject<void>(undefined);
+
+  // Subject para notificar cuando todas las subidas se completan
+  // Usar Subject (no BehaviorSubject) para que solo emita cuando hay un evento real
+  private allUploadsCompletedSubject = new Subject<void>();
   public allUploadsCompleted$ = this.allUploadsCompletedSubject.asObservable();
-  
+
   private originalScrollY = 0;
 
   constructor(private apiClient: ApiClientService) {
@@ -71,7 +73,7 @@ export class UploadService {
   uploadFiles(files: File[]): void {
     // Guardar posición actual del scroll
     this.originalScrollY = window.scrollY;
-    
+
     const newTasks: UploadTask[] = files.map(file => ({
       id: this.generateId(),
       file,
@@ -96,20 +98,20 @@ export class UploadService {
   // Procesa la subida real de un archivo
   private async processUpload(task: UploadTask): Promise<void> {
     this.updateTaskStatus(task.id, 'uploading');
-    
+
     // Bloquear scroll durante la subida
     this.freezeScroll();
 
     try {
       const currentState = this.uploadStateSubject.value;
-      
+
       const formData = new FormData();
       formData.append('file', task.file);
       formData.append('recipient_username', currentState.currentUser || 'unknown');
 
       if (currentState.currentFolder) {
         formData.append('folder', currentState.currentFolder.toString());
-        
+
         // Enviar el owner de la carpeta para herencia de propiedad
         if (currentState.currentFolderOwner) {
           formData.append('owner', currentState.currentFolderOwner.toString());
@@ -122,7 +124,7 @@ export class UploadService {
         );
         this.updateTaskProgress(task.id, percentCompleted);
       });
-      
+
       this.updateTaskStatus(task.id, 'completed');
       this.incrementCompleted();
     } catch (error: any) {
@@ -244,11 +246,11 @@ export class UploadService {
 
   private calculateOverallProgress(tasks: UploadTask[]): number {
     if (tasks.length === 0) return 0;
-    
+
     // Calcular progreso basado en todos los archivos
     const totalProgress = tasks.reduce((sum, task) => {
       let taskProgress = 0;
-      
+
       switch (task.status) {
         case 'completed':
           taskProgress = 100;
@@ -263,13 +265,13 @@ export class UploadService {
           taskProgress = 0; // Los errores no cuentan para el progreso
           break;
       }
-      
+
       return sum + taskProgress;
     }, 0);
-    
+
     // Calcular porcentaje sobre el total de archivos
     const overallPercentage = totalProgress / tasks.length;
-    
+
     return Math.min(Math.round(overallPercentage), 100);
   }
 
@@ -282,11 +284,11 @@ export class UploadService {
     if (allDone) {
       // Restaurar posición del scroll
       this.restoreScrollPosition();
-      
+
       // Verificar si hay al menos una subida exitosa
       const hasSuccessfulUploads = state.completedFiles > 0;
       const hasErrors = state.failedFiles > 0;
-      
+
       if (hasSuccessfulUploads && hasErrors) {
         // Hay errores pero al menos una subida fue exitosa
         this.partialUploadCompletedSubject.next();
@@ -294,7 +296,7 @@ export class UploadService {
         // Todas las subidas fueron exitosas
         this.allUploadsCompletedSubject.next();
       }
-      
+
       // Auto-ocultar después de 3 segundos
       setTimeout(() => this.hideUploadWidget(), 3000);
     }
