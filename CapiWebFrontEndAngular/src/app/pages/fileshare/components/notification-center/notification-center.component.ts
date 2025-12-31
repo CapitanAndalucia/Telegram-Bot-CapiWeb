@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, output } from '@angular/core';
+import { Component, OnInit, signal, output, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ApiClientService } from '../../../../services/api-client.service';
 
@@ -25,6 +25,15 @@ export class NotificationCenterComponent implements OnInit {
     notifications = signal<Notification[]>([]);
     requests = signal<FriendRequest[]>([]);
     isOpen = signal(false);
+
+    // Pagination
+    displayedCount = signal(5);
+    visibleNotifications = computed(() => {
+        return this.notifications().slice(0, this.displayedCount());
+    });
+    hasMoreNotifications = computed(() => {
+        return this.visibleNotifications().length < this.notifications().length;
+    });
 
     constructor(private apiClient: ApiClientService) { }
 
@@ -59,7 +68,13 @@ export class NotificationCenterComponent implements OnInit {
         this.isOpen.update((v) => !v);
         if (this.isOpen()) {
             this.fetchData();
+            // Reset pagination when opening
+            this.displayedCount.set(5);
         }
+    }
+
+    loadMore(): void {
+        this.displayedCount.update((c) => c + 15);
     }
 
     async handleAccept(id: number): Promise<void> {

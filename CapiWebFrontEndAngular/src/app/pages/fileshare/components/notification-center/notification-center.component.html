@@ -38,12 +38,17 @@
         <p class="empty">No hay notificaciones</p>
         } @else {
         <ul class="notifList">
-            @for (notif of notifications(); track notif.id) {
+            @for (notif of visibleNotifications(); track notif.id) {
             <li class="notifItem" [class.unread]="!notif.is_read">
                 {{ notif.message }}
             </li>
             }
         </ul>
+        @if (hasMoreNotifications()) {
+        <div style="text-align: center; margin-top: 1rem; padding-bottom: 0.5rem;">
+            <button class="loadMoreBtn" (click)="loadMore()">Cargar más...</button>
+        </div>
+        }
         }
     </div>
     }
