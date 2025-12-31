@@ -101,14 +101,13 @@ export class NotificationCenterComponent implements OnInit {
         if (unread.length === 0) return;
 
         try {
-            await Promise.all(unread.map((n) => this.apiClient.markNotificationRead(n.id)));
-            // Update local state instead of re-fetching everything
+            await this.apiClient.markAllNotificationsRead();
+            // Update local state
             this.notifications.update((notifs) =>
                 notifs.map((n) => ({ ...n, is_read: true }))
             );
         } catch (error) {
             console.error('Error marking notifications as read', error);
-            // Fallback to fetch
             void this.fetchData();
         }
     }

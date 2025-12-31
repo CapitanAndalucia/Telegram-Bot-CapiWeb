@@ -23,7 +23,7 @@ export class ApiClientService {
     private buildUrl(path: string, params?: Record<string, any>): string {
         const normalizedPath = path.startsWith('/') ? path : `/${path}`;
         const baseUrl = this.baseUrl;
-        
+
         if (!params || Object.keys(params).length === 0) {
             const finalUrl = `${baseUrl}${normalizedPath}`;
             return finalUrl;
@@ -37,7 +37,7 @@ export class ApiClientService {
 
     private handleError(error: HttpErrorResponse): Observable<never> {
         let errorMessage = 'An unknown error occurred';
-        
+
         if (error.status === 0) {
             errorMessage = 'Error de conexión o el servidor no responde';
         } else if (error.status === 500) {
@@ -63,7 +63,7 @@ export class ApiClientService {
         } else if (error.statusText) {
             errorMessage = error.statusText;
         }
-        
+
         return throwError(() => new ApiError(errorMessage, error.status, error.error));
     }
 
@@ -79,7 +79,7 @@ export class ApiClientService {
         } = {}
     ): Observable<T> {
         const url = this.buildUrl(path, options.params);
-        
+
         const silent = options.silent || false;
         const httpOptions: any = {
             headers: options.headers || new HttpHeaders({ 'Content-Type': 'application/json' }),
@@ -591,6 +591,15 @@ export class ApiClientService {
     markNotificationRead(id: number): Promise<any> {
         return new Promise((resolve, reject) => {
             this.request(`/notifications/${id}/mark_read/`, 'POST').subscribe({
+                next: (data) => resolve(data),
+                error: (err) => reject(err)
+            });
+        });
+    }
+
+    markAllNotificationsRead(): Promise<any> {
+        return new Promise((resolve, reject) => {
+            this.request('/notifications/mark_all_read/', 'POST').subscribe({
                 next: (data) => resolve(data),
                 error: (err) => reject(err)
             });
