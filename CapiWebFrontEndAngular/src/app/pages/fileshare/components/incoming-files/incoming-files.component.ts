@@ -1050,9 +1050,9 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
         const selectedCount = this.selectedFileIds().size + this.selectedFolderIds().size;
         this.isSelectionMode.set(selectedCount > 0);
 
-        if (isBulk || selectedCount > 1) {
+        if (selectedCount > 0) {
             this.bulkSelectionActive.set(true);
-        } else if (selectedCount === 0) {
+        } else {
             this.bulkSelectionActive.set(false);
         }
     }
