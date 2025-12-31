@@ -123,10 +123,9 @@
             </div>
         </div>
 
-        <div class="incomingContent" [class.listMode]="viewMode() === 'list'" [class.selectionMode]="isSelectionMode()"
-            [class.animate]="animateList()">
+        <div class="incomingContent" [class.listMode]="viewMode() === 'list'" [class.selectionMode]="isSelectionMode()">
             <!-- Folders -->
-            <ng-container *ngFor="let folder of sortedFolders()">
+            <ng-container *ngFor="let folder of sortedFolders(); let i = index">
                 <div class="folderCard" [class.listMode]="viewMode() === 'list'" [attr.data-folder-id]="folder.id"
                     [class.selected]="isFolderSelected(folder.id)" [class.dropTarget]="hoveredFolderId() === folder.id"
                     [class.shared]="isShared(folder)" [class.context-menu-open]="isContextMenuOpen()"
@@ -144,7 +143,8 @@
                     (dragover)="handleFolderDragOver($event, folder)"
                     (dragenter)="handleFolderDragEnter($event, folder)"
                     (dragleave)="handleFolderDragLeave($event, folder)" (drop)="handleFileDrop($event, folder)"
-                    [draggable]="true" (dragstart)="handleFolderDragStart($event, folder)" (dragend)="handleDragEnd()">
+                    [draggable]="true" (dragstart)="handleFolderDragStart($event, folder)" (dragend)="handleDragEnd()"
+                    [@itemAnimation]="{value: '', params: {delay: i * 30}}">
 
 
                     <div class="selectionCheckbox" [class.checked]="isFolderSelected(folder.id)"
@@ -187,7 +187,7 @@
             </ng-container>
 
             <!-- Files -->
-            <ng-container *ngFor="let file of sortedFiles()">
+            <ng-container *ngFor="let file of sortedFiles(); let i = index">
                 <div class="fileCard" [class.listMode]="viewMode() === 'list'" [attr.data-file-id]="file.id"
                     [class.selected]="isFileSelected(file.id)" [class.shared]="isShared(file)" [draggable]="true"
                     [class.context-menu-open]="isContextMenuOpen()" (dragstart)="handleDragStart($event, file)"
@@ -201,7 +201,8 @@
                     (touchend)="!isContextMenuOpen() && handleItemTouchEnd($event, 'file', file)"
                     (click)="!isContextMenuOpen() && handleItemClick($event, 'file', file)"
                     (dblclick)="!isContextMenuOpen() && handleFileClick(file)"
-                    (contextmenu)="handleContextMenu($event, 'file', file)" style="cursor: pointer">
+                    (contextmenu)="handleContextMenu($event, 'file', file)" style="cursor: pointer"
+                    [@itemAnimation]="{value: '', params: {delay: (sortedFolders().length + i) * 30}}">
 
                     <div class="selectionCheckbox" [class.checked]="isFileSelected(file.id)"
                         (click)="toggleItemSelection('file', file, true); $event.stopPropagation()">

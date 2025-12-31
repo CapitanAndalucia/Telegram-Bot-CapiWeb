@@ -46,11 +46,21 @@ interface SortConfig {
     foldersPosition: FoldersPosition;
 }
 
+import { trigger, transition, style, animate, query, stagger } from '@angular/animations';
+
 @Component({
     selector: 'app-incoming-files',
     imports: [CommonModule, FilePreviewModalComponent, ShareModalComponent, MatDialogModule],
     templateUrl: './incoming-files.component.html',
     styleUrls: ['../../fileshare.component.css'],
+    animations: [
+        trigger('itemAnimation', [
+            transition(':enter', [
+                style({ opacity: 0, transform: 'translateY(15px)' }),
+                animate('300ms {{delay}}ms ease-out', style({ opacity: 1, transform: 'translateY(0)' }))
+            ])
+        ])
+    ]
 })
 export class IncomingFilesComponent implements OnInit, OnDestroy {
     // Inputs
@@ -83,6 +93,7 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
     // UI state signals
     loading = signal(true);
     isNavigating = signal(false);
+    animationTrigger = signal(0);
     isDragging = signal(false);
     uploading = signal(false);
     uploadProgress = signal(0);
@@ -103,7 +114,6 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
     // Upload completion subscription
     private uploadCompletedSubscription: Subscription | null = null;
     private partialUploadSubscription: Subscription | null = null;
-    animateList = signal(false);
     isSortMenuOpen = signal(false);
 
     // Share modal
@@ -235,6 +245,7 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
         } finally {
             this.loading.set(false);
             this.isNavigating.set(false);
+            this.animationTrigger.update(v => v + 1);
         }
     }
 
@@ -254,6 +265,7 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
             }
         } finally {
             this.loading.set(false);
+            this.animationTrigger.update(v => v + 1);
         }
     }
 
@@ -353,8 +365,7 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
 
         this.clearSelection();
         this.currentFolder.set(folder);
-        this.animateList.set(true);
-        setTimeout(() => this.animateList.set(false), 800);
+
         await this.refreshContent();
     }
 
