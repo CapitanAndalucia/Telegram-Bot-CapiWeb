@@ -7,6 +7,7 @@ import { FileUploadComponent } from './components/file-upload/file-upload.compon
 import { IncomingFilesComponent } from './components/incoming-files/incoming-files.component';
 import { NotificationCenterComponent } from './components/notification-center/notification-center.component';
 import { UserIconComponent } from './components/user-icon/user-icon.component';
+import { DownloadsMenuComponent } from '../../shared/components/downloads-menu/downloads-menu.component';
 
 interface User {
   username: string;
@@ -23,6 +24,7 @@ interface User {
     IncomingFilesComponent,
     NotificationCenterComponent,
     UserIconComponent,
+    DownloadsMenuComponent
   ],
   templateUrl: './fileshare.component.html',
   styleUrls: ['./fileshare.component.css'],

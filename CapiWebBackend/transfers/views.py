@@ -4,7 +4,8 @@ from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework import serializers
-from django.http import FileResponse
+from django.http import FileResponse, StreamingHttpResponse
+import threading
 from django.utils import timezone
 from datetime import timedelta
 from .models import FileTransfer, Folder, FileAccess, FolderAccess
@@ -195,7 +196,8 @@ class FolderViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['get'])
     def download(self, request, pk=None):
         """
-        Download folder as ZIP file with all contents recursively
+        Download folder as ZIP file with all contents recursively using StreamingHttpResponse
+        to avoid timeouts and high memory usage.
         """
         import zipfile
         import io
@@ -205,12 +207,11 @@ class FolderViewSet(viewsets.ModelViewSet):
         if not self._has_folder_access(request.user, folder):
             return Response({'error': 'unauthorized'}, status=status.HTTP_403_FORBIDDEN)
         
-        # Create ZIP in memory
-        zip_buffer = io.BytesIO()
+        # 1. Collect all files to be zipped first (Main Thread - DB Access)
+        files_to_zip = [] # List of tuples (file_path, archive_name)
         
-        def add_folder_to_zip(zipf, current_folder, path_prefix=""):
-            """Recursively add folder contents to ZIP"""
-            # Add files in current folder
+        def collect_files(current_folder, path_prefix=""):
+            # Collect files
             files = FileTransfer.objects.filter(
                 folder=current_folder
             ).filter(
@@ -218,34 +219,70 @@ class FolderViewSet(viewsets.ModelViewSet):
                 | Q(access_list__granted_to=request.user)
                 | Q(folder__access_list__granted_to=request.user)
             ).distinct()
+            
             for file_transfer in files:
                 if file_transfer.file and hasattr(file_transfer.file, 'path'):
-                    file_path = os.path.join(path_prefix, file_transfer.filename)
                     try:
-                        zipf.write(file_transfer.file.path, file_path)
-                    except FileNotFoundError:
-                        pass  # Skip files that no longer exist on disk
-            
-            # Add subfolders recursively
+                        # Check existence simply by access
+                        if os.path.exists(file_transfer.file.path):
+                            archive_path = os.path.join(path_prefix, file_transfer.filename)
+                            files_to_zip.append((file_transfer.file.path, archive_path))
+                    except Exception:
+                        pass
+
+            # Collect subfolders
             subfolders = Folder.objects.filter(parent=current_folder).filter(
                 Q(owner=request.user)
                 | Q(access_list__granted_to=request.user)
             ).distinct()
+            
             for subfolder in subfolders:
                 subfolder_path = os.path.join(path_prefix, subfolder.name)
-                add_folder_to_zip(zipf, subfolder, subfolder_path)
+                collect_files(subfolder, subfolder_path)
+
+        # Build the file list
+        collect_files(folder, folder.name)
         
-        with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zipf:
-            add_folder_to_zip(zipf, folder, folder.name)
+        # Calculate approximate total size (uncompressed) for progress bar
+        total_size = sum(os.path.getsize(f[0]) for f in files_to_zip if os.path.exists(f[0]))
+
+        # 2. Setup Pipe and Thread for Streaming
+        r, w = os.pipe()
         
-        zip_buffer.seek(0)
+        def zip_writer(write_fd, file_list):
+            """Thread function to write zip to pipe"""
+            try:
+                with os.fdopen(write_fd, 'wb') as w_file:
+                    with zipfile.ZipFile(w_file, 'w', zipfile.ZIP_DEFLATED) as zf:
+                        for file_path, archive_name in file_list:
+                            try:
+                                zf.write(file_path, archive_name)
+                            except Exception as e:
+                                print(f"Error zipping {file_path}: {e}")
+            except Exception as e:
+                print(f"Zip writer thread error: {e}")
+            # File descriptor is closed by with context or explicitly
         
-        response = FileResponse(
-            zip_buffer,
-            as_attachment=True,
-            filename=f"{folder.name}.zip"
-        )
-        response['Content-Type'] = 'application/zip'
+        # Start background thread
+        t = threading.Thread(target=zip_writer, args=(w, files_to_zip))
+        t.daemon = True
+        t.start()
+        
+        # 3. Stream Generator
+        def file_iterator(read_fd):
+            with os.fdopen(read_fd, 'rb') as r_file:
+                while True:
+                    data = r_file.read(8192) # 8KB chunks
+                    if not data:
+                        break
+                    yield data
+            # Ensure thread finishes
+            t.join(timeout=1.0)
+
+        response = StreamingHttpResponse(file_iterator(r), content_type='application/zip')
+        response['Content-Disposition'] = f'attachment; filename="{folder.name}.zip"'
+        # Custom header for progress estimation (Approximation: Uncompressed size)
+        response['X-Total-Size'] = str(total_size)
         return response
 
     def _has_folder_access(self, user, folder: Folder) -> bool:

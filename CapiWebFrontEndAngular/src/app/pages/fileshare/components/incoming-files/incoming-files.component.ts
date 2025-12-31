@@ -1,5 +1,6 @@
 import { Component, signal, computed, effect, inject, ChangeDetectorRef, HostListener, OnInit, input, output, untracked, OnDestroy, ViewChild, ElementRef } from '@angular/core';
 import { UploadService } from '../../../../shared/services/upload.service';
+import { DownloadService } from '../../../../shared/services/download.service';
 import { CommonModule } from '@angular/common';
 import { ApiClientService } from '../../../../services/api-client.service';
 import { ToastrService } from 'ngx-toastr';
@@ -97,6 +98,9 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
     files = signal<FileItem[]>([]);
     folders = signal<Folder[]>([]);
     currentFolder = signal<Folder | null>(null);
+
+    // Computed signal combining folders and files for easier searching/iteration
+    items = computed(() => [...this.folders(), ...this.files()]);
     breadcrumbs = signal<Breadcrumb[]>([{ id: null, name: 'Mi unidad', folder: null }]);
 
     // UI state signals
@@ -186,7 +190,8 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
         private apiClient: ApiClientService,
         private toastr: ToastrService,
         private dialog: MatDialog,
-        private uploadService: UploadService
+        private uploadService: UploadService,
+        private downloadService: DownloadService
     ) {
         // Watch for refresh trigger changes
         effect(() => {
@@ -904,25 +909,15 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
      */
     async handleFolderDownload(folder: Folder): Promise<void> {
         try {
-            const downloadToast = this.toastr.info('Descargando carpeta...', '', { disableTimeOut: true });
-
-            const blob = await this.apiClient.downloadFolder(folder.id);
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `${folder.name}.zip`;
-            document.body.appendChild(a);
-            a.click();
-            window.URL.revokeObjectURL(url);
-            document.body.removeChild(a);
-
-            this.toastr.clear(downloadToast.toastId);
-            this.toastr.success('Carpeta descargada correctamente');
+            const url = `/api/folders/${folder.id}/download/`;
+            this.downloadService.downloadFolder(url, `${folder.name}.zip`);
+            this.toastr.success('Descarga iniciada');
         } catch (error) {
-            console.error('Folder download failed', error);
-            this.toastr.error('Error al descargar la carpeta');
+            console.error('Error initiating folder download:', error);
+            this.toastr.error('Error al iniciar la descarga');
         }
     }
+
 
     /**
      * Abre el modal de compartir para un archivo o carpeta.
@@ -1461,10 +1456,18 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
                 // Si es solo un archivo, descargarlo directamente
                 if (selectedFileIds.size === 1) {
                     const fileId = Array.from(selectedFileIds)[0];
-                    await this.apiClient.downloadFile(fileId);
+                    const file = this.items().find(i => 'id' in i && i.id === fileId) as FileItem;
+                    if (file) {
+                        const url = `/api/transfers/${fileId}/download/`;
+                        this.downloadService.downloadFile(url, file.filename);
+                    }
                 } else if (selectedFolderIds.size === 1) {
                     const folderId = Array.from(selectedFolderIds)[0];
-                    await this.apiClient.downloadFolder(folderId);
+                    const folder = this.items().find(i => 'id' in i && i.id === folderId) as Folder;
+                    if (folder) {
+                        const url = `/api/folders/${folderId}/download/`;
+                        this.downloadService.downloadFolder(url, `${folder.name}.zip`);
+                    }
                 }
 
                 this.toastr.success('Descarga completada');
@@ -2103,27 +2106,15 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
                 }
             }
 
-            const downloadToastId = this.toastr.info('Descargando archivo...', '', {
-                disableTimeOut: true,
-            });
-
-            const blob = await this.apiClient.downloadFile(id);
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = filename;
-            document.body.appendChild(a);
-            a.click();
-            window.URL.revokeObjectURL(url);
-            document.body.removeChild(a);
-
-            this.toastr.clear(downloadToastId.toastId);
-            this.toastr.success('Archivo descargado correctamente');
+            const url = `/api/transfers/${id}/download/`;
+            this.downloadService.downloadFile(url, filename);
+            this.toastr.success('Descarga iniciada');
         } catch (error) {
             console.error('Download failed', error);
-            this.toastr.error('Error al descargar el archivo');
+            this.toastr.error('Error al iniciar la descarga');
         }
     }
+
 
     private showMalwareWarning(executableList: string, moreCount: string): Promise<boolean> {
         return new Promise((resolve) => {
