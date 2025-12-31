@@ -17,6 +17,10 @@
         <div class="previewBody">
             @if (isImage) {
             <img [src]="downloadUrl" [alt]="file().filename" class="modalImage" />
+            } @else if (isVideo) {
+            <video [src]="streamUrl" class="modalImage" controls playsinline>
+                Tu navegador no soporta la reproducción de video.
+            </video>
             } @else {
             <div class="genericPreview">
                 <div class="genericIcon">📄</div>

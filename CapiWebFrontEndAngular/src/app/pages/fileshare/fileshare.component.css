@@ -2000,11 +2000,6 @@ p {
     justify-content: center;
     padding: 2rem;
     background: rgba(0, 0, 0, 0.3);
-
-    max-width: 100%;
-    height: auto;
-    object-fit: contain;
-    display: block;
 }
 
 .modalImage {
@@ -2012,6 +2007,8 @@ p {
     max-height: 100%;
     object-fit: contain;
     border-radius: 8px;
+    margin: auto;
+    display: block;
 }
 
 .genericPreview {

@@ -25,7 +25,17 @@ export class FilePreviewModalComponent {
     @HostBinding('class.closing') isClosing = false;
 
     get isImage(): boolean {
-        return /\.(jpg|jpeg|png|gif|webp)$/i.test(this.file().filename);
+        return /\.(jpg|jpeg|png|gif|webp|svg|bmp|ico)$/i.test(this.file().filename);
+    }
+
+    get isVideo(): boolean {
+        return /\.(mp4|webm|ogg|avi|mov|wmv|flv|mkv|3gp|m4v|mpg|mpeg)$/i.test(this.file().filename);
+    }
+
+    get streamUrl(): string {
+        // For now, we use the download URL which serves the file content
+        // Browsers handle range requests for video streaming automatically if supported by backend
+        return `/api/transfers/${this.file().id}/download/`;
     }
 
     get downloadUrl(): string {

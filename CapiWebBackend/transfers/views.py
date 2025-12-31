@@ -21,7 +21,7 @@ from .security_utils import (
     scan_archive_contents,
     scan_file_for_malware
 )
-from .thumbnail_utils import is_image_file, generate_thumbnail, get_thumbnail_filename
+from .thumbnail_utils import is_image_file, is_video_file, generate_thumbnail, generate_video_thumbnail, get_thumbnail_filename
 import os
 import zipfile
 import tempfile
@@ -632,6 +632,13 @@ class FileTransferViewSet(viewsets.ModelViewSet):
                 if thumbnail_content:
                     thumb_filename = get_thumbnail_filename(instance.filename)
                     instance.thumbnail.save(thumb_filename, thumbnail_content, save=True)
+            
+            # Generate thumbnail for video files
+            elif is_video_file(instance.filename):
+                thumbnail_content = generate_video_thumbnail(instance.file.path)
+                if thumbnail_content:
+                    thumb_filename = get_thumbnail_filename(instance.filename)
+                    instance.thumbnail.save(thumb_filename, thumbnail_content, save=True)
 
     @action(detail=True, methods=['get'])
     def download(self, request, pk=None):
@@ -671,9 +678,16 @@ class FileTransferViewSet(viewsets.ModelViewSet):
             return response
         
         # If no thumbnail but it's an image, try to generate one on-the-fly
-        if is_image_file(instance.filename) and instance.file and hasattr(instance.file, 'path'):
+        # If no thumbnail but it's an image or video, try to generate one on-the-fly
+        if instance.file and hasattr(instance.file, 'path'):
             try:
-                thumbnail_content = generate_thumbnail(instance.file.path)
+                thumbnail_content = None
+                
+                if is_image_file(instance.filename):
+                    thumbnail_content = generate_thumbnail(instance.file.path)
+                elif is_video_file(instance.filename):
+                    thumbnail_content = generate_video_thumbnail(instance.file.path)
+                
                 if thumbnail_content:
                     thumb_filename = get_thumbnail_filename(instance.filename)
                     instance.thumbnail.save(thumb_filename, thumbnail_content, save=True)

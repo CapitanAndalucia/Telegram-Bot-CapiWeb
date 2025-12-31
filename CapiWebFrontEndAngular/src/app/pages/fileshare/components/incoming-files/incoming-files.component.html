@@ -229,7 +229,8 @@
                             <div class="cardIconSmall">
                                 <img *ngIf="isImage(file.filename)" src="assets/icons/image-file-icon.png" alt="Image"
                                     class="fileTypeIcon" />
-                                <span *ngIf="!isImage(file.filename)">📄</span>
+                                <span *ngIf="isVideo(file.filename)" style="font-size: 1.2rem;">🎬</span>
+                                <span *ngIf="!isImage(file.filename) && !isVideo(file.filename)">📄</span>
                             </div>
                             <div class="cardName">{{ file.filename }}</div>
                             <!-- <span (click)="handleContextMenu($event, 'file', file); $event.stopPropagation()"
@@ -245,9 +246,9 @@
 
                     <!-- New Phase: Preview Body -->
                     <div class="previewContainer">
-                        @if (isImage(file.filename)) {
+                        @if (hasThumbnail(file.filename)) {
                         <div class="imageWrapper">
-                            <img [src]="getThumbnailUrl(file.id)" [alt]="file.filename" class="fileImage"
+                            <img [src]="getThumbnailUrl(file.id, file.filename)" [alt]="file.filename" class="fileImage"
                                 (load)="onImageLoad(file.id)" (error)="onImageError(file.id)"
                                 [style.display]="isImageLoading(file.id) ? 'none' : 'block'" />
                             @if (isImageLoading(file.id)) {
@@ -258,7 +259,7 @@
                             }
                         </div>
                         } @else {
-                        <div class="fileIconPlaceholder">📄</div>
+                        <div class="fileIconPlaceholder">{{ isVideo(file.filename) ? '🎬' : '📄' }}</div>
                         }
                     </div>
 

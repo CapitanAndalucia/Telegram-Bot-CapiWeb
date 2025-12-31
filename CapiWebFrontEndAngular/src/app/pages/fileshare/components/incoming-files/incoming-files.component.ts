@@ -1976,16 +1976,27 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
                 return { valid: false, error: `El archivo ${file.name} excede el tamaño máximo de 100MB` };
             }
 
-            // Validar tipo de archivo
+            // Validar tipo de archivo - Lista extendida de tipos MIME permitidos
             const allowedTypes = [
+                // Imágenes
                 'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml',
+                'image/bmp', 'image/ico', 'image/x-icon', 'image/vnd.microsoft.icon',
+                // Documentos
                 'application/pdf', 'text/plain', 'text/csv',
                 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
                 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
                 'application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+                // Archivos comprimidos
                 'application/zip', 'application/x-rar-compressed', 'application/x-7z-compressed',
-                'video/mp4', 'video/avi', 'video/mov', 'video/wmv',
-                'audio/mp3', 'audio/wav', 'audio/ogg'
+                'application/gzip', 'application/x-tar', 'application/x-bzip2',
+                // Video - TODOS los formatos comunes
+                'video/mp4', 'video/webm', 'video/ogg', 'video/avi', 'video/x-msvideo',
+                'video/quicktime', 'video/x-ms-wmv', 'video/x-flv', 'video/x-matroska',
+                'video/3gpp', 'video/3gpp2', 'video/mpeg', 'video/mp2t',
+                // Audio - TODOS los formatos comunes (MP3 = audio/mpeg)
+                'audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/ogg', 'audio/webm',
+                'audio/aac', 'audio/flac', 'audio/x-m4a', 'audio/mp4',
+                'audio/x-ms-wma', 'audio/vnd.wave', 'audio/wave'
             ];
 
             if (!allowedTypes.includes(file.type) && file.type !== '') {
@@ -2214,7 +2225,16 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
     }
 
     isImage(filename: string): boolean {
-        return /\.(jpg|jpeg|png|gif|webp)$/i.test(filename);
+        return /\.(jpg|jpeg|png|gif|webp|svg|bmp|ico)$/i.test(filename);
+    }
+
+    isVideo(filename: string): boolean {
+        return /\.(mp4|webm|ogg|avi|mov|wmv|flv|mkv|3gp|m4v|mpg|mpeg)$/i.test(filename);
+    }
+
+    hasThumbnail(filename: string): boolean {
+        // Imágenes y videos tienen miniatura
+        return this.isImage(filename) || this.isVideo(filename);
     }
 
     getFileUrl(fileId: number): string {
@@ -2222,7 +2242,11 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
         return `/api/transfers/${fileId}/download/`;
     }
 
-    getThumbnailUrl(fileId: number): string {
+    getThumbnailUrl(fileId: number, filename?: string): string {
+        // Para SVGs, usamos el propio archivo como miniatura ya que los navegadores lo renderizan bien
+        if (filename && filename.toLowerCase().endsWith('.svg')) {
+            return this.getFileUrl(fileId);
+        }
         // Returns the thumbnail endpoint for optimized gallery preview
         return `/api/transfers/${fileId}/thumbnail/`;
     }

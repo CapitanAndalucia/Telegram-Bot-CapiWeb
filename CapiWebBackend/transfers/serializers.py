@@ -3,11 +3,15 @@ from .models import FileTransfer, Folder, FileAccess, FolderAccess
 from django.contrib.auth.models import User
 import os
 import re
+import logging
 from .security_utils import (
     load_security_config,
     get_all_allowed_extensions,
     get_blocked_extensions
 )
+
+# Logger para debug
+logger = logging.getLogger(__name__)
 
 # Load security configuration
 SECURITY_CONFIG = load_security_config()
@@ -63,8 +67,15 @@ def validate_file(value):
     # Get file extension
     ext = os.path.splitext(value.name)[1].lower()
     
+    # DEBUG: Log validation info
+    logger.warning(f"[FILE_UPLOAD] Validating file: {value.name}")
+    logger.warning(f"[FILE_UPLOAD] Extracted extension: '{ext}'")
+    logger.warning(f"[FILE_UPLOAD] Allowed extensions count: {len(ALLOWED_EXTENSIONS)}")
+    logger.warning(f"[FILE_UPLOAD] Extension in allowed list: {ext in ALLOWED_EXTENSIONS}")
+    
     # Check if extension is blocked
     if ext in BLOCKED_EXTENSIONS:
+        logger.warning(f"[FILE_UPLOAD] Extension {ext} is BLOCKED")
         raise serializers.ValidationError(
             f'Tipo de archivo bloqueado por seguridad: {ext}. '
             f'No se permiten archivos ejecutables.'
@@ -72,6 +83,8 @@ def validate_file(value):
     
     # Check if extension is allowed
     if ext not in ALLOWED_EXTENSIONS:
+        logger.warning(f"[FILE_UPLOAD] Extension {ext} is NOT in allowed list")
+        logger.warning(f"[FILE_UPLOAD] Allowed extensions: {ALLOWED_EXTENSIONS}")
         raise serializers.ValidationError(
             f'Tipo de archivo no permitido: {ext}. '
             f'Tipos permitidos: imágenes, audio, video, archivos comprimidos, documentos.'

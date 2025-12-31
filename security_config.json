@@ -29,7 +29,17 @@
                 ".wmv",
                 ".flv",
                 ".webm",
-                ".m4v"
+                ".m4v",
+                ".3gp",
+                ".3g2",
+                ".mts",
+                ".m2ts",
+                ".ts",
+                ".mpg",
+                ".mpeg",
+                ".vob",
+                ".ogv",
+                ".divx"
             ],
             "archives": [
                 ".zip",
