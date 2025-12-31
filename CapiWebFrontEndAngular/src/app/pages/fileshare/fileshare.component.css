@@ -1572,10 +1572,6 @@ p {
     font-weight: bold;
 }
 
-.acceptBtn {
-    background: #00ff88;
-    color: #000;
-}
 
 .recipientHeader {
     display: flex;

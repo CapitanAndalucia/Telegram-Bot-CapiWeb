@@ -37,9 +37,28 @@ class FolderViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
+        from django.db.models import Prefetch
+        
+        # Prefetch unviewed files that the user can access for has_new_content optimization
+        unviewed_files_prefetch = Prefetch(
+            'files',
+            queryset=FileTransfer.objects.filter(
+                is_viewed=False
+            ).filter(
+                Q(owner=user) | 
+                Q(uploader=user) | 
+                Q(access_list__granted_to=user) |
+                Q(folder__access_list__granted_to=user)
+            ).distinct().only('id'),
+            to_attr='unviewed_files_for_user'
+        )
+        
         queryset = Folder.objects.filter(
             Q(owner=user) | Q(access_list__granted_to=user)
-        ).select_related('owner', 'uploader').prefetch_related('access_list').distinct()
+        ).select_related('owner', 'uploader').prefetch_related(
+            'access_list',
+            unviewed_files_prefetch
+        ).distinct()
 
         # Apply scope filtering for list views
         if self.action in ['list', None]:  # None for default list action

@@ -11,11 +11,14 @@ class Folder(models.Model):
     name = models.CharField(max_length=255)
     owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='owned_folders')
     uploader = models.ForeignKey(User, on_delete=models.CASCADE, related_name='uploaded_folders', null=True, blank=True)
-    parent = models.ForeignKey('self', null=True, blank=True, on_delete=models.CASCADE, related_name='subfolders')
+    parent = models.ForeignKey('self', null=True, blank=True, on_delete=models.CASCADE, related_name='subfolders', db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
     
     class Meta:
         unique_together = ['name', 'owner', 'parent']
+        indexes = [
+            models.Index(fields=['owner', 'parent']),
+        ]
 
     def __str__(self):
         return f"{self.name} ({self.owner})"
@@ -31,8 +34,14 @@ class FileTransfer(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     expires_at = models.DateTimeField(null=True, blank=True)
     is_downloaded = models.BooleanField(default=False)
-    is_viewed = models.BooleanField(default=False)
+    is_viewed = models.BooleanField(default=False, db_index=True)
     thumbnail = models.ImageField(upload_to='thumbnails/', null=True, blank=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['folder', 'is_viewed']),
+            models.Index(fields=['owner', 'folder']),
+        ]
 
     def save(self, *args, **kwargs):
         if self.file and not self.size:

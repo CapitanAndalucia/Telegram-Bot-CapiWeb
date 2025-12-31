@@ -171,6 +171,17 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
         return [...files].sort((a, b) => this.compareItems(a, b, 'file'));
     });
 
+    /**
+     * Crea una instancia de IncomingFilesComponent.
+     * Configura efectos reactivos para disparadores de refresco, cambios de scope y conteo de no leídos.
+     * 
+     * @description Inicializa el componente con el cliente API, notificaciones toast, servicio de diálogos
+     * y servicio de subida. Configura varios efectos Angular para reaccionar a cambios de inputs y
+     * eventos de suscripción del servicio de subida.
+     * 
+     * @llamadoPor Inyección de dependencias de Angular
+     * @cuando Se instancia el componente
+     */
     constructor(
         private apiClient: ApiClientService,
         private toastr: ToastrService,
@@ -232,10 +243,28 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
         });
     }
 
+    /**
+     * Hook del ciclo de vida de Angular llamado después del primer ciclo de detección de cambios.
+     * La carga inicial de datos se maneja mediante efectos en el constructor.
+     * 
+     * @llamadoPor Angular
+     * @cuando Después de que los inputs del componente se enlazan por primera vez
+     */
     ngOnInit(): void {
         // Initial load handled by effects
     }
 
+    /**
+     * Refresca archivos y carpetas desde la API para la carpeta actual.
+     * Muestra spinner de carga en la carga inicial, garantiza mínimo 500ms de tiempo de carga para UX.
+     * 
+     * @description Obtiene archivos y carpetas en paralelo. Gestiona el estado de carga
+     * y dispara animación después de cargar el contenido.
+     * 
+     * @llamadoPor Efectos del constructor (refreshTrigger, scope, forceReset), navigateToFolder, eventos uploadService
+     * @cuando El usuario navega, suben archivos, cambia el scope, o se dispara refresco manual
+     * @returns Promise que se resuelve cuando el contenido está cargado
+     */
     async refreshContent(): Promise<void> {
         const isInitialLoad = this.files().length === 0 && this.folders().length === 0;
         const isNavigation = this.isNavigating();
@@ -261,6 +290,14 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
         }
     }
 
+    /**
+     * Refresca contenido con spinner de carga visible por al menos 500ms.
+     * Se usa después de que terminen las subidas por lotes para dar feedback visual.
+     * 
+     * @llamadoPor Suscripción uploadService.allUploadsCompleted$
+     * @cuando Todas las subidas de archivos en un lote completan exitosamente
+     * @returns Promise que se resuelve cuando el contenido está cargado y el spinner se oculta
+     */
     async refreshContentWithSpinner(): Promise<void> {
         // Mostrar spinner por al menos 500ms
         this.loading.set(true);
@@ -282,13 +319,21 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
     }
 
 
-    // ============== DEVELOPMENT LATENCY SIMULATION ==============
-    // Set to true to simulate random network latency for testing the spinner
-    // IMPORTANT: Set to false before deploying to production!
+    // ============== SIMULACIÓN DE LATENCIA PARA DESARROLLO ==============
+    // Poner en true para simular latencia de red aleatoria para probar el spinner
+    // IMPORTANTE: ¡Poner en false antes de desplegar a producción!
     private readonly SIMULATE_LATENCY = false;
     private readonly MIN_LATENCY_MS = 60;
     private readonly MAX_LATENCY_MS = 300;
 
+    /**
+     * Método solo para desarrollo que simula latencia de red.
+     * Añade retraso aleatorio entre MIN_LATENCY_MS y MAX_LATENCY_MS.
+     * 
+     * @llamadoPor fetchFiles, fetchFolders
+     * @cuando SIMULATE_LATENCY es true (solo desarrollo)
+     * @returns Promise que se resuelve después de retraso aleatorio (o inmediatamente si está deshabilitado)
+     */
     private async simulateLatency(): Promise<void> {
         if (!this.SIMULATE_LATENCY) return;
         const delay = Math.floor(Math.random() * (this.MAX_LATENCY_MS - this.MIN_LATENCY_MS + 1)) + this.MIN_LATENCY_MS;
@@ -296,6 +341,14 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
     }
     // ============================================================
 
+    /**
+     * Obtiene archivos desde la API para la carpeta actual y scope.
+     * Maneja respuestas de API tanto paginadas como no paginadas.
+     * 
+     * @llamadoPor refreshContent, refreshContentWithSpinner
+     * @cuando Se necesita refrescar el contenido
+     * @returns Promise que se resuelve cuando los archivos están obtenidos y establecidos
+     */
     async fetchFiles(): Promise<void> {
         try {
             await this.simulateLatency(); // DEV: Remove or disable for production
@@ -316,7 +369,14 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
         }
     }
 
-
+    /**
+     * Establece archivos e inicializa estado de carga para archivos de imagen.
+     * Rastrea qué imágenes están cargando para mostrar spinners.
+     * 
+     * @llamadoPor fetchFiles
+     * @cuando Se reciben archivos de la API
+     * @param files - Array de items de archivo a establecer
+     */
     private setFilesWithLoadingState(files: FileItem[]): void {
         const imageIds = files
             .filter(f => this.isImage(f.filename))
@@ -326,6 +386,14 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
         this.files.set(files);
     }
 
+    /**
+     * Obtiene carpetas desde la API para la carpeta padre actual y scope.
+     * Normaliza la respuesta para manejar diferentes formatos de API.
+     * 
+     * @llamadoPor refreshContent, refreshContentWithSpinner
+     * @cuando Se necesita refrescar el contenido
+     * @returns Promise que se resuelve cuando las carpetas están obtenidas y establecidas
+     */
     async fetchFolders(): Promise<void> {
         try {
             await this.simulateLatency(); // DEV: Remove or disable for production
@@ -339,6 +407,14 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
         }
     }
 
+    /**
+     * Marca todos los archivos en la carpeta actual como vistos en el servidor.
+     * Se llama antes de navegar fuera de una carpeta.
+     * 
+     * @llamadoPor navigateToFolder
+     * @cuando El usuario navega fuera de una carpeta con archivos no vistos
+     * @returns Promise que se resuelve cuando la llamada API completa
+     */
     private async markCurrentFolderViewed(): Promise<void> {
         const currentFolderId = this.currentFolder()?.id;
         if (currentFolderId) {
@@ -350,6 +426,21 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
         }
     }
 
+
+    /**
+     * Navega a una carpeta, actualizando breadcrumbs y cargando contenido.
+     * Marca la carpeta actual como vista antes de salir.
+     * 
+     * @description Maneja la navegación de carpetas con debouncing para prevenir llamadas duplicadas.
+     * Actualiza breadcrumbs desde la ruta proporcionada o construyéndolos desde la jerarquía de carpetas.
+     * Limpia el contenido actual inmediatamente para UX suave durante la carga.
+     * 
+     * @llamadoPor Template (doble-click en carpeta), handleItemTouchEnd, handleBreadcrumbClick
+     * @cuando El usuario hace doble-click en carpeta, long-press en móvil, o click en breadcrumb
+     * @param folder - Carpeta destino a navegar, o null para ir a raíz
+     * @param options - Ruta opcional para establecer breadcrumbs sin fetch
+     * @returns Promise que se resuelve cuando la navegación y carga de contenido completan
+     */
     async navigateToFolder(folder: Folder | null, options?: { path?: Breadcrumb[] }): Promise<void> {
         // Mark current folder contents as viewed before leaving
         await this.markCurrentFolderViewed();
@@ -396,6 +487,15 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
         await this.refreshContent();
     }
 
+    /**
+     * Maneja click en un breadcrumb, navegando a ese nivel de carpeta.
+     * Trunca la ruta de breadcrumbs a la posición clickeada.
+     * 
+     * @llamadoPor Template (evento click en breadcrumb)
+     * @cuando El usuario hace click en un item de breadcrumb
+     * @param index - Índice del breadcrumb clickeado en el array de breadcrumbs
+     * @returns Promise que se resuelve cuando la navegación completa
+     */
     async handleBreadcrumbClick(index: number): Promise<void> {
         const path = this.breadcrumbs().slice(0, index + 1);
         const target = path[path.length - 1];
@@ -403,6 +503,13 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
         await this.navigateToFolder(folder, { path });
     }
 
+    /**
+     * Cierra el menú contextual y resetea todo el estado UI relacionado.
+     * También limpia cualquier estado de touch-drag para prevenir que la UI se quede bloqueada.
+     * 
+     * @llamadoPor onDocumentClick, onDocumentTouchStart, varios handlers del menú contextual
+     * @cuando El usuario hace click fuera del menú contextual o completa una acción
+     */
     closeContextMenu(): void {
         this.contextMenu.set(null);
         this.isSortMenuOpen.set(false);
@@ -416,6 +523,14 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
         this.currentDraggedFolderId = null;
     }
 
+    /**
+     * Maneja eventos de click a nivel de documento para cerrar menús al hacer click fuera.
+     * Maneja cierre de menú FAB y menú contextual con propagación de eventos adecuada.
+     * 
+     * @llamadoPor Angular HostListener en 'document:click'
+     * @cuando Ocurre cualquier click en cualquier parte del documento
+     * @param event - El evento de click del mouse
+     */
     @HostListener('document:click', ['$event'])
     onDocumentClick(event: MouseEvent): void {
         const target = event.target as HTMLElement;
@@ -460,6 +575,14 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
         }
     }
 
+    /**
+     * Maneja eventos de touch a nivel de documento para cerrar menús al tocar fuera.
+     * Similar a onDocumentClick pero para dispositivos táctiles.
+     * 
+     * @llamadoPor Angular HostListener en 'document:touchstart'
+     * @cuando Cualquier touch comienza en cualquier parte del documento
+     * @param event - El evento de touch
+     */
     @HostListener('document:touchstart', ['$event'])
     onDocumentTouchStart(event: TouchEvent): void {
         const target = event.target as HTMLElement;
@@ -495,6 +618,14 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
         }
     }
 
+    /**
+     * Abre un diálogo para crear una nueva carpeta en el directorio actual.
+     * Muestra notificaciones toast para el progreso y resultado de la creación.
+     * 
+     * @llamadoPor Template (opción "Nueva carpeta" del menú contextual), menú FAB móvil
+     * @cuando El usuario selecciona "Nueva carpeta" desde el menú contextual o FAB
+     * @returns Promise que se resuelve cuando la creación de carpeta completa o el diálogo se cancela
+     */
     async createFolder(): Promise<void> {
         const dialogData: InputDialogData = {
             title: 'Nueva carpeta',
@@ -531,6 +662,20 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
         }
     }
 
+    /**
+     * Abre el menú contextual en la posición especificada para un archivo, carpeta o fondo.
+     * Calcula la posición óptima del menú para mantenerse dentro de los límites del viewport.
+     * 
+     * @description Maneja click derecho (escritorio) para mostrar opciones contextuales.
+     * En móvil, esto se ignora a favor del long-press para selección.
+     * Limpia cualquier estado de touch-drag antes de abrir el menú.
+     * 
+     * @llamadoPor Template (click derecho en archivo/carpeta/fondo), click en botón de opciones
+     * @cuando El usuario hace click derecho en un item o hace click en el botón de tres puntos
+     * @param event - El evento de mouse que dispara el menú contextual
+     * @param type - Tipo de item: 'file', 'folder', o 'background'
+     * @param item - El item de archivo o carpeta (undefined para background)
+     */
     handleContextMenu(event: MouseEvent, type: 'file' | 'folder' | 'background', item?: FileItem | Folder): void {
         event.preventDefault();
         event.stopPropagation();
@@ -595,6 +740,14 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
         this.activeOptions.set({ type, id });
     }
 
+    /**
+     * Abre un diálogo para renombrar un archivo o carpeta desde el menú contextual.
+     * Valida el nuevo nombre y llama a la API para realizar el renombrado.
+     * 
+     * @llamadoPor Template (opción "Renombrar" del menú contextual)
+     * @cuando El usuario selecciona "Renombrar" desde el menú contextual
+     * @returns Promise que se resuelve cuando el renombrado completa o el diálogo se cancela
+     */
     async renameItem(): Promise<void> {
         const menu = this.contextMenu();
         if (!menu || !menu.item || menu.type === 'background') {
@@ -652,6 +805,14 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
         }
     }
 
+    /**
+     * Abre un diálogo de confirmación y elimina un archivo o carpeta.
+     * Muestra notificaciones toast apropiadas durante el proceso de eliminación.
+     * 
+     * @llamadoPor Template (opción "Eliminar" del menú contextual)
+     * @cuando El usuario selecciona "Eliminar" desde el menú contextual
+     * @returns Promise que se resuelve cuando la eliminación completa o se cancela
+     */
     async deleteItem(): Promise<void> {
         // console.log(`[Fileshare] deleteItem called`);
         const menu = this.contextMenu();
@@ -700,6 +861,15 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
         }
     }
 
+    /**
+     * Realiza la eliminación real de la carpeta vía API.
+     * Muestra notificaciones toast para progreso y resultado.
+     * 
+     * @llamadoPor deleteItem, handleBreadcrumbDrop (para limpieza)
+     * @cuando El usuario confirma eliminación de carpeta
+     * @param folderId - ID de la carpeta a eliminar
+     * @returns Promise que se resuelve cuando la eliminación completa
+     */
     private async performFolderDelete(folderId: number): Promise<void> {
         const idToDelete = Number(folderId);
         const deleteToast = this.toastr.info('Eliminando carpeta...', '', { disableTimeOut: true });
@@ -723,6 +893,15 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
         }
     }
 
+    /**
+     * Descarga una carpeta como archivo ZIP.
+     * Muestra notificaciones toast para progreso y resultado.
+     * 
+     * @llamadoPor Template (opción "Descargar" del menú contextual para carpetas)
+     * @cuando El usuario selecciona "Descargar" en una carpeta desde el menú contextual
+     * @param folder - La carpeta a descargar
+     * @returns Promise que se resuelve cuando la descarga completa
+     */
     async handleFolderDownload(folder: Folder): Promise<void> {
         try {
             const downloadToast = this.toastr.info('Descargando carpeta...', '', { disableTimeOut: true });
@@ -745,6 +924,15 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
         }
     }
 
+    /**
+     * Abre el modal de compartir para un archivo o carpeta.
+     * Verifica permisos antes de mostrar el modal.
+     * 
+     * @llamadoPor Template (opción "Compartir" del menú contextual)
+     * @cuando El usuario selecciona "Compartir" desde el menú contextual
+     * @param item - El archivo o carpeta a compartir
+     * @param type - Tipo de item: 'file' o 'folder'
+     */
     openShareModal(item: FileItem | Folder, type: 'file' | 'folder'): void {
         this.closeContextMenu();
 
@@ -752,6 +940,16 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
         void this.checkSharePermissions(item, type);
     }
 
+    /**
+     * Verifica si el usuario tiene permisos para gestionar acceso al item.
+     * Muestra el modal de compartir si tiene permisos, o un error si no.
+     * 
+     * @llamadoPor openShareModal
+     * @cuando Se abre el modal de compartir
+     * @param item - El archivo o carpeta a verificar
+     * @param type - Tipo de item: 'file' o 'folder'
+     * @returns Promise que se resuelve tras verificar permisos
+     */
     async checkSharePermissions(item: FileItem | Folder, type: 'file' | 'folder'): Promise<void> {
         try {
             // Verificar si tiene permisos para gestionar acceso
@@ -781,19 +979,53 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
         }
     }
 
+    /**
+     * Cierra el modal de compartir.
+     * 
+     * @llamadoPor ShareModalComponent (evento cerrar)
+     * @cuando El usuario cierra el modal de compartir
+     */
     closeShareModal(): void {
         this.shareModalItem.set(null);
     }
 
+    /**
+     * Detecta si el dispositivo es móvil basándose en el ancho de ventana.
+     * 
+     * @llamadoPor Template, handleContextMenu, varios métodos de touch
+     * @cuando Se necesita comportamiento diferenciado móvil/escritorio
+     * @returns true si el ancho de ventana es <= 768px
+     */
     isMobile(): boolean {
         if (typeof window === 'undefined') return false;
         return window.innerWidth <= 768;
     }
 
+    /**
+     * Verifica si hay algún menú contextual o FAB abierto.
+     * 
+     * @llamadoPor Template
+     * @cuando Se necesita verificar si hay menús abiertos
+     * @returns true si hay menú contextual o FAB móvil abierto
+     */
     isContextMenuOpen(): boolean {
         return !!this.contextMenu() || this.mobileFabOpen();
     }
 
+    /**
+     * Maneja el inicio de un touch en un archivo o carpeta.
+     * Inicia temporizadores para long-press (selección) y emulación de drag.
+     * 
+     * @description Detecta si el touch comenzó en el botón de opciones e ignora en ese caso.
+     * En modo selección, permite toggle rápido. Usa un delay de pre-selección para evitar
+     * conflictos con el scroll.
+     * 
+     * @llamadoPor Template (evento touchstart en items)
+     * @cuando El usuario toca un archivo o carpeta en móvil
+     * @param event - El evento de touch
+     * @param type - Tipo de item: 'file' o 'folder'
+     * @param item - El item tocado
+     */
     handleItemTouchStart(event: TouchEvent, type?: 'file' | 'folder', item?: any): void {
         // If type and item are not provided, we can't proceed with selection logic
         if (type === undefined || item === undefined) {
@@ -852,6 +1084,20 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
         }
     }
 
+    /**
+     * Maneja el fin de un touch en un archivo o carpeta.
+     * Detecta tap corto para vista previa/navegación, o completa una operación drag/drop.
+     * 
+     * @description Limpia timers de long-press, maneja navegación de carpetas con tap corto,
+     * abre vista previa de archivos, y procesa drops de touch-drag emulado.
+     * 
+     * @llamadoPor Template (evento touchend en items)
+     * @cuando El usuario levanta el dedo de un archivo o carpeta en móvil
+     * @param event - El evento de touch
+     * @param type - Tipo de item: 'file' o 'folder'
+     * @param item - El item donde terminó el touch
+     * @returns Promise que se resuelve tras completar la acción
+     */
     async handleItemTouchEnd(event: TouchEvent, type: 'file' | 'folder', item: any): Promise<void> {
         if (this.preSelectionTimer) {
             clearTimeout(this.preSelectionTimer);
@@ -971,6 +1217,15 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
         this.hoveredFolderId.set(null);
     }
 
+    /**
+     * Verifica si hubo movimiento significativo durante un touch.
+     * Se usa para distinguir taps de scrolls o drags.
+     * 
+     * @llamadoPor handleItemTouchEnd
+     * @cuando Se necesita determinar si un touch fue un tap limpio
+     * @param event - El evento de touch
+     * @returns true si el movimiento excede 15px en cualquier dirección
+     */
     private hasSignificantMovement(event: TouchEvent): boolean {
         if (!event.changedTouches || event.changedTouches.length === 0) return false;
 
@@ -981,6 +1236,14 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
         return deltaX > 15 || deltaY > 15;
     }
 
+    /**
+     * Abre la vista previa de un archivo.
+     * Marca el archivo como visto si aún no lo está.
+     * 
+     * @llamadoPor handleItemTouchEnd (tap corto en archivo), handleItemClick
+     * @cuando El usuario hace tap/click en un archivo para verlo
+     * @param file - El archivo a previsualizar
+     */
     openFilePreview(file: FileItem): void {
         if (!file.is_viewed) {
             void this.markAsViewed(file.id);
@@ -988,6 +1251,16 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
         this.selectedFile.set(file);
     }
 
+    /**
+     * Maneja clicks en archivos o carpetas (escritorio).
+     * Distingue entre simple click (selección) y doble click (navegación).
+     * 
+     * @llamadoPor Template (evento click en items, solo escritorio)
+     * @cuando El usuario hace click en un archivo o carpeta en escritorio
+     * @param event - El evento de click
+     * @param type - Tipo de item: 'file' o 'folder'
+     * @param item - El item clickeado
+     */
     handleItemClick(event: MouseEvent, type: 'file' | 'folder', item: FileItem | Folder): void {
         event.stopPropagation();
 
@@ -1012,6 +1285,13 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
         }
     }
 
+    /**
+     * Maneja mousedown a nivel de documento para cerrar menús.
+     * 
+     * @llamadoPor Angular HostListener en 'document:mousedown'
+     * @cuando Ocurre cualquier mousedown en el documento
+     * @param event - El evento de mousedown
+     */
     @HostListener('document:mousedown', ['$event'])
     onDocumentMouseDown(event: MouseEvent): void {
         const target = event.target as HTMLElement;
@@ -1027,6 +1307,15 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
         }
     }
 
+    /**
+     * Construye la ruta de breadcrumbs desde la raíz hasta la carpeta dada.
+     * Recorre la jerarquía de padres hacia arriba y luego invierte.
+     * 
+     * @llamadoPor navigateToFolder
+     * @cuando Se necesita reconstruir los breadcrumbs para una carpeta
+     * @param folder - La carpeta destino
+     * @returns Promise con array de Breadcrumbs desde raíz hasta la carpeta
+     */
     private async buildBreadcrumbsForFolder(folder: Folder): Promise<Breadcrumb[]> {
         const crumbs: Breadcrumb[] = [{ id: null, name: this.getScopeRootLabel(), folder: null }];
         try {
@@ -1057,6 +1346,16 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
         return crumbs;
     }
 
+    /**
+     * Alterna la selección de un archivo o carpeta.
+     * Actualiza el modo de selección y el estado de selección masiva.
+     * 
+     * @llamadoPor handleItemClick, handleItemTouchEnd, Template (checkbox)
+     * @cuando El usuario selecciona/deselecciona un item
+     * @param type - Tipo de item: 'file' o 'folder'
+     * @param item - El item a seleccionar/deseleccionar
+     * @param isBulk - Si es parte de una operación de selección masiva
+     */
     toggleItemSelection(type: 'file' | 'folder', item: FileItem | Folder, isBulk: boolean = false): void {
         const id = item.id;
         if (type === 'file') {
@@ -1085,6 +1384,13 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
         }
     }
 
+    /**
+     * Limpia toda la selección de archivos y carpetas.
+     * Desactiva el modo de selección.
+     * 
+     * @llamadoPor handleItemClick, navigateToFolder, scope/forceReset effects
+     * @cuando Se necesita limpiar la selección actual
+     */
     clearSelection(): void {
         this.selectedFileIds.set(new Set());
         this.selectedFolderIds.set(new Set());
@@ -1092,6 +1398,14 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
         this.bulkSelectionActive.set(false);
     }
 
+    /**
+     * Descarga todos los items seleccionados como ZIP.
+     * Muestra progreso y resultado con notificaciones toast.
+     * 
+     * @llamadoPor Template (botón "Descargar" en barra de acciones de selección)
+     * @cuando El usuario tiene items seleccionados y hace click en descargar
+     * @returns Promise que se resuelve cuando la descarga completa
+     */
     async downloadSelected(): Promise<void> {
         const selectedFileIds = this.selectedFileIds();
         const selectedFolderIds = this.selectedFolderIds();
@@ -1162,6 +1476,14 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
         }
     }
 
+    /**
+     * Elimina todos los items seleccionados (archivos y carpetas).
+     * Muestra diálogo de confirmación y notificaciones de progreso.
+     * 
+     * @llamadoPor Template (botón "Eliminar" en barra de acciones de selección)
+     * @cuando El usuario tiene items seleccionados y hace click en eliminar
+     * @returns Promise que se resuelve cuando la eliminación completa
+     */
     async deleteSelected(): Promise<void> {
         const selectedFileIds = this.selectedFileIds();
         const selectedFolderIds = this.selectedFolderIds();
@@ -1222,16 +1544,43 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
         }
     }
 
+    /**
+     * Verifica si un archivo está seleccionado.
+     * 
+     * @llamadoPor Template (para mostrar checkbox marcado)
+     * @cuando Se renderiza un archivo en la lista
+     * @param id - ID del archivo
+     * @returns true si el archivo está seleccionado
+     */
     isFileSelected(id: number): boolean {
         return this.selectedFileIds().has(id);
     }
 
+    /**
+     * Verifica si una carpeta está seleccionada.
+     * Oculta la selección para la carpeta que se está arrastrando.
+     * 
+     * @llamadoPor Template (para mostrar checkbox marcado)
+     * @cuando Se renderiza una carpeta en la lista
+     * @param id - ID de la carpeta
+     * @returns true si la carpeta está seleccionada y no se está arrastrando
+     */
     isFolderSelected(id: number): boolean {
         // hide selection UI for the folder currently being dragged
         if (this.currentDraggedFolderId !== null && this.currentDraggedFolderId === id) return false;
         return this.selectedFolderIds().has(id);
     }
 
+    /**
+     * Maneja el drop de un archivo o carpeta sobre una carpeta destino.
+     * Valida que no se mueva una carpeta dentro de sí misma o sus descendientes.
+     * 
+     * @llamadoPor Template (evento drop en carpetas)
+     * @cuando El usuario suelta un archivo/carpeta arrastrado sobre otra carpeta
+     * @param event - El evento de drag/drop
+     * @param targetFolder - La carpeta destino del drop
+     * @returns Promise que se resuelve cuando la operación completa
+     */
     async handleFileDrop(event: DragEvent, targetFolder: Folder): Promise<void> {
         event.preventDefault();
         event.stopPropagation();
@@ -2516,12 +2865,25 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
         this.closeContextMenuWithDelay();
     }
 
+    /**
+     * Dispara programáticamente el input de archivo oculto para abrir el selector de archivos.
+     * 
+     * @llamadoPor handleMobileUpload, Template (opción "Subir archivo" del menú contextual)
+     * @cuando El usuario quiere subir archivos
+     */
     triggerFileUpload(): void {
         if (this.fileInput && this.fileInput.nativeElement) {
             this.fileInput.nativeElement.click();
         }
     }
 
+    /**
+     * Maneja el disparo de subida de archivos desde el menú FAB móvil.
+     * Retrasa el cierre del menú para prevenir que el navegador cancele el selector de archivos.
+     * 
+     * @llamadoPor Template (botón "Subir" del FAB móvil)
+     * @cuando El usuario toca subir en el menú FAB móvil
+     */
     handleMobileUpload(): void {
         // Trigger the click immediately
         this.triggerFileUpload();
@@ -2533,6 +2895,14 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
         }, 300);
     }
 
+    /**
+     * Maneja la selección de archivos desde el input de archivo oculto.
+     * Inicia la subida para todos los archivos seleccionados en paralelo.
+     * 
+     * @llamadoPor Template (evento change del input de archivo oculto)
+     * @cuando El usuario selecciona archivos en el diálogo del selector de archivos
+     * @param event - El evento change del input de archivo
+     */
     onFileSelected(event: Event): void {
         const input = event.target as HTMLInputElement;
         if (input.files && input.files.length > 0) {
@@ -2549,6 +2919,13 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
         }
     }
 
+    /**
+     * Hook del ciclo de vida de Angular llamado cuando el componente se destruye.
+     * Marca la carpeta actual como vista y limpia las suscripciones para prevenir memory leaks.
+     * 
+     * @llamadoPor Angular
+     * @cuando El componente está siendo destruido (usuario navega fuera, cambio de tab, etc.)
+     */
     ngOnDestroy(): void {
         // Mark current folder contents as viewed before leaving
         void this.markCurrentFolderViewed();

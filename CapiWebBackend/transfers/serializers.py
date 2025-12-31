@@ -121,6 +121,11 @@ class FolderSerializer(serializers.ModelSerializer):
         return super().create(validated_data)
 
     def get_has_new_content(self, obj):
+        # Use prefetched data if available (set by FolderViewSet.get_queryset)
+        if hasattr(obj, 'unviewed_files_for_user'):
+            return len(obj.unviewed_files_for_user) > 0
+        
+        # Fallback to query if not prefetched (e.g., for single folder retrieval)
         request = self.context.get('request')
         if not request or not request.user.is_authenticated:
             return False
@@ -128,7 +133,6 @@ class FolderSerializer(serializers.ModelSerializer):
         user = request.user
         from django.db.models import Q
         
-        # Check for unviewed files that the user HAS ACCESS TO
         return FileTransfer.objects.filter(
             folder=obj, 
             is_viewed=False
