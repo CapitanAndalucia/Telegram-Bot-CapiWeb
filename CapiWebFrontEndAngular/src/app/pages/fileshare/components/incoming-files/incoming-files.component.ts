@@ -140,7 +140,9 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
     private touchStartY = 0;
     private touchStartTime = 0;
     private readonly TOUCH_DELAY = 1000;
+    private readonly PRE_SELECTION_DELAY = 500;
     private touchTimer: any = null;
+    private preSelectionTimer: any = null;
     private longPressActive = false;
     private dragPreviewElement: HTMLElement | null = null;
     pressingItemId = signal<number | null>(null);
@@ -808,18 +810,25 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
         this.touchStartTime = Date.now();
         this.longPressActive = false;
 
-        // Start long press timer for FIRST item selection
-        if (item && item.id) {
-            this.pressingItemId.set(Number(item.id));
-        }
+        // Clear any previous timers
+        if (this.preSelectionTimer) clearTimeout(this.preSelectionTimer);
+        if (this.touchTimer) clearTimeout(this.touchTimer);
 
-        this.touchTimer = setTimeout(() => {
-            this.longPressActive = true;
-            this.pressingItemId.set(null); // Animation done
-            this.toggleItemSelection(type, item);
-            // Optional: Vibrate if supported
-            if (navigator && navigator.vibrate) navigator.vibrate(50);
-        }, this.TOUCH_DELAY);
+        // Start pre-selection timer (500ms dead zone)
+        this.preSelectionTimer = setTimeout(() => {
+            // Once pre-delay is over, show visual feedback and start the actual selection timer
+            if (item && item.id) {
+                this.pressingItemId.set(Number(item.id));
+            }
+
+            this.touchTimer = setTimeout(() => {
+                this.longPressActive = true;
+                this.pressingItemId.set(null); // Animation done
+                this.toggleItemSelection(type, item);
+                // Optional: Vibrate if supported
+                if (navigator && navigator.vibrate) navigator.vibrate(50);
+            }, this.TOUCH_DELAY);
+        }, this.PRE_SELECTION_DELAY);
 
         // mark a candidate for touch-drag emulation (files and folders)
         if ((type === 'file' || type === 'folder') && item) {
@@ -829,6 +838,10 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
     }
 
     async handleItemTouchEnd(event: TouchEvent, type: 'file' | 'folder', item: any): Promise<void> {
+        if (this.preSelectionTimer) {
+            clearTimeout(this.preSelectionTimer);
+            this.preSelectionTimer = null;
+        }
         if (this.touchTimer) {
             clearTimeout(this.touchTimer);
             this.touchTimer = null;
@@ -1306,10 +1319,16 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
         // If movement exceeds threshold, cancel any pending long-press selection
         const MOVEMENT_THRESHOLD = 15;
         const moved = deltaX > MOVEMENT_THRESHOLD || deltaY > MOVEMENT_THRESHOLD;
-        if (moved && this.touchTimer) {
-            clearTimeout(this.touchTimer);
-            this.touchTimer = null;
-            this.pressingItemId.set(null);
+        if (moved) {
+            if (this.preSelectionTimer) {
+                clearTimeout(this.preSelectionTimer);
+                this.preSelectionTimer = null;
+            }
+            if (this.touchTimer) {
+                clearTimeout(this.touchTimer);
+                this.touchTimer = null;
+                this.pressingItemId.set(null);
+            }
         }
 
         // If primarily vertical movement, treat as scroll: do not start emulated drag or select
