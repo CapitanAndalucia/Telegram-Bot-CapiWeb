@@ -272,7 +272,7 @@ class FolderViewSet(viewsets.ModelViewSet):
         def file_iterator(read_fd):
             with os.fdopen(read_fd, 'rb') as r_file:
                 while True:
-                    data = r_file.read(8192) # 8KB chunks
+                    data = r_file.read(65536) # 64KB chunks
                     if not data:
                         break
                     yield data
