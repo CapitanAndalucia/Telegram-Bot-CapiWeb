@@ -222,8 +222,16 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
             this.loading.set(true);
         }
 
+        const startTime = Date.now();
+
         try {
             await Promise.all([this.fetchFiles(), this.fetchFolders()]);
+
+            // Enforce minimum 500ms loading time
+            const elapsed = Date.now() - startTime;
+            if (elapsed < 500) {
+                await new Promise(resolve => setTimeout(resolve, 500 - elapsed));
+            }
         } finally {
             this.loading.set(false);
             this.isNavigating.set(false);
@@ -231,18 +239,24 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
     }
 
     async refreshContentWithSpinner(): Promise<void> {
-        // Mostrar spinner por 500ms como solicitaste
+        // Mostrar spinner por al menos 500ms
         this.loading.set(true);
+
+        const startTime = Date.now();
 
         try {
             await Promise.all([this.fetchFiles(), this.fetchFolders()]);
 
-            // Esperar adicional para asegurar los 500ms de visualización del spinner
-            await new Promise(resolve => setTimeout(resolve, 500));
+            // Enforce minimum 500ms loading time
+            const elapsed = Date.now() - startTime;
+            if (elapsed < 500) {
+                await new Promise(resolve => setTimeout(resolve, 500 - elapsed));
+            }
         } finally {
             this.loading.set(false);
         }
     }
+
 
     // ============== DEVELOPMENT LATENCY SIMULATION ==============
     // Set to true to simulate random network latency for testing the spinner

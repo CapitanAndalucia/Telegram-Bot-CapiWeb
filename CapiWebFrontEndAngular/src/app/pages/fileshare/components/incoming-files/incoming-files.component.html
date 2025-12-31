@@ -76,8 +76,9 @@
     </div>
 
     <!-- Loading state - initial load -->
-    <p *ngIf="loading() && !isNavigating()"
-        style="flex: 1; display: flex; align-items: center; justify-content: center;">Cargando...</p>
+    <div *ngIf="loading() && !isNavigating()" class="navigation-spinner-container" style="flex: 1;">
+        <div class="navigation-spinner"></div>
+    </div>
 
     <!-- Navigation spinner - shown when navigating between folders -->
     <div *ngIf="isNavigating()" class="navigation-spinner-container" style="flex: 1;">
@@ -129,6 +130,10 @@
                 <div class="folderCard" [class.listMode]="viewMode() === 'list'" [attr.data-folder-id]="folder.id"
                     [class.selected]="isFolderSelected(folder.id)" [class.dropTarget]="hoveredFolderId() === folder.id"
                     [class.shared]="isShared(folder)" [class.context-menu-open]="isContextMenuOpen()"
+                    [style.width]="viewMode() === 'grid' ? '200px' : '100%'"
+                    [style.height]="viewMode() === 'grid' ? '200px' : '60px'"
+                    [style.min-height]="viewMode() === 'grid' ? '200px' : '60px'"
+                    [style.max-height]="viewMode() === 'grid' ? '200px' : '60px'"
                     (touchstart)="!isContextMenuOpen() && handleItemTouchStart($event, 'folder', folder)"
                     (touchmove)="!isContextMenuOpen() && handleTouchMove($event, 'folder', folder)"
                     (touchcancel)="handleTouchCancel($event)"
@@ -186,7 +191,10 @@
                 <div class="fileCard" [class.listMode]="viewMode() === 'list'" [attr.data-file-id]="file.id"
                     [class.selected]="isFileSelected(file.id)" [class.shared]="isShared(file)" [draggable]="true"
                     [class.context-menu-open]="isContextMenuOpen()" (dragstart)="handleDragStart($event, file)"
-                    (dragend)="handleDragEnd()"
+                    [style.width]="viewMode() === 'grid' ? '200px' : '100%'"
+                    [style.height]="viewMode() === 'grid' ? '200px' : '60px'"
+                    [style.min-height]="viewMode() === 'grid' ? '200px' : '60px'"
+                    [style.max-height]="viewMode() === 'grid' ? '200px' : '60px'" (dragend)="handleDragEnd()"
                     (touchstart)="!isContextMenuOpen() && handleItemTouchStart($event, 'file', file)"
                     (touchmove)="!isContextMenuOpen() && handleTouchMove($event, 'file', file)"
                     (touchcancel)="handleTouchCancel($event)"
