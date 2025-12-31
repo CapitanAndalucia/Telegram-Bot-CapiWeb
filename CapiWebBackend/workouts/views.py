@@ -91,3 +91,8 @@ class ExerciseSetViewSet(viewsets.ModelViewSet):
 
 
 
+
+
+
+
+

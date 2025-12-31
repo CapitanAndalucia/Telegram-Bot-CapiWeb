@@ -113,3 +113,8 @@ class ExerciseSet(models.Model):
 
 
 
+
+
+
+
+

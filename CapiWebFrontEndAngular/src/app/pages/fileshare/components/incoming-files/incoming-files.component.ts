@@ -847,6 +847,14 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
             return;
         }
 
+        // Check if touch target is the selection checkbox
+        const targetEl = event.target as HTMLElement;
+        if (targetEl && targetEl.closest && targetEl.closest('.selectionCheckbox')) {
+            this.toggleItemSelection(type, item);
+            event.preventDefault();
+            return;
+        }
+
         if (this.longPressActive) {
             this.longPressActive = false;
             // cleanup any touch-drag remnants

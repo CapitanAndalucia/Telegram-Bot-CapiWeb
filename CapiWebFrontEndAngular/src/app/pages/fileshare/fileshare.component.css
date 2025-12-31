@@ -106,11 +106,14 @@
 }
 
 /* Hover effects */
-.fileCard:hover,
-.folderCard:hover {
-    transform: translateY(-2px);
-    border-color: var(--accent-primary);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+@media (hover: hover) {
+
+    .fileCard:hover,
+    .folderCard:hover {
+        transform: translateY(-2px);
+        border-color: var(--accent-primary);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
 }
 
 /* List mode specific styles */
@@ -2065,10 +2068,12 @@ p {
     padding: 0.8rem;
 }
 
-.folderCard:hover {
-    background: rgba(255, 255, 255, 0.1);
-    border-color: var(--accent-primary);
-    transform: translateY(-2px);
+@media (hover: hover) {
+    .folderCard:hover {
+        background: rgba(255, 255, 255, 0.1);
+        border-color: var(--accent-primary);
+        transform: translateY(-2px);
+    }
 }
 
 .folderCard.dropTarget {
@@ -2389,13 +2394,21 @@ p {
     pointer-events: none;
 }
 
-/* Visibility Rules */
+/* Visibility Rules - Unconditional (always show if checked or in selection mode) */
 .selectionMode .selectionCheckbox,
-.folderCard:hover .selectionCheckbox,
-.fileCard:hover .selectionCheckbox,
 .selectionCheckbox.checked {
     opacity: 1;
     pointer-events: auto;
+}
+
+/* Visibility Rules - Hover only (Desktop/Mouse) */
+@media (hover: hover) {
+
+    .folderCard:hover .selectionCheckbox,
+    .fileCard:hover .selectionCheckbox {
+        opacity: 1;
+        pointer-events: auto;
+    }
 }
 
 

@@ -165,3 +165,8 @@ class RoutineExerciseDetailSerializer(serializers.ModelSerializer):
 
 
 
+
+
+
+
+
