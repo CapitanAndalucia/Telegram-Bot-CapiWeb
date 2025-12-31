@@ -339,7 +339,22 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
         }
     }
 
+    private async markCurrentFolderViewed(): Promise<void> {
+        const currentFolderId = this.currentFolder()?.id;
+        if (currentFolderId) {
+            try {
+                await this.apiClient.markFolderContentsViewed(currentFolderId);
+            } catch (error) {
+                console.error('Failed to mark folder contents as viewed:', error);
+            }
+        }
+    }
+
     async navigateToFolder(folder: Folder | null, options?: { path?: Breadcrumb[] }): Promise<void> {
+        // Mark current folder contents as viewed before leaving
+        await this.markCurrentFolderViewed();
+
+
         const now = Date.now();
         const targetId = folder?.id ?? null;
         if (this.lastNavigationTarget === targetId && (now - this.lastNavigationTime) < 700) {
@@ -2535,6 +2550,9 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
     }
 
     ngOnDestroy(): void {
+        // Mark current folder contents as viewed before leaving
+        void this.markCurrentFolderViewed();
+
         // Limpiar las suscripciones para evitar memory leaks
         if (this.uploadCompletedSubscription) {
             this.uploadCompletedSubscription.unsubscribe();

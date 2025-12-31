@@ -684,4 +684,13 @@ export class ApiClientService {
             });
         });
     }
+
+    markFolderContentsViewed(folderId: number): Promise<any> {
+        return new Promise((resolve, reject) => {
+            this.request(`/folders/${folderId}/mark_contents_viewed/`, 'POST').subscribe({
+                next: (data) => resolve(data),
+                error: (err) => reject(err)
+            });
+        });
+    }
 }

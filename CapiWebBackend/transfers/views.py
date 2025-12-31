@@ -137,6 +137,41 @@ class FolderViewSet(viewsets.ModelViewSet):
         
         return super().partial_update(request, *args, **kwargs)
 
+    @action(detail=True, methods=['post'])
+    def mark_contents_viewed(self, request, pk=None):
+        """
+        Mark all accessible files in the folder AND SUBFOLDERS as viewed
+        """
+        folder = self.get_object()
+        user = request.user
+        
+        # Helper to get all descendant folders
+        def get_all_descendants(parent_folder):
+            descendants = []
+            children = parent_folder.subfolders.all()
+            for child in children:
+                descendants.append(child)
+                descendants.extend(get_all_descendants(child))
+            return descendants
+
+        # Collect all relevant folders (current + descendants)
+        all_folders = [folder] + get_all_descendants(folder)
+        
+        # Determine which files the user can access/view across all these folders
+        from django.db.models import Q
+        files = FileTransfer.objects.filter(
+            folder__in=all_folders,
+            is_viewed=False
+        ).filter(
+            Q(owner=user) | 
+            Q(uploader=user) | 
+            Q(access_list__granted_to=user) |
+            Q(folder__access_list__granted_to=user)
+        ).distinct()
+        
+        updated_count = files.update(is_viewed=True)
+        return Response({'status': 'marked as viewed recursively', 'count': updated_count})
+
     @action(detail=True, methods=['get'])
     def download(self, request, pk=None):
         """

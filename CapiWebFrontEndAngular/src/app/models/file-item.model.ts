@@ -23,6 +23,7 @@ export interface Folder {
     parent: number | null;
     created_at: string;
     access_list?: FolderAccess[];
+    has_new_content?: boolean;
 }
 
 export interface FileAccess {

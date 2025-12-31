@@ -109,14 +109,35 @@ class FolderSerializer(serializers.ModelSerializer):
     owner_username = serializers.ReadOnlyField(source='owner.username')
     uploader_username = serializers.ReadOnlyField(source='uploader.username')
 
+    has_new_content = serializers.SerializerMethodField()
+
     class Meta:
         model = Folder
-        fields = ['id', 'name', 'owner', 'owner_username', 'uploader', 'uploader_username', 'parent', 'created_at', 'access_list']
-        read_only_fields = ['owner', 'owner_username', 'uploader', 'uploader_username', 'created_at', 'access_list']
+        fields = ['id', 'name', 'owner', 'owner_username', 'uploader', 'uploader_username', 'parent', 'created_at', 'access_list', 'has_new_content']
+        read_only_fields = ['owner', 'owner_username', 'uploader', 'uploader_username', 'created_at', 'access_list', 'has_new_content']
         
     def create(self, validated_data):
         validated_data['owner'] = self.context['request'].user
         return super().create(validated_data)
+
+    def get_has_new_content(self, obj):
+        request = self.context.get('request')
+        if not request or not request.user.is_authenticated:
+            return False
+            
+        user = request.user
+        from django.db.models import Q
+        
+        # Check for unviewed files that the user HAS ACCESS TO
+        return FileTransfer.objects.filter(
+            folder=obj, 
+            is_viewed=False
+        ).filter(
+            Q(owner=user) | 
+            Q(uploader=user) | 
+            Q(access_list__granted_to=user) |
+            Q(folder__access_list__granted_to=user)
+        ).exists()
 
 
 class FileAccessSerializer(serializers.ModelSerializer):

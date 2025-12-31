@@ -152,6 +152,8 @@
                         <div class="selection-progress-circle"></div>
                     </div>
 
+                    <div class="new-indicator" *ngIf="folder.has_new_content"></div>
+
 
                     <div class="selectionCheckbox" [class.checked]="isFolderSelected(folder.id)"
                         (click)="toggleItemSelection('folder', folder, true); $event.stopPropagation()">
@@ -214,6 +216,8 @@
                     <div class="selection-progress-overlay" *ngIf="pressingItemId() === file.id && !isSelectionMode()">
                         <div class="selection-progress-circle"></div>
                     </div>
+
+                    <div class="new-indicator" *ngIf="!file.is_viewed"></div>
 
                     <div class="selectionCheckbox" [class.checked]="isFileSelected(file.id)"
                         (click)="toggleItemSelection('file', file, true); $event.stopPropagation()">

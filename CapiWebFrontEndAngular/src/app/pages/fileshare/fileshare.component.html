@@ -57,10 +57,12 @@
         } @else {
         <div class="tabs">
             <button class="tab" [class.active]="activeTab() === 'files'" (click)="setActiveTab('files')">
-                Mis Archivos
-                @if (unreadCount() > 0) {
-                <span class="tabNotificationDot"></span>
-                }
+                <span class="tab-label">
+                    Mis Archivos
+                    @if (unreadCount() > 0) {
+                    <span class="tabNotificationDot"></span>
+                    }
+                </span>
             </button>
             <button class="tab" [class.active]="activeTab() === 'upload'" (click)="setActiveTab('upload')">
                 Enviar Archivo
@@ -71,8 +73,7 @@
             <div class="tabContent">
                 @if (activeTab() === 'files') {
                 <app-incoming-files [user]="user()" [refreshTrigger]="refreshTrigger()" [scope]="activeScope()"
-                    [forceResetCount]="forceResetCount()"
-                    (unreadCountChange)="onUnreadCountChange($event)"
+                    [forceResetCount]="forceResetCount()" (unreadCountChange)="onUnreadCountChange($event)"
                     (openUpload)="setActiveTab('upload')"></app-incoming-files>
                 }
                 @if (activeTab() === 'upload') {
