@@ -34,6 +34,7 @@ class FolderViewSet(viewsets.ModelViewSet):
     serializer_class = FolderSerializer
     permission_classes = [permissions.IsAuthenticated]
     parser_classes = (MultiPartParser, FormParser, JSONParser)
+    pagination_class = None  # Deshabilitar paginación para mostrar todas las carpetas
 
     def get_queryset(self):
         user = self.request.user
@@ -455,6 +456,7 @@ class FileTransferViewSet(viewsets.ModelViewSet):
     serializer_class = FileTransferSerializer
     permission_classes = [permissions.IsAuthenticated]
     parser_classes = (MultiPartParser, FormParser, JSONParser)
+    pagination_class = None  # Deshabilitar paginación para mostrar todos los archivos
 
     def get_queryset(self):
         user = self.request.user
