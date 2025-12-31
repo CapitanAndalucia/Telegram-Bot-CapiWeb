@@ -3,14 +3,14 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ApiClientService } from '../../services/api-client.service';
 import { Routine, RoutineDay, RoutineExercise, ExerciseProgressPoint } from '../../models/workouts';
-import { RoutineWeekComponent } from './components/routine-week/routine-week.component';
-import { RoutineDayComponent } from './components/routine-day/routine-day.component';
-import { ExerciseModalComponent } from './components/exercise-modal/exercise-modal.component';
+// import { RoutineWeekComponent } from './components/routine-week/routine-week.component';
+// import { RoutineDayComponent } from './components/routine-day/routine-day.component';
+// import { ExerciseModalComponent } from './components/exercise-modal/exercise-modal.component';
 
 @Component({
     selector: 'app-workouts',
     standalone: true,
-    imports: [CommonModule, FormsModule, RoutineWeekComponent, RoutineDayComponent, ExerciseModalComponent],
+    imports: [CommonModule, FormsModule /*, RoutineWeekComponent, RoutineDayComponent, ExerciseModalComponent */],
     templateUrl: './workouts.component.html',
     styleUrls: ['./workouts.component.css']
 })
