@@ -322,7 +322,7 @@
             <img src="assets/icons/agregar-icono.png" alt="Cerrar" class="icon-close" />
         </button>
 
-        <div *ngIf="mobileFabOpen()" class="mobile-fab-menu" (click)="$event.stopPropagation()">
+        <div *ngIf="mobileFabOpen()" class="mobile-fab-menu" (click)="$event.stopPropagation()" [@menuAnimation]>
             <label for="file-upload" class="mobile-fab-item" (click)="mobileFabOpen.set(false)"
                 style="cursor: pointer; margin: 0;">Subir
                 archivo</label>
