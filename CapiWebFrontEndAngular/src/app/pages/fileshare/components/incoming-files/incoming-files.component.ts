@@ -59,6 +59,15 @@ import { trigger, transition, style, animate, query, stagger } from '@angular/an
                 style({ opacity: 0, transform: 'translateY(15px)' }),
                 animate('300ms {{delay}}ms ease-out', style({ opacity: 1, transform: 'translateY(0)' }))
             ])
+        ]),
+        trigger('menuAnimation', [
+            transition(':enter', [
+                style({ opacity: 0 }),
+                animate('150ms ease-out', style({ opacity: 1 }))
+            ]),
+            transition(':leave', [
+                animate('100ms ease-in', style({ opacity: 0 }))
+            ])
         ])
     ]
 })

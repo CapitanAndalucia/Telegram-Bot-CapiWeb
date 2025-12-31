@@ -273,7 +273,8 @@
 
     <!-- Context Menu: floating on desktop, bottom-sheet modal on mobile -->
     <ng-container *ngIf="contextMenu() as menu">
-        <div class="context-menu" [style.top.px]="menu.y" [style.left.px]="menu.x" (click)="$event.stopPropagation()">
+        <div class="context-menu" [style.top.px]="menu.y" [style.left.px]="menu.x" (click)="$event.stopPropagation()"
+            [@menuAnimation]>
             <ng-container *ngIf="menu.type === 'file' || menu.type === 'folder'">
                 <button
                     (click)="openShareModal(menu.item!, menu.type === 'file' ? 'file' : 'folder'); closeContextMenu()">
