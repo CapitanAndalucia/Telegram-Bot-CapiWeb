@@ -146,6 +146,12 @@
                     [draggable]="true" (dragstart)="handleFolderDragStart($event, folder)" (dragend)="handleDragEnd()"
                     [@itemAnimation]="{value: '', params: {delay: i * 30}}">
 
+                    <!-- Visual feedback for long press selection -->
+                    <div class="selection-progress-overlay"
+                        *ngIf="pressingItemId() === folder.id && !isSelectionMode()">
+                        <div class="selection-progress-circle"></div>
+                    </div>
+
 
                     <div class="selectionCheckbox" [class.checked]="isFolderSelected(folder.id)"
                         (click)="toggleItemSelection('folder', folder, true); $event.stopPropagation()">
@@ -203,6 +209,11 @@
                     (dblclick)="!isContextMenuOpen() && handleFileClick(file)"
                     (contextmenu)="handleContextMenu($event, 'file', file)" style="cursor: pointer"
                     [@itemAnimation]="{value: '', params: {delay: (sortedFolders().length + i) * 30}}">
+
+                    <!-- Visual feedback for long press selection -->
+                    <div class="selection-progress-overlay" *ngIf="pressingItemId() === file.id && !isSelectionMode()">
+                        <div class="selection-progress-circle"></div>
+                    </div>
 
                     <div class="selectionCheckbox" [class.checked]="isFileSelected(file.id)"
                         (click)="toggleItemSelection('file', file, true); $event.stopPropagation()">

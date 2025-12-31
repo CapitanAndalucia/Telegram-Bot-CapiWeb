@@ -139,10 +139,11 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
     private touchStartX = 0;
     private touchStartY = 0;
     private touchStartTime = 0;
-    private readonly TOUCH_DELAY = 300;
+    private readonly TOUCH_DELAY = 1000;
     private touchTimer: any = null;
     private longPressActive = false;
     private dragPreviewElement: HTMLElement | null = null;
+    pressingItemId = signal<number | null>(null);
     // Helper to detect if the touch started on an options button
     private touchStartedOnOptions = false;
     // Touch-drag emulation state
@@ -517,6 +518,13 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
         event.preventDefault();
         event.stopPropagation();
 
+        // On mobile, native contextmenu event usually comes from long-press.
+        // We want to use long-press for selection, so ignore this event.
+        // The options menu should only be opened via the 3-dots button (which triggers click).
+        if (this.isMobile() && event.type === 'contextmenu') {
+            return;
+        }
+
         if (this.isSelectionMode()) {
             return;
         }
@@ -783,14 +791,34 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
             return;
         }
 
+        // If in selection mode, toggle immediately (quick select)
+        if (this.isSelectionMode()) {
+            // We still track touch start to distinguish from scroll, but no long press needed for subsequent items
+            // Actually, the click handler usually handles this, but touchstart + click can be tricky.
+            // We'll let the click handler or short-tap logic handle the toggle to avoid double-toggling.
+            // Just record start time/pos for movement detection.
+            this.touchStartX = event.touches[0].clientX;
+            this.touchStartY = event.touches[0].clientY;
+            this.touchStartTime = Date.now();
+            return;
+        }
+
         this.touchStartX = event.touches[0].clientX;
         this.touchStartY = event.touches[0].clientY;
         this.touchStartTime = Date.now();
         this.longPressActive = false;
 
+        // Start long press timer for FIRST item selection
+        if (item && item.id) {
+            this.pressingItemId.set(Number(item.id));
+        }
+
         this.touchTimer = setTimeout(() => {
             this.longPressActive = true;
+            this.pressingItemId.set(null); // Animation done
             this.toggleItemSelection(type, item);
+            // Optional: Vibrate if supported
+            if (navigator && navigator.vibrate) navigator.vibrate(50);
         }, this.TOUCH_DELAY);
 
         // mark a candidate for touch-drag emulation (files and folders)
@@ -805,6 +833,7 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
             clearTimeout(this.touchTimer);
             this.touchTimer = null;
         }
+        this.pressingItemId.set(null);
 
         // Si hay un menú contextual abierto, no hacer nada
         if (this.contextMenu()) {
@@ -1272,6 +1301,7 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
         if (moved && this.touchTimer) {
             clearTimeout(this.touchTimer);
             this.touchTimer = null;
+            this.pressingItemId.set(null);
         }
 
         // If primarily vertical movement, treat as scroll: do not start emulated drag or select
