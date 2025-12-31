@@ -87,7 +87,7 @@ MIDDLEWARE = [
 ]
 
 # Session settings
-SESSION_COOKIE_AGE = 60 * 60  # 1 hour in seconds
+SESSION_COOKIE_AGE = 60 * 60 * 24  # 24 hours in seconds
 SESSION_SAVE_EVERY_REQUEST = True  # Extend session on every request
 SESSION_COOKIE_HTTPONLY = True  # Security: prevent JavaScript access
 SESSION_COOKIE_SAMESITE = 'Lax'  # CSRF protection
@@ -209,11 +209,12 @@ REST_FRAMEWORK = {
     # Throttling global para mitigar fuerza bruta y abuso
     "DEFAULT_THROTTLE_CLASSES": [
         "rest_framework.throttling.AnonRateThrottle",
-        "rest_framework.throttling.UserRateThrottle",
+        "api.throttling.StaffUserRateThrottle",  # Throttle personalizado para staff
     ],
     "DEFAULT_THROTTLE_RATES": {
         "anon": "50/min",
-        "user": "200/min",
+        "user": "200/min",      # Usuarios normales: 200 peticiones/min
+        "staff": "500/min",     # Usuarios staff: 500 peticiones/min
         # scopes específicos
         "login": "5/min",
         "register": "3/min",
@@ -262,7 +263,7 @@ if IS_PRODUCTION:
 
 # JWT Settings - Se configuran según el entorno
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
+    'ACCESS_TOKEN_LIFETIME': timedelta(hours=24),  # 24 horas
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
     'ROTATE_REFRESH_TOKENS': True,
     'BLACKLIST_AFTER_ROTATION': True,
