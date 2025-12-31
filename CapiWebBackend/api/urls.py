@@ -23,7 +23,7 @@ from .auth_views import (
 from social.views import FriendViewSet
 from transfers.views import FileTransferViewSet, FolderViewSet
 from notifications.views import NotificationViewSet
-from workouts.views import RoutineViewSet, RoutineExerciseViewSet, ExerciseSetViewSet
+# from workouts.views import RoutineViewSet, RoutineExerciseViewSet, ExerciseSetViewSet
 
 router = DefaultRouter()
 router.register(r'tickets', TicketViewSet, basename='ticket')
@@ -35,9 +35,9 @@ router.register(r'folders', FolderViewSet, basename='folder')
 router.register(r'notifications', NotificationViewSet, basename='notification')
 router.register(r'tecnologias', TecnologiaViewSet, basename='tecnologia')
 router.register('proyectos', ProyectoViewSet, basename='proyecto')
-router.register(r'workouts/routines', RoutineViewSet, basename='workout-routine')
-router.register(r'workouts/routine-exercises', RoutineExerciseViewSet, basename='workout-routine-exercise')
-router.register(r'workouts/sets', ExerciseSetViewSet, basename='workout-set')
+# router.register(r'workouts/routines', RoutineViewSet, basename='workout-routine')
+# router.register(r'workouts/routine-exercises', RoutineExerciseViewSet, basename='workout-routine-exercise')
+# router.register(r'workouts/sets', ExerciseSetViewSet, basename='workout-set')
 
 
 urlpatterns = [

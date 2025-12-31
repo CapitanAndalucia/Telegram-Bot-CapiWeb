@@ -27,7 +27,7 @@ export class WorkoutsComponent implements OnInit {
     error = signal<string | null>(null);
 
     ngOnInit(): void {
-        this.loadRoutines();
+        // this.loadRoutines();
     }
 
     loadRoutines(): void {

@@ -1,60 +1,8 @@
-<section class="workouts">
-  <header class="header">
-    <div>
-      <p class="eyebrow">Rutinas</p>
-      <h1>Tus entrenamientos</h1>
-    </div>
-    <button class="refresh" (click)="loadRoutines()" [disabled]="loading()">↻</button>
-  </header>
-
-  <div class="routine-list" *ngIf="routines().length; else emptyState">
-    <div
-      class="routine-card"
-      *ngFor="let routine of routines()"
-      [class.active]="routine.id === selectedRoutine()?.id"
-      (click)="selectRoutine(routine)"
-    >
-      <h3>{{ routine.title }}</h3>
-      <p>{{ routine.goal || 'Sin descripción' }}</p>
-      <small>{{ routine.days.length }} días · Actualizado {{ routine.updated_at | date }}</small>
-    </div>
+<div class="maintenance-container">
+  <div class="maintenance-content">
+    <div class="icon">🚧</div>
+    <h1>En Mantenimiento</h1>
+    <p>La aplicación de entrenamientos "Workouts" está en desarrollo y no está disponible actualmente.</p>
+    <p class="subtext">Vuelve pronto para ver las novedades.</p>
   </div>
-
-  <ng-template #emptyState>
-    <div class="empty">
-      <p>No tienes rutinas todavía.</p>
-      <small>Crea una desde el backend o agrega seeds.</small>
-    </div>
-  </ng-template>
-
-  <div class="panels" *ngIf="selectedRoutine()">
-    <app-routine-week
-      [routine]="selectedRoutine()!"
-      (selectDay)="handleDaySelected($event)"
-    ></app-routine-week>
-
-    <app-routine-day
-      *ngIf="selectedDay()"
-      [day]="selectedDay()!"
-      (openExercise)="openExercise($event)"
-    ></app-routine-day>
-  </div>
-
-  <app-exercise-modal
-    *ngIf="selectedExercise()"
-    [exercise]="selectedExercise()!"
-    [progress]="exerciseProgress()"
-    [loading]="loadingExercise()"
-    (close)="handleCloseModal()"
-    (created)="handleSetCreated($event)"
-  ></app-exercise-modal>
-</section>
-
-
-
-
-
-
-
-
-
+</div>
