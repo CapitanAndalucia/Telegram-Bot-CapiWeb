@@ -21,7 +21,7 @@ from .auth_views import (
 )
 
 from social.views import FriendViewSet
-from transfers.views import FileTransferViewSet, FolderViewSet
+from transfers.views import FileTransferViewSet, FolderViewSet, ShareLinkViewSet
 from notifications.views import NotificationViewSet
 # from workouts.views import RoutineViewSet, RoutineExerciseViewSet, ExerciseSetViewSet
 
@@ -32,6 +32,7 @@ router.register(r'dibujos', DibujosViewSet, basename='dibujos')
 router.register(r'friends', FriendViewSet, basename='friend')
 router.register(r'transfers', FileTransferViewSet, basename='transfer')
 router.register(r'folders', FolderViewSet, basename='folder')
+router.register(r'share-links', ShareLinkViewSet, basename='share-link')
 router.register(r'notifications', NotificationViewSet, basename='notification')
 router.register(r'tecnologias', TecnologiaViewSet, basename='tecnologia')
 router.register('proyectos', ProyectoViewSet, basename='proyecto')

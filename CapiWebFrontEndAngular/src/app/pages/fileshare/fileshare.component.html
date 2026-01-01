@@ -45,7 +45,7 @@
         <div class="dashboardContainer" style="display: flex; justify-content: center; align-items: center">
             <div class="spinner">Cargando...</div>
         </div>
-        } @else if (!user()) {
+        } @else if (!user() && !sharedLinkData()) {
         <div class="loginPrompt">
             <h2>Inicia sesión para compartir archivos</h2>
             <p>Necesitas una cuenta para enviar y recibir archivos con tus amigos.</p>
@@ -53,6 +53,16 @@
                 onclick="window.location.href='/login?redirect=/fileshare&title=Centro de Archivos'">
                 Iniciar Sesión
             </button>
+        </div>
+        } @else if (sharedLinkData()) {
+        <!-- Shared Link View - Show files directly -->
+        <div class="contentArea" style="padding-top: 1rem;">
+            <div class="tabContent">
+                <app-incoming-files [user]="user()" [refreshTrigger]="refreshTrigger()" [scope]="activeScope()"
+                    [forceResetCount]="forceResetCount()" [sharedLinkToken]="sharedLinkToken()"
+                    [sharedLinkData]="sharedLinkData()" (unreadCountChange)="onUnreadCountChange($event)"
+                    (openUpload)="setActiveTab('upload')"></app-incoming-files>
+            </div>
         </div>
         } @else {
         <div class="tabs">
@@ -73,7 +83,8 @@
             <div class="tabContent">
                 @if (activeTab() === 'files') {
                 <app-incoming-files [user]="user()" [refreshTrigger]="refreshTrigger()" [scope]="activeScope()"
-                    [forceResetCount]="forceResetCount()" (unreadCountChange)="onUnreadCountChange($event)"
+                    [forceResetCount]="forceResetCount()" [initialFolderId]="sharedFolderId()"
+                    [initialPreviewFileId]="sharedPreviewFileId()" (unreadCountChange)="onUnreadCountChange($event)"
                     (openUpload)="setActiveTab('upload')"></app-incoming-files>
                 }
                 @if (activeTab() === 'upload') {

@@ -1,0 +1,140 @@
+<div class="shared-viewer-container">
+    <!-- Loading -->
+    @if (loading()) {
+    <div class="loading-state">
+        <div class="spinner"></div>
+        <p>Cargando contenido compartido...</p>
+    </div>
+    }
+
+    <!-- Error -->
+    @if (error()) {
+    <div class="error-state">
+        <div class="error-icon">⚠️</div>
+        <h2>No se pudo acceder al contenido</h2>
+        <p>{{ error() }}</p>
+        <button class="primary-btn" (click)="goToLogin()">Iniciar Sesión</button>
+    </div>
+    }
+
+    <!-- Content -->
+    @if (!loading() && !error() && sharedData()) {
+    <div class="shared-content">
+        <header class="shared-header">
+            <h1>📁 Contenido Compartido</h1>
+            @if (!isAuthenticated()) {
+            <p class="guest-notice">Estás viendo esto como invitado</p>
+            }
+        </header>
+
+        <div class="shared-item-card">
+            @if (sharedData().type === 'file') {
+            <!-- File View -->
+            <div class="file-preview">
+                <div class="file-icon">📄</div>
+                <div class="file-details">
+                    <h2>{{ sharedData().file.filename }}</h2>
+                    <div class="meta-info">
+                        <span>Tamaño: {{ formatFileSize(sharedData().file.size) }}</span>
+                        <span>Propietario: {{ sharedData().file.owner_username }}</span>
+                        <span>Permisos: {{ sharedData().permission === 'edit' ? 'Edición' : 'Lectura' }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="actions">
+                <button class="download-btn" (click)="downloadFile()">
+                    ⬇️ Descargar Archivo
+                </button>
+                @if (isAuthenticated()) {
+                <button class="secondary-btn" routerLink="/fileshare">
+                    Ir a Mis Archivos
+                </button>
+                }
+            </div>
+            } @else {
+            <!-- Folder View -->
+            <div class="folder-preview">
+                <div class="folder-icon">📂</div>
+                <div class="folder-details">
+                    <h2>{{ sharedData().folder.name }}</h2>
+                    <div class="meta-info">
+                        <span>Propietario: {{ sharedData().folder.owner_username }}</span>
+                        <span>Permisos: {{ sharedData().permission === 'edit' ? 'Edición' : 'Lectura' }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Subfolders -->
+            @if (sharedData().subfolders && sharedData().subfolders.length > 0) {
+            <div class="subfolder-list">
+                <h3>📁 Carpetas</h3>
+                @for (subfolder of sharedData().subfolders; track subfolder.id) {
+                <div class="subfolder-item">
+                    <span class="subfolder-icon">📁</span>
+                    <span class="subfolder-name">{{ subfolder.name }}</span>
+                </div>
+                }
+            </div>
+            }
+
+            <!-- Files in folder - Grid Layout -->
+            @if (sharedData().files && sharedData().files.length > 0) {
+            <div class="files-section">
+                <h3>📄 Archivos</h3>
+                <div class="files-grid">
+                    @for (file of sharedData().files; track file.id) {
+                    <div class="file-card" (click)="openPreview(file)">
+                        <div class="file-card-header">
+                            <span class="file-icon">📄</span>
+                            <span class="file-name-truncated">{{ file.filename.length > 15 ? file.filename.substring(0,
+                                15) + '...' : file.filename }}</span>
+                        </div>
+                        <div class="file-thumbnail">
+                            @if (file.is_image) {
+                            <img [src]="getThumbnailUrl(file.id)" [alt]="file.filename" loading="lazy" />
+                            } @else {
+                            <div class="file-type-icon">
+                                {{ getFileIcon(file.filename) }}
+                            </div>
+                            }
+                        </div>
+                        <div class="file-card-footer">
+                            <span class="file-size">{{ formatFileSize(file.size) }}</span>
+                            <button class="download-icon-btn"
+                                (click)="downloadFileById(file.id, file.filename); $event.stopPropagation()">
+                                ⬇️
+                            </button>
+                        </div>
+                    </div>
+                    }
+                </div>
+            </div>
+            }
+
+            @if ((!sharedData().files || sharedData().files.length === 0) &&
+            (!sharedData().subfolders || sharedData().subfolders.length === 0)) {
+            <p class="empty-folder">Esta carpeta está vacía</p>
+            }
+            }
+        </div>
+
+        @if (!isAuthenticated()) {
+        <div class="login-hint">
+            <p>¿Tienes cuenta? <a (click)="goToLogin()">Inicia sesión</a> para obtener acceso permanente.</p>
+        </div>
+        }
+    </div>
+    }
+
+    <!-- File Preview Modal -->
+    @if (selectedFile()) {
+    <app-file-preview-modal [file]="selectedFile()" [customDownloadUrl]="getPublicDownloadUrl(selectedFile().id)"
+        [customStreamUrl]="getPublicDownloadUrl(selectedFile().id)" (close)="closePreview()"
+        (download)="downloadFileById(selectedFile().id, selectedFile().filename)">
+    </app-file-preview-modal>
+    }
+</div>
+
+<!-- Downloads Menu -->
+<app-downloads-menu></app-downloads-menu>

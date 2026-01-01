@@ -1,144 +1,218 @@
 <div class="comp-overlay" (click)="onBackdropClick($event); closeDropdown()">
-    <div class="comp-modal">
-        <div class="modal-header">
-            <h3>Compartir {{ type === 'file' ? 'Archivo' : 'Carpeta' }}</h3>
-            <button class="close-btn icon-only" (click)="close.emit()">
-                <img src="assets/icons/boton-x.png" alt="Cerrar" class="icon-close" />
-            </button>
+    <div class="comp-modal" [class.closing]="isClosing()">
+        <div class="dialog-header">
+            <h3>Compartir "{{ type === 'file' ? $any(item).filename : $any(item).name }}"</h3>
+            <div class="header-actions">
+                @if (viewMode() === 'invite') {
+                <button class="icon-btn back-btn" (click)="cancelInvite()" title="Volver">←</button>
+                }
+                <button class="icon-btn close-btn" (click)="closeModal()" title="Cerrar">✕</button>
+            </div>
         </div>
 
         <div class="modal-body">
-            <p class="item-name">
-                <span class="icon">{{ type === 'file' ? '📄' : '📁' }}</span>
-                {{ type === 'file' ? $any(item).filename : $any(item).name }}
-            </p>
+            <!-- Header was here, moved up -->
 
-            <!-- Owner information -->
-            @if (getOwnerInfo().username && !getOwnerInfo().isOriginal) {
-            <div class="owner-info">
-                <div class="owner-badge">
-                    <span class="owner-icon">👤</span>
-                    <span class="owner-text">
-                        Compartido por: <strong>{{ getOwnerInfo().username }}</strong>
-                    </span>
+
+            <!-- Input Area (Always visible, adapts state) -->
+            <div class="share-input-area" [class.focused]="viewMode() === 'invite'" (click)="focusSearch($event)">
+                <div class="chips-container">
+                    @for (user of pendingInvites(); track user.id) {
+                    <div class="user-chip">
+                        <div class="chip-avatar">{{ user.username.charAt(0).toUpperCase() }}</div>
+                        <span class="chip-name">{{ user.username }}</span>
+                        <span class="chip-remove"
+                            (click)="removeFromPending(user.id); $event.stopPropagation()">×</span>
+                    </div>
+                    }
+                    <input #searchInput type="text" [(ngModel)]="searchQuery" (ngModelChange)="onSearch()"
+                        [placeholder]="pendingInvites().length === 0 ? 'Añadir personas, grupos y eventos...' : ''"
+                        class="search-input-ghost" (focus)="onInputFocus()" />
                 </div>
-            </div>
-            }
 
-            <section class="access-section">
-                <div class="access-header">
-                    <h4>Usuarios con acceso</h4>
-                    @if (loadingAccess()) {
-                    <span class="access-status">Cargando…</span>
+                @if (viewMode() === 'invite') {
+                <!-- Permission Dropdown (Read/Edit) inside Input -->
+                <div class="custom-dropdown-container">
+                    <div class="role-trigger" (click)="toggleConfigDropdown('permission', $event)">
+                        {{ inviteRole() === 'edit' ? 'Editor' : 'Lector' }}
+                        <span class="arrow-icon">▼</span>
+                    </div>
+                    @if (openConfigDropdown() === 'permission') {
+                    <div class="custom-dropdown-menu shifted">
+                        <div class="dropdown-item" (click)="inviteRole.set('read'); openConfigDropdown.set(null)">
+                            Lector @if(inviteRole() === 'read') { <span>✓</span> }
+                        </div>
+                        <div class="dropdown-item" (click)="inviteRole.set('edit'); openConfigDropdown.set(null)">
+                            Editor @if(inviteRole() === 'edit') { <span>✓</span> }
+                        </div>
+                    </div>
                     }
                 </div>
+                }
+                @if (searchResults().length > 0) {
+                <div class="search-results-dropdown">
+                    @for (user of searchResults(); track user.id) {
+                    <div class="result-item" (click)="selectUser(user); $event.stopPropagation()">
+                        <div class="result-avatar">{{ user.username.charAt(0).toUpperCase() }}</div>
+                        <div class="result-info">
+                            <span class="result-name">{{ user.username }}</span>
+                            <span class="result-email">{{ user.email || user.username }}</span>
+                        </div>
+                    </div>
+                    }
+                </div>
+                }
+            </div>
 
-                @if (!loadingAccess() && !hasAccessEntries()) {
-                <p class="no-access">Todavía no has compartido este {{ type === 'file' ? 'archivo' : 'carpeta' }}.</p>
-                } @else {
-                <ul class="access-list">
+
+            <!-- VIEW: MAIN (Access List & General Access) -->
+            @if (viewMode() === 'main') {
+            <div class="main-view-content">
+                <div class="section-title">Personas con acceso</div>
+
+                <div class="access-list-scroll">
+                    <!-- Owner Item -->
+                    @if (getOwnerInfo().username) {
+                    <div class="access-row">
+                        <div class="row-avatar">{{ getOwnerInfo().username.charAt(0).toUpperCase() }}</div>
+                        <div class="row-info">
+                            <div class="row-name">
+                                {{ getOwnerInfo().username }}
+                                @if (getOwnerInfo().isOriginal) { (tú) }
+                            </div>
+                            <div class="row-email">{{ getOwnerInfo().email || 'Propietario' }}</div>
+                        </div>
+                        <div class="row-role owner-role">Propietario</div>
+                    </div>
+                    }
+
+                    <!-- Other Access Items -->
                     @for (access of accessList(); track access.id) {
-                    <li class="access-item">
-                        <div class="access-info">
-                            <div class="avatar-small">{{ access.granted_to_username.charAt(0).toUpperCase() }}</div>
-                            <div class="access-text">
-                                <span class="access-username">{{ access.granted_to_username }}</span>
-                                <!-- Dropdown para cambiar permisos -->
-                                <!-- Dropdown personalizado para evitar problemas de posicionamiento nativos -->
-                                <!-- Dropdown personalizado (Solo Owner) -->
-                                @if (getOwnerInfo().isOriginal) {
-                                <div class="custom-dropdown-container">
-                                    <div class="permission-badge" [class.editable]="!isSharing()"
-                                        (click)="!isSharing() && togglePermissionDropdown(access.id, $event)">
-                                        {{ access.permission === 'edit' ? 'Edición' : 'Lectura' }}
-                                        <span class="arrow-icon" *ngIf="!isSharing()">▼</span>
-                                    </div>
+                    <div class="access-row">
+                        <div class="row-avatar">{{ access.granted_to_username.charAt(0).toUpperCase() }}</div>
+                        <div class="row-info">
+                            <div class="row-name">{{ access.granted_to_username }}</div>
+                            <div class="row-email">Usuario</div>
+                        </div>
 
-                                    @if (openDropdownId() === access.id) {
-                                    <div class="custom-dropdown-menu">
-                                        <div class="dropdown-item"
-                                            (click)="onChangePermissionClick(access, 'read', $event)">
-                                            Lectura
-                                            @if(access.permission === 'read') { <span>✓</span> }
-                                        </div>
-                                        <div class="dropdown-item"
-                                            (click)="onChangePermissionClick(access, 'edit', $event)">
-                                            Edición
-                                            @if(access.permission === 'edit') { <span>✓</span> }
-                                        </div>
-                                    </div>
-                                    }
+                        <!-- Role Dropdown for User -->
+                        @if (getOwnerInfo().isOriginal) {
+                        <div class="row-role-action">
+                            <div class="custom-dropdown-container">
+                                <div class="role-trigger" (click)="togglePermissionDropdown(access.id, $event)">
+                                    {{ access.permission === 'edit' ? 'Editor' : 'Lector' }}
+                                    <span class="arrow-icon">▼</span>
                                 </div>
-                                } @else {
-                                <!-- Texto estático para no-owners -->
-                                <small class="access-meta">Permiso: <strong>{{ access.permission === 'edit' ? 'Edición'
-                                        : 'Lectura' }}</strong></small>
+                                @if (openDropdownId() === access.id) {
+                                <div class="custom-dropdown-menu right-aligned">
+                                    <div class="dropdown-item"
+                                        (click)="onChangePermissionClick(access, 'read', $event)">
+                                        Lector @if(access.permission === 'read') { <span>✓</span> }
+                                    </div>
+                                    <div class="dropdown-item"
+                                        (click)="onChangePermissionClick(access, 'edit', $event)">
+                                        Editor @if(access.permission === 'edit') { <span>✓</span> }
+                                    </div>
+                                    <div class="dropdown-separator"></div>
+                                    <div class="dropdown-item danger" (click)="revokeAccess(access)">
+                                        Quitar acceso
+                                    </div>
+                                </div>
                                 }
                             </div>
                         </div>
-                        <button class="revoke-btn icon-only" (click)="revokeAccess(access)" [disabled]="isSharing()">
-                            <img src="assets/icons/boton-x.png" alt="Revocar" class="icon-close" />
-                        </button>
-                    </li>
-                    }
-                </ul>
-                }
-            </section>
-
-            <section class="share-section">
-                <div class="search-section">
-                    <input type="text" [(ngModel)]="searchQuery" (ngModelChange)="onSearch()"
-                        placeholder="Buscar usuario..." class="search-input">
-
-                    @if (searchResults().length > 0) {
-                    <div class="search-results">
-                        @for (user of searchResults(); track user.id) {
-                        <div class="user-item" (click)="selectUser(user)">
-                            <div class="avatar">{{ user.username.charAt(0).toUpperCase() }}</div>
-                            <span class="username">{{ user.username }}</span>
-                        </div>
+                        } @else {
+                        <div class="row-role">{{ access.permission === 'edit' ? 'Editor' : 'Lector' }}</div>
                         }
                     </div>
                     }
                 </div>
 
-                <div class="friends-section">
-                    <h4>Amigos sugeridos</h4>
-                    <div class="friends-list">
-                        @for (friend of friends(); track friend.id) {
-                        <div class="friend-chip" [class.selected]="selectedUser()?.id === friend.id"
-                            (click)="selectUser(friend)">
-                            <div class="avatar-small">{{ friend.username.charAt(0).toUpperCase() }}</div>
-                            <span>{{ friend.username }}</span>
+                <div class="general-access-section">
+                    <div class="section-title">Acceso general</div>
+                    <div class="access-row general-access-row">
+                        <div class="row-avatar icon-avatar">
+                            @if (shareLinks().length > 0 && shareLinks()[0].access_type === 'anyone') { 🌐 } @else { 🔒
+                            }
                         </div>
-                        }
-                        @if (friends().length === 0) {
-                        <p class="no-friends">No tienes amigos agregados aún.</p>
+                        <div class="row-info">
+                            <div class="custom-dropdown-container">
+                                <div class="access-trigger" (click)="toggleConfigDropdown('access', $event)">
+                                    {{ (shareLinks().length > 0 && shareLinks()[0].access_type === 'anyone') ?
+                                    'Cualquiera con el enlace' : 'Restringido' }}
+                                    <span class="arrow-icon">▼</span>
+                                </div>
+
+                                @if (openConfigDropdown() === 'access') {
+                                <div class="custom-dropdown-menu">
+                                    <div class="dropdown-item" (click)="createOrUpdatePublicLink('restricted')">
+                                        Restringido @if(!hasPublicLink()) { <span>✓</span> }
+                                    </div>
+                                    <div class="dropdown-item" (click)="createOrUpdatePublicLink('anyone')">
+                                        Cualquiera con el enlace @if(hasPublicLink()) { <span>✓</span> }
+                                    </div>
+                                </div>
+                                }
+                            </div>
+                            <div class="row-desc">
+                                {{ hasPublicLink() ? 'Cualquier usuario de Internet con el enlace puede verlo' : 'Solo
+                                los usuarios con acceso pueden abrir este enlace' }}
+                            </div>
+                        </div>
+
+                        @if (hasPublicLink()) {
+                        <div class="row-role-action">
+                            <div class="custom-dropdown-container">
+                                <div class="role-trigger" (click)="toggleConfigDropdown('permission', $event)">
+                                    {{ getPublicLinkRole() === 'edit' ? 'Editor' : 'Lector' }}
+                                    <span class="arrow-icon">▼</span>
+                                </div>
+                                @if (openConfigDropdown() === 'permission') {
+                                <div class="custom-dropdown-menu right-aligned">
+                                    <div class="dropdown-item" (click)="updatePublicLinkRole('read')">
+                                        Lector @if(getPublicLinkRole() === 'read') { <span>✓</span> }
+                                    </div>
+                                    <div class="dropdown-item" (click)="updatePublicLinkRole('edit')">
+                                        Editor @if(getPublicLinkRole() === 'edit') { <span>✓</span> }
+                                    </div>
+                                </div>
+                                }
+                            </div>
+                        </div>
                         }
                     </div>
                 </div>
+            </div>
 
-                <div class="permission-row">
-                    <label class="permission-label" for="permission-select">Permiso</label>
-                    <select id="permission-select" class="permission-select" [(ngModel)]="selectedPermission">
-                        <option value="read">Lectura</option>
-                        <option value="edit">Edición</option>
-                    </select>
-                </div>
+            <div class="modal-footer main-footer">
+                <button class="footer-btn secondary" (click)="copyLink()">
+                    <span class="icon">🔗</span> Copiar enlace
+                </button>
+                <button class="footer-btn primary" (click)="close.emit()">Hecho</button>
+            </div>
+            }
 
-                @if (selectedUser()) {
-                <div class="selected-user-summary">
-                    Compartir con: <strong>{{ selectedUser().username }}</strong>
+            <!-- VIEW: INVITE (Message & Send) -->
+            @if (viewMode() === 'invite') {
+            <div class="invite-view-content">
+                <!-- Notification options removed as per request -->
+
+
+                @if (type === 'folder') {
+                <div class="folder-content-preview">
+                    <!-- Optional: show what's inside logic -->
                 </div>
                 }
-            </section>
-        </div>
+            </div>
 
-        <div class="modal-footer">
-            <button class="cancel-btn" (click)="close.emit()">Cancelar</button>
-            <button class="share-action-btn" [disabled]="!selectedUser() || isSharing()" (click)="share()">
-                {{ isSharing() ? 'Guardando...' : 'Guardar acceso' }}
-            </button>
+            <div class="modal-footer invite-footer">
+                <button class="footer-btn flat" (click)="cancelInvite()">Cancelar</button>
+                <button class="footer-btn primary" (click)="share()" [disabled]="isSharing()">
+                    {{ isSharing() ? 'Enviando...' : 'Enviar' }}
+                </button>
+            </div>
+            }
+
         </div>
     </div>
 </div>

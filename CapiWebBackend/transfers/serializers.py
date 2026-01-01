@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import FileTransfer, Folder, FileAccess, FolderAccess
+from .models import FileTransfer, Folder, FileAccess, FolderAccess, ShareLink
 from django.contrib.auth.models import User
 import os
 import re
@@ -244,4 +244,68 @@ class FileTransferSerializer(serializers.ModelSerializer):
             validated_data['filename'] = file_obj.name
             validated_data['size'] = file_obj.size
 
+        return super().create(validated_data)
+
+
+class ShareLinkSerializer(serializers.ModelSerializer):
+    """
+    Serializer para enlaces compartidos.
+    Genera URLs completas y valida la configuración de acceso.
+    """
+    url = serializers.SerializerMethodField()
+    item_name = serializers.SerializerMethodField()
+    item_type = serializers.SerializerMethodField()
+    created_by_username = serializers.ReadOnlyField(source='created_by.username')
+    specific_user_username = serializers.CharField(source='specific_user.username', read_only=True, allow_null=True)
+
+    class Meta:
+        model = ShareLink
+        fields = [
+            'id', 'token', 'url', 'file', 'folder', 'item_name', 'item_type',
+            'access_type', 'specific_user', 'specific_user_username', 'permission',
+            'created_by', 'created_by_username', 'created_at', 'expires_at', 'is_active'
+        ]
+        read_only_fields = ['token', 'url', 'created_by', 'created_by_username', 'created_at']
+
+    def get_url(self, obj):
+        # Devolver solo la ruta relativa - el frontend construirá la URL completa
+        return f'/fileshare/shared/{obj.token}'
+
+    def get_item_name(self, obj):
+        if obj.file:
+            return obj.file.filename
+        elif obj.folder:
+            return obj.folder.name
+        return None
+
+    def get_item_type(self, obj):
+        if obj.file:
+            return 'file'
+        elif obj.folder:
+            return 'folder'
+        return None
+
+    def validate(self, attrs):
+        file = attrs.get('file')
+        folder = attrs.get('folder')
+        
+        # Debe especificar archivo O carpeta, no ambos
+        if file and folder:
+            raise serializers.ValidationError('Especifica archivo o carpeta, no ambos.')
+        if not file and not folder:
+            raise serializers.ValidationError('Debes especificar un archivo o carpeta.')
+        
+        # Si es acceso para usuario específico, debe especificar el usuario
+        access_type = attrs.get('access_type', ShareLink.AccessType.ANYONE)
+        specific_user = attrs.get('specific_user')
+        
+        if access_type == ShareLink.AccessType.SPECIFIC_USER and not specific_user:
+            raise serializers.ValidationError({
+                'specific_user': 'Debes especificar un usuario para acceso restringido.'
+            })
+        
+        return attrs
+
+    def create(self, validated_data):
+        validated_data['created_by'] = self.context['request'].user
         return super().create(validated_data)

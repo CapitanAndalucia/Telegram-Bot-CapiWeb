@@ -1,0 +1,354 @@
+.shared-viewer-container {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f0f23 100%);
+    color: white;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+}
+
+/* Loading State */
+.loading-state {
+    text-align: center;
+}
+
+.spinner {
+    width: 50px;
+    height: 50px;
+    border: 3px solid rgba(0, 242, 255, 0.2);
+    border-top-color: #00f2ff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 1rem;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Error State */
+.error-state {
+    text-align: center;
+    max-width: 400px;
+}
+
+.error-icon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+}
+
+.error-state h2 {
+    margin-bottom: 0.5rem;
+    color: #ff6b6b;
+}
+
+.error-state p {
+    color: #aaa;
+    margin-bottom: 1.5rem;
+}
+
+/* Content */
+.shared-content {
+    max-width: 900px;
+    width: 100%;
+}
+
+.shared-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.shared-header h1 {
+    font-size: 1.8rem;
+    margin-bottom: 0.5rem;
+}
+
+.guest-notice {
+    color: #00f2ff;
+    font-size: 0.9rem;
+}
+
+/* Item Card */
+.shared-item-card {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 2rem;
+}
+
+.file-preview,
+.folder-preview {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.file-icon,
+.folder-icon {
+    font-size: 4rem;
+}
+
+.file-details h2,
+.folder-details h2 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.4rem;
+    word-break: break-all;
+}
+
+.meta-info {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    font-size: 0.85rem;
+    color: #aaa;
+}
+
+/* Actions */
+.actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding-top: 1.5rem;
+}
+
+.download-btn,
+.primary-btn {
+    background: #00f2ff;
+    color: black;
+    border: none;
+    padding: 1rem 1.5rem;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+}
+
+.download-btn:hover,
+.primary-btn:hover {
+    background: #00d4e0;
+    transform: translateY(-2px);
+}
+
+.secondary-btn {
+    background: transparent;
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-decoration: none;
+    text-align: center;
+}
+
+.secondary-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.info-text {
+    color: #aaa;
+    text-align: center;
+    margin-bottom: 0.5rem;
+}
+
+/* Login Hint */
+.login-hint {
+    text-align: center;
+    margin-top: 1.5rem;
+    color: #888;
+    font-size: 0.9rem;
+}
+
+.login-hint a {
+    color: #00f2ff;
+    cursor: pointer;
+    text-decoration: underline;
+}
+
+/* File & Subfolder Lists */
+.subfolder-list {
+    margin-top: 1.5rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding-top: 1rem;
+}
+
+.subfolder-list h3,
+.files-section h3 {
+    margin: 0 0 0.75rem 0;
+    font-size: 1rem;
+    color: #888;
+}
+
+.subfolder-item {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 8px;
+    margin-bottom: 0.5rem;
+}
+
+.subfolder-item:hover {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.subfolder-icon {
+    font-size: 1.2rem;
+    margin-right: 0.5rem;
+}
+
+.subfolder-name {
+    flex: 1;
+    font-size: 0.9rem;
+}
+
+/* Files Grid Layout */
+.files-section {
+    margin-top: 1.5rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding-top: 1rem;
+}
+
+.files-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 1rem;
+    margin-top: 0.75rem;
+}
+
+.file-card {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.file-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+    border-color: rgba(0, 242, 255, 0.3);
+}
+
+.file-card-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 0.75rem;
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.file-card-header .file-icon {
+    font-size: 1rem;
+}
+
+.file-name-truncated {
+    flex: 1;
+    font-size: 0.8rem;
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.card-menu-btn {
+    background: transparent;
+    border: none;
+    color: #888;
+    cursor: pointer;
+    padding: 0.25rem;
+    font-size: 1rem;
+}
+
+.file-thumbnail {
+    width: 100%;
+    height: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.15);
+}
+
+.file-thumbnail img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.file-type-icon {
+    font-size: 3rem;
+    opacity: 0.6;
+}
+
+.file-card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.5rem 0.75rem;
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.file-size {
+    font-size: 0.75rem;
+    color: #888;
+}
+
+.download-icon-btn {
+    background: #00f2ff;
+    border: none;
+    padding: 0.4rem 0.6rem;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.download-icon-btn:hover {
+    background: #00d4e0;
+    transform: scale(1.1);
+}
+
+.download-file-btn {
+    background: #00f2ff;
+    color: black;
+    border: none;
+    padding: 0.5rem 0.75rem;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 1rem;
+}
+
+.download-file-btn:hover {
+    background: #00d4e0;
+    transform: scale(1.05);
+}
+
+.empty-folder {
+    text-align: center;
+    color: #666;
+    padding: 2rem;
+    font-style: italic;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+
+    .file-preview,
+    .folder-preview {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .meta-info {
+        justify-content: center;
+    }
+}

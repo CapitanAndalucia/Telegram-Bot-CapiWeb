@@ -24,6 +24,11 @@ export const routes: Routes = [
         data: { animation: 'Tickets' }
     },
     {
+        path: 'fileshare/shared/:token',
+        loadComponent: () => import('./pages/fileshare/components/shared-viewer/shared-viewer.component').then(m => m.SharedViewerComponent),
+        data: { animation: 'FileshareShared' }
+    },
+    {
         path: 'fileshare',
         loadComponent: () => import('./pages/fileshare/fileshare.component').then(m => m.FileshareComponent),
         canActivate: [authGuard],

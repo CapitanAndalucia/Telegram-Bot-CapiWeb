@@ -477,6 +477,8 @@ export class ApiClientService {
         });
     }
 
+
+
     createFolder(name: string, parentId?: number): Promise<any> {
         const data: any = {
             name,
@@ -688,6 +690,54 @@ export class ApiClientService {
     markFolderContentsViewed(folderId: number): Promise<any> {
         return new Promise((resolve, reject) => {
             this.request(`/folders/${folderId}/mark_contents_viewed/`, 'POST').subscribe({
+                next: (data) => resolve(data),
+                error: (err) => reject(err)
+            });
+        });
+    }
+
+    // ---- Share Links ---------------------------------------------------------
+
+    createShareLink(data: {
+        file?: number;
+        folder?: number;
+        access_type: 'anyone' | 'user';
+        permission: 'read' | 'edit';
+        specific_user?: number;
+        expires_at?: string;
+    }): Promise<any> {
+        return new Promise((resolve, reject) => {
+            this.request('/share-links/', 'POST', { data }).subscribe({
+                next: (res) => resolve(res),
+                error: (err) => reject(err)
+            });
+        });
+    }
+
+    getShareLinksForItem(type: 'file' | 'folder', itemId: number): Promise<any[]> {
+        const param = type === 'file' ? `file_id=${itemId}` : `folder_id=${itemId}`;
+        return new Promise((resolve, reject) => {
+            this.request(`/share-links/for-item/?${param}`, 'GET').subscribe({
+                next: (data: any) => {
+                    resolve(Array.isArray(data) ? data : data.results || []);
+                },
+                error: (err) => reject(err)
+            });
+        });
+    }
+
+    revokeShareLink(linkId: number): Promise<void> {
+        return new Promise((resolve, reject) => {
+            this.request(`/share-links/${linkId}/`, 'DELETE').subscribe({
+                next: () => resolve(),
+                error: (err) => reject(err)
+            });
+        });
+    }
+
+    accessShareLink(token: string): Promise<any> {
+        return new Promise((resolve, reject) => {
+            this.request(`/share-links/${token}/access/`, 'GET').subscribe({
                 next: (data) => resolve(data),
                 error: (err) => reject(err)
             });

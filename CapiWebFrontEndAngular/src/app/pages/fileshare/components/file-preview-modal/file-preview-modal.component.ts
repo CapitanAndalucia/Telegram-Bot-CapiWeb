@@ -18,6 +18,10 @@ interface FileItem {
 export class FilePreviewModalComponent {
     file = input.required<FileItem>();
 
+    // Optional custom URLs for shared/public access
+    customDownloadUrl = input<string | null>(null);
+    customStreamUrl = input<string | null>(null);
+
     close = output<void>();
     download = output<{ id: number; filename: string }>();
     delete = output<number>();
@@ -33,13 +37,13 @@ export class FilePreviewModalComponent {
     }
 
     get streamUrl(): string {
-        // For now, we use the download URL which serves the file content
-        // Browsers handle range requests for video streaming automatically if supported by backend
-        return `/api/transfers/${this.file().id}/download/`;
+        // Use custom URL if provided, otherwise use authenticated endpoint
+        return this.customStreamUrl() || `/api/transfers/${this.file().id}/download/`;
     }
 
     get downloadUrl(): string {
-        return `/api/transfers/${this.file().id}/download/`;
+        // Use custom URL if provided, otherwise use authenticated endpoint
+        return this.customDownloadUrl() || `/api/transfers/${this.file().id}/download/`;
     }
 
     onClose(): void {

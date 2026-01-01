@@ -8,12 +8,13 @@ from django.http import FileResponse, StreamingHttpResponse
 import threading
 from django.utils import timezone
 from datetime import timedelta
-from .models import FileTransfer, Folder, FileAccess, FolderAccess
+from .models import FileTransfer, Folder, FileAccess, FolderAccess, ShareLink
 from .serializers import (
     FileTransferSerializer,
     FolderSerializer,
     FileAccessSerializer,
     FolderAccessSerializer,
+    ShareLinkSerializer,
 )
 from django.db.models import Q
 from django.core.cache import cache
@@ -1050,3 +1051,290 @@ class FileTransferViewSet(viewsets.ModelViewSet):
                     'expires_at': access.expires_at
                 }
             )
+
+
+class ShareLinkViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet para gestionar enlaces de compartición.
+    
+    Endpoints:
+    - GET /api/share-links/ - Listar enlaces creados por el usuario
+    - POST /api/share-links/ - Crear nuevo enlace
+    - DELETE /api/share-links/{id}/ - Revocar enlace
+    - GET /api/share-links/{token}/access/ - Acceder al elemento via enlace (público)
+    """
+    serializer_class = ShareLinkSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        """Solo devuelve enlaces creados por el usuario actual"""
+        return ShareLink.objects.filter(
+            created_by=self.request.user,
+            is_active=True
+        ).select_related('file', 'folder', 'specific_user', 'created_by')
+
+    def perform_destroy(self, instance):
+        """Desactivar en lugar de eliminar para mantener historial"""
+        instance.is_active = False
+        instance.save()
+
+    @action(detail=False, methods=['get'], url_path='for-item')
+    def for_item(self, request):
+        """
+        Obtener enlaces activos para un archivo o carpeta específico.
+        Query params: file_id o folder_id
+        """
+        file_id = request.query_params.get('file_id')
+        folder_id = request.query_params.get('folder_id')
+
+        if not file_id and not folder_id:
+            return Response(
+                {'error': 'Especifica file_id o folder_id'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        queryset = self.get_queryset()
+        
+        if file_id:
+            queryset = queryset.filter(file_id=file_id)
+        else:
+            queryset = queryset.filter(folder_id=folder_id)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['get'], url_path='access', permission_classes=[permissions.AllowAny])
+    def access(self, request, pk=None):
+        """
+        Endpoint público para acceder a un elemento via token de enlace.
+        El pk aquí es el token, no el id.
+        """
+        token = pk
+        
+        try:
+            link = ShareLink.objects.select_related(
+                'file', 'folder', 'specific_user', 'created_by'
+            ).get(token=token, is_active=True)
+        except ShareLink.DoesNotExist:
+            return Response(
+                {'error': 'Enlace no válido o expirado'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Verificar expiración
+        if link.expires_at and link.expires_at < timezone.now():
+            return Response(
+                {'error': 'Enlace expirado'},
+                status=status.HTTP_410_GONE
+            )
+
+        # Verificar acceso de usuario específico
+        if link.access_type == ShareLink.AccessType.SPECIFIC_USER:
+            if not request.user.is_authenticated:
+                return Response(
+                    {'error': 'Debes iniciar sesión para acceder a este enlace'},
+                    status=status.HTTP_401_UNAUTHORIZED
+                )
+            if request.user != link.specific_user:
+                return Response(
+                    {'error': 'No tienes permiso para acceder a este enlace'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+
+        # Si el usuario está autenticado y es enlace "anyone", conceder acceso permanente
+        if request.user.is_authenticated and link.access_type == ShareLink.AccessType.ANYONE:
+            self._grant_permanent_access(link, request.user)
+
+        # Construir respuesta con info del elemento
+        response_data = {
+            'type': 'file' if link.file else 'folder',
+            'permission': link.permission,
+            'access_type': link.access_type,
+            'is_authenticated': request.user.is_authenticated,
+        }
+
+        if link.file:
+            response_data['file'] = {
+                'id': link.file.id,
+                'filename': link.file.filename,
+                'size': link.file.size,
+                'created_at': link.file.created_at,
+                'owner_username': link.file.owner.username,
+            }
+        else:
+            # Include folder info and contents for anonymous browsing
+            folder = link.folder
+            response_data['folder'] = {
+                'id': folder.id,
+                'name': folder.name,
+                'created_at': folder.created_at,
+                'owner_username': folder.owner.username,
+            }
+            
+            # Add folder contents - files with thumbnail info
+            files = FileTransfer.objects.filter(folder=folder).values(
+                'id', 'filename', 'size', 'created_at', 'file'
+            )
+            # Convert to list and add thumbnail URL
+            files_list = []
+            for f in files:
+                file_data = dict(f)
+                # Generate thumbnail URL for images
+                filename = f['filename'].lower()
+                is_image = any(filename.endswith(ext) for ext in ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.svg'])
+                file_data['is_image'] = is_image
+                if is_image:
+                    file_data['thumbnail_url'] = f"/api/transfers/{f['id']}/thumbnail/"
+                files_list.append(file_data)
+            response_data['files'] = files_list
+            
+            # Add subfolders
+            subfolders = Folder.objects.filter(parent=folder).values(
+                'id', 'name', 'created_at'
+            )
+            response_data['subfolders'] = list(subfolders)
+
+        return Response(response_data)
+
+    def _grant_permanent_access(self, link, user):
+        """
+        Concede acceso permanente al usuario cuando accede via enlace 'anyone'.
+        """
+        if link.file:
+            # No conceder acceso si ya es owner/uploader
+            if user.id in [link.file.owner_id, link.file.uploader_id]:
+                return
+            
+            FileAccess.objects.update_or_create(
+                file=link.file,
+                granted_to=user,
+                defaults={
+                    'granted_by': link.created_by,
+                    'permission': link.permission,
+                }
+            )
+        elif link.folder:
+            # No conceder acceso si ya es owner
+            if user.id == link.folder.owner_id:
+                return
+            
+            FolderAccess.objects.update_or_create(
+                folder=link.folder,
+                granted_to=user,
+                defaults={
+                    'granted_by': link.created_by,
+                    'permission': link.permission,
+                    'propagate': True,
+                }
+            )
+
+    @action(detail=True, methods=['get'], url_path='thumbnail/(?P<file_id>[^/.]+)', permission_classes=[permissions.AllowAny])
+    def thumbnail(self, request, pk=None, file_id=None):
+        """
+        Endpoint público para obtener thumbnail de archivo via share token.
+        URL: /api/share-links/{token}/thumbnail/{file_id}/
+        """
+        token = pk
+        
+        try:
+            link = ShareLink.objects.select_related('folder').get(
+                token=token, is_active=True
+            )
+        except ShareLink.DoesNotExist:
+            return Response({'error': 'Enlace no válido'}, status=status.HTTP_404_NOT_FOUND)
+        
+        # Verificar que el archivo pertenece a la carpeta compartida
+        if not link.folder:
+            return Response({'error': 'Este enlace no es para una carpeta'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            file_obj = FileTransfer.objects.get(id=file_id, folder=link.folder)
+        except FileTransfer.DoesNotExist:
+            return Response({'error': 'Archivo no encontrado'}, status=status.HTTP_404_NOT_FOUND)
+        
+        # Generar thumbnail
+        from PIL import Image
+        from django.http import HttpResponse, FileResponse
+        import io
+        import os
+        
+        file_path = file_obj.file.path
+        ext = os.path.splitext(file_obj.filename)[1].lower()
+        
+        # Imágenes soportadas
+        supported_images = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.svg']
+        
+        if ext not in supported_images:
+            return Response({'error': 'No es una imagen'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # SVG: Servir directamente (no se puede procesar con PIL)
+        if ext == '.svg':
+            try:
+                return FileResponse(open(file_path, 'rb'), content_type='image/svg+xml')
+            except Exception as e:
+                return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+        # Otros formatos: Generar thumbnail con PIL
+        try:
+            img = Image.open(file_path)
+            img.thumbnail((300, 300))
+            
+            output = io.BytesIO()
+            format_map = {'.jpg': 'JPEG', '.jpeg': 'JPEG', '.png': 'PNG', '.gif': 'GIF', '.webp': 'WEBP', '.bmp': 'BMP'}
+            img_format = format_map.get(ext, 'JPEG')
+            
+            if img_format == 'JPEG' and img.mode in ('RGBA', 'P'):
+                img = img.convert('RGB')
+            
+            img.save(output, format=img_format, quality=80)
+            output.seek(0)
+            
+            return HttpResponse(output.read(), content_type=f'image/{img_format.lower()}')
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=True, methods=['get'], url_path='download/(?P<file_id>[^/.]+)', permission_classes=[permissions.AllowAny])
+    def download(self, request, pk=None, file_id=None):
+        """
+        Endpoint público para descargar archivo via share token.
+        URL: /api/share-links/{token}/download/{file_id}/
+        """
+        token = pk
+        
+        try:
+            link = ShareLink.objects.select_related('folder', 'file').get(
+                token=token, is_active=True
+            )
+        except ShareLink.DoesNotExist:
+            return Response({'error': 'Enlace no válido'}, status=status.HTTP_404_NOT_FOUND)
+        
+        # Determinar el archivo a descargar
+        file_obj = None
+        
+        if link.file and str(link.file.id) == str(file_id):
+            # Enlace directo a archivo
+            file_obj = link.file
+        elif link.folder:
+            # Archivo dentro de carpeta compartida
+            try:
+                file_obj = FileTransfer.objects.get(id=file_id, folder=link.folder)
+            except FileTransfer.DoesNotExist:
+                return Response({'error': 'Archivo no encontrado en la carpeta compartida'}, status=status.HTTP_404_NOT_FOUND)
+        else:
+            return Response({'error': 'Archivo no accesible'}, status=status.HTTP_403_FORBIDDEN)
+        
+        # Servir el archivo
+        from django.http import FileResponse
+        import os
+        
+        file_path = file_obj.file.path
+        if not os.path.exists(file_path):
+            return Response({'error': 'Archivo no encontrado en el servidor'}, status=status.HTTP_404_NOT_FOUND)
+        
+        response = FileResponse(
+            open(file_path, 'rb'),
+            as_attachment=True,
+            filename=file_obj.filename
+        )
+        response['Content-Length'] = file_obj.size
+        return response

@@ -79,6 +79,14 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
     forceResetCount = input<number>(0);
     scope = input<'mine' | 'shared' | 'sent'>('mine');
 
+    // Shared link inputs for anonymous access
+    sharedLinkToken = input<string | null>(null);
+    sharedLinkData = input<any>(null);
+
+    // Initial state for share link redirects
+    initialFolderId = input<number | null>(null);
+    initialPreviewFileId = input<number | null>(null);
+
     // Outputs
     unreadCountChange = output<number>();
     openUpload = output<void>();
@@ -245,6 +253,102 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
         effect(() => {
             const unreadCount = this.files().filter((f) => !f.is_viewed).length;
             this.unreadCountChange.emit(unreadCount);
+        });
+
+        // Shared link data effect - for anonymous access
+        effect(() => {
+            const data = this.sharedLinkData();
+            if (data) {
+                untracked(() => {
+                    this.loading.set(false);
+
+                    if (data.type === 'folder' && data.folder) {
+                        // Set up folder view with breadcrumbs
+                        const folder: Folder = {
+                            id: data.folder.id,
+                            name: data.folder.name,
+                            owner: 0, // Unknown for shared links
+                            parent: null,
+                            owner_username: data.folder.owner_username,
+                            created_at: data.folder.created_at
+                        };
+                        this.currentFolder.set(folder);
+                        this.breadcrumbs.set([
+                            { id: null, name: 'Mi unidad', folder: null },
+                            { id: folder.id, name: folder.name, folder: folder }
+                        ]);
+
+                        // Set files from shared data
+                        if (data.files) {
+                            const files: FileItem[] = data.files.map((f: any) => ({
+                                id: f.id,
+                                filename: f.filename,
+                                size: f.size,
+                                created_at: f.created_at,
+                                is_image: f.is_image || false,
+                                is_viewed: true
+                            }));
+                            this.setFilesWithLoadingState(files);
+                        }
+
+                        // Set subfolders
+                        if (data.subfolders) {
+                            const subfolders: Folder[] = data.subfolders.map((f: any) => ({
+                                id: f.id,
+                                name: f.name,
+                                owner: 0,
+                                parent: folder.id,
+                                created_at: f.created_at
+                            }));
+                            this.folders.set(subfolders);
+                        }
+
+                        this.animationTrigger.update(v => v + 1);
+                    } else if (data.type === 'file' && data.file) {
+                        // Open file preview directly
+                        const file: FileItem = {
+                            id: data.file.id,
+                            filename: data.file.filename,
+                            size: data.file.size,
+                            created_at: data.file.created_at,
+                            is_viewed: true
+                        };
+                        this.selectedFile.set(file);
+                    }
+                });
+            }
+        });
+
+        // Effect for initial folder navigation from share link redirects
+        effect(() => {
+            const folderId = this.initialFolderId();
+            if (folderId) {
+                untracked(() => {
+                    this.apiClient.getFolder(folderId)
+                        .then(folder => {
+                            this.navigateToFolder(folder);
+                        })
+                        .catch(err => console.error('Failed to load initial folder', err));
+                });
+            }
+        });
+
+        // Effect for initial file preview from share link redirects
+        effect(() => {
+            const fileId = this.initialPreviewFileId();
+            const files = this.files();
+
+            if (fileId && files.length > 0) {
+                untracked(() => {
+                    // Check if file is already open to avoid loops
+                    if (this.selectedFile()?.id === fileId) return;
+
+                    const file = files.find(f => f.id === fileId);
+                    if (file) {
+                        this.openFilePreview(file);
+                    }
+                });
+            }
         });
     }
 

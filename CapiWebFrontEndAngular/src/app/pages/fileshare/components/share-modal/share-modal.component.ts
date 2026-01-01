@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output, signal, inject, OnChanges, SimpleChanges } from '@angular/core';
+import { Component, EventEmitter, Input, Output, signal, inject, OnChanges, SimpleChanges, ElementRef, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiClientService } from '../../../../services/api-client.service';
@@ -19,6 +19,8 @@ export class ShareModalComponent implements OnChanges {
     @Output() shared = new EventEmitter<void>();
     @Output() permissionDenied = new EventEmitter<void>(); // Nuevo evento para permisos denegados
 
+    private el = inject(ElementRef);
+
     private api = inject(ApiClientService);
     private toast = inject(ToastrService);
 
@@ -34,6 +36,25 @@ export class ShareModalComponent implements OnChanges {
     currentUser = signal<any>(null);
     openDropdownId = signal<number | null>(null);
 
+    // Share Link state
+    shareLinks = signal<any[]>([]);
+    loadingLinks = signal(false);
+    generatingLink = signal(false);
+    newLinkAccessType = signal<'anyone' | 'user'>('anyone');
+    newLinkPermission = signal<'read' | 'edit'>('read');
+    generatedLinkUrl = signal<string | null>(null);
+    openConfigDropdown = signal<'access' | 'permission' | null>(null);
+
+    // Redesign State
+    viewMode = signal<'main' | 'invite'>('main');
+    pendingInvites = signal<any[]>([]);
+    // notificationMessage & notifyUsers removed
+    inviteRole = signal<'read' | 'edit'>('read');
+
+    // General Access State
+    generalAccess = signal<'restricted' | 'anyone'>('restricted');
+    generalAccessRole = signal<'read' | 'edit'>('read');
+
     constructor() {
         // Load friends initially
         this.loadFriends();
@@ -47,6 +68,7 @@ export class ShareModalComponent implements OnChanges {
             // Cargar acceso normalmente (el modal solo se muestra si se verificaron permisos)
             if (this.item && this.type) {
                 void this.loadAccessWithPermissionCheck();
+                void this.loadShareLinks();
             }
         }
     }
@@ -165,44 +187,58 @@ export class ShareModalComponent implements OnChanges {
     }
 
     selectUser(user: any): void {
-        this.selectedUser.set(user);
-        this.searchQuery.set(user.username);
-        this.searchResults.set([]); // Clear results after selection
+        const currentPending = this.pendingInvites();
+        if (!currentPending.find(u => u.id === user.id)) {
+            this.pendingInvites.update(prev => [...prev, user]);
+        }
+        this.searchQuery.set('');
+        this.searchResults.set([]);
+        this.viewMode.set('invite');
+    }
+
+    removeFromPending(userId: number): void {
+        this.pendingInvites.update(prev => prev.filter(u => u.id !== userId));
+        if (this.pendingInvites().length === 0) {
+            this.viewMode.set('main');
+        }
+    }
+
+    cancelInvite(): void {
+        this.pendingInvites.set([]);
+        this.viewMode.set('main');
     }
 
     async share(): Promise<void> {
-        const user = this.selectedUser();
-        if (!user) {
-            this.toast.error('Selecciona un usuario primero');
-            return;
-        }
+        if (this.pendingInvites().length === 0) return;
 
         this.isSharing.set(true);
         try {
-            if (this.type === 'file') {
-                await this.api.shareFile(
-                    (this.item as FileItem).id,
-                    user.username,
-                    this.selectedPermission(),
-                    undefined
-                );
-            } else {
-                await this.api.shareFolder(
-                    (this.item as Folder).id,
-                    user.username,
-                    this.selectedPermission(),
-                    true, // Siempre propagar acceso
-                    undefined
-                );
-            }
-            this.toast.success(`Acceso concedido a ${user.username}`);
+            const users = this.pendingInvites();
+            const role = this.inviteRole();
+            // Notification and message implicitly handled or not supported by current API call
+
+
+            // Process all invites
+            // Note: API currently supports one by one, should be optimized in backend to bulk share
+            // For now, we loop parallelly
+            const promises = users.map(user => {
+                if (this.type === 'folder') {
+                    return this.api.shareFolder(this.item.id, user.id, role);
+                } else {
+                    return this.api.shareFile(this.item.id, user.id, role);
+                }
+            });
+
+            await Promise.all(promises);
+
+            this.toast.success(`Compartido con ${users.length} usuario(s)`);
+            this.cancelInvite(); // Reset state and go back to main
+            void this.loadAccessWithPermissionCheck(); // Refresh access list
             this.shared.emit();
-            await this.fetchAccessList();
-            this.selectedUser.set(null);
-            this.searchQuery.set('');
-        } catch (error: any) {
-            const message = error?.message || error?.payload?.error || 'Error al compartir';
-            this.toast.error(message);
+
+        } catch (error) {
+            console.error('Error sharing:', error);
+            this.toast.error('Error al compartir');
         } finally {
             this.isSharing.set(false);
         }
@@ -255,8 +291,23 @@ export class ShareModalComponent implements OnChanges {
         }
     }
 
+    toggleConfigDropdown(type: 'access' | 'permission', event: Event): void {
+        event.stopPropagation();
+        // Close other dropdown types
+        this.openDropdownId.set(null);
+
+        if (this.openConfigDropdown() === type) {
+            this.openConfigDropdown.set(null);
+        } else {
+            this.openConfigDropdown.set(type);
+        }
+    }
+
     togglePermissionDropdown(accessId: number, event: Event): void {
         event.stopPropagation();
+        // Close other dropdown types
+        this.openConfigDropdown.set(null);
+
         if (this.openDropdownId() === accessId) {
             this.openDropdownId.set(null);
         } else {
@@ -266,6 +317,7 @@ export class ShareModalComponent implements OnChanges {
 
     closeDropdown(): void {
         this.openDropdownId.set(null);
+        this.openConfigDropdown.set(null);
     }
 
     onChangePermissionClick(access: FileAccess | FolderAccess, newPermission: 'read' | 'edit', event: Event): void {
@@ -295,32 +347,193 @@ export class ShareModalComponent implements OnChanges {
         }
     }
 
-    getOwnerInfo(): { username: string, isOriginal: boolean } {
+    getOwnerInfo(): { username: string, isOriginal: boolean, email?: string } {
         if (!this.item) return { username: '', isOriginal: false };
 
         let ownerUsername = '';
         let isOriginal = false;
+        let email: string | undefined;
+
+        const currentUser = this.currentUser();
 
         if (this.type === 'file') {
             const file = this.item as FileItem;
             ownerUsername = file.owner_username || '';
             // Si no hay usuario actual, asumimos que no es el original
-            const currentUser = this.currentUser();
-            isOriginal = currentUser && (file.owner_username === currentUser.username || file.uploader_username === currentUser.username);
+            isOriginal = currentUser ? (file.owner_username === currentUser.username || file.uploader_username === currentUser.username) : false;
         } else {
             const folder = this.item as Folder;
             // Usar directamente el owner_username del item
             ownerUsername = folder.owner_username || '';
-            const currentUser = this.currentUser();
-            isOriginal = currentUser && folder.owner_username === currentUser.username;
+            isOriginal = currentUser ? folder.owner_username === currentUser.username : false;
         }
 
-        return { username: ownerUsername, isOriginal };
+        if (isOriginal && currentUser) {
+            email = currentUser.email;
+        }
+
+        return { username: ownerUsername, isOriginal, email };
+    }
+
+    // UI Helpers
+    focusSearch(event: Event): void {
+        // Prevent focusing if clicking on chip or input (they handle their own focus)
+        // But if clicking on container blank space, focus input.
+        // Implementing basic toggle for now
+    }
+
+    onInputFocus(): void {
+        this.viewMode.set('invite');
+    }
+
+    hasPublicLink(): boolean {
+        return this.shareLinks().some(link => link.access_type === 'anyone');
+    }
+
+    getPublicLinkRole(): 'read' | 'edit' {
+        const link = this.shareLinks().find(l => l.access_type === 'anyone');
+        return link ? link.permission : 'read';
+    }
+
+    async createOrUpdatePublicLink(type: 'restricted' | 'anyone'): Promise<void> {
+        if (type === 'restricted') {
+            // Find public link and delete it
+            const link = this.shareLinks().find(l => l.access_type === 'anyone');
+            if (link) {
+                await this.deleteShareLink(link.id);
+            }
+        } else {
+            // Create public link if not exists
+            if (!this.hasPublicLink()) {
+                this.newLinkAccessType.set('anyone');
+                this.newLinkPermission.set('read');
+                // Use undefined instead of true if signature doesn't support arg
+                await this.generateShareLink();
+            }
+        }
+    }
+
+    async updatePublicLinkRole(permission: 'read' | 'edit'): Promise<void> {
+        const link = this.shareLinks().find(l => l.access_type === 'anyone');
+        if (link) {
+            // Delete and recreate because update API might not exist or we want simple logic
+            // Actually, better to have an update endpoint. Assuming we replace it for now:
+            await this.deleteShareLink(link.id);
+            this.newLinkAccessType.set('anyone');
+            this.newLinkPermission.set(permission);
+            await this.generateShareLink();
+        }
+    }
+
+    copyLink(): void {
+        // Prefer public link, else use current page URL (fallback)
+        const link = this.shareLinks().find(l => l.access_type === 'anyone');
+        const url = link ? this.getFullUrl(link.url) : window.location.href;
+        this.copyLinkToClipboard(url);
+    }
+
+    // ---- Share Links ----
+
+    async loadShareLinks(): Promise<void> {
+        if (!this.item) return;
+        this.loadingLinks.set(true);
+        try {
+            const links = await this.api.getShareLinksForItem(this.type, this.item.id);
+            this.shareLinks.set(links);
+        } catch (error) {
+            console.error('Error loading share links', error);
+            this.shareLinks.set([]);
+        } finally {
+            this.loadingLinks.set(false);
+        }
+    }
+
+    async generateShareLink(): Promise<void> {
+        if (!this.item) return;
+        this.generatingLink.set(true);
+        this.generatedLinkUrl.set(null);
+
+        try {
+            const data: any = {
+                access_type: this.newLinkAccessType(),
+                permission: this.newLinkPermission(),
+            };
+
+            if (this.type === 'file') {
+                data.file = this.item.id;
+            } else {
+                data.folder = this.item.id;
+            }
+
+            const result = await this.api.createShareLink(data);
+            // Construir URL completa usando el origen actual (Angular frontend)
+            const fullUrl = `${window.location.origin}${result.url}`;
+            this.generatedLinkUrl.set(fullUrl);
+            this.toast.success('¡Enlace generado!');
+
+            // Recargar lista de enlaces
+            await this.loadShareLinks();
+        } catch (error: any) {
+            const message = error?.message || 'Error al generar enlace';
+            this.toast.error(message);
+        } finally {
+            this.generatingLink.set(false);
+        }
+    }
+
+    async deleteShareLink(linkId: number): Promise<void> {
+        try {
+            await this.api.revokeShareLink(linkId);
+            this.toast.success('Enlace revocado');
+            await this.loadShareLinks();
+        } catch (error: any) {
+            this.toast.error('Error al revocar enlace');
+        }
+    }
+
+    getFullUrl(relativePath: string): string {
+        return `${window.location.origin}${relativePath}`;
+    }
+
+    copyLinkToClipboard(url: string): void {
+        navigator.clipboard.writeText(url).then(() => {
+            this.toast.success('¡Enlace copiado!', '', { timeOut: 2000 });
+        }).catch(() => {
+            this.toast.error('Error al copiar');
+        });
+    }
+
+    isClosing = signal(false);
+
+    closeModal(): void {
+        this.isClosing.set(true);
+        setTimeout(() => {
+            this.close.emit();
+        }, 150); // Matches CSS animation duration
     }
 
     onBackdropClick(event: MouseEvent): void {
         if ((event.target as HTMLElement).classList.contains('comp-overlay')) {
-            this.close.emit();
+            this.closeModal();
         }
+    }
+
+    @HostListener('document:click', ['$event'])
+    onDocumentClick(event: MouseEvent): void {
+        // If the click is inside a dropdown container (trigger or menu), do nothing (let the specific handler work)
+        // But checking 'contains' might be tricky if one dropdown is open and we click another.
+        // Easier: All triggers must stopPropagation().
+        // So if this event reaches document, it means it wasn't a trigger.
+        // WE JUST CLOSE ALL DROPDOWNS.
+
+        // However, we must ensure that clicking INSIDE the menu doesn't close it if we want to keep it open (usually we close on selection anyway).
+        // Let's rely on stopPropagation in usage.
+
+        // Wait, if we click inside the modal (e.g. whitespace), we want to close the dropdown.
+        // So yes, simply closing everything here is correct, provided that
+        // triggers/menus that SHOULDN'T close consume the event.
+
+        this.openConfigDropdown.set(null);
+        this.openDropdownId.set(null);
     }
 }
