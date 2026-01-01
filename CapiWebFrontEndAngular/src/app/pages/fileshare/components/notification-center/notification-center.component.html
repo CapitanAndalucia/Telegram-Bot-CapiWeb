@@ -1,8 +1,12 @@
 <div class="notificationCenter">
     <button class="bellButton" (click)="toggleDropdown()">
-        🔔
         @if (totalCount > 0) {
-        <span class="badge">{{ totalCount }}</span>
+        <div class="icon-container">
+            <img src="assets/icons/notificacion_activo.png" alt="Notificaciones" class="bell-icon" />
+            <span class="badge">{{ totalCount }}</span>
+        </div>
+        } @else {
+        <img src="assets/icons/notificacion.png" alt="Notificaciones" class="bell-icon" />
         }
     </button>
 

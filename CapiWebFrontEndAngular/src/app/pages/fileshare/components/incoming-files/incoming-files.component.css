@@ -201,6 +201,16 @@
     flex-shrink: 0;
 }
 
+/* Ensure explicit selector for search results */
+.search-dropdown .result-icon img,
+.icon-img {
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
+    filter: brightness(0) saturate(100%) invert(80%) sepia(0%) saturate(0%) hue-rotate(0deg) brightness(95%) contrast(90%) !important;
+    opacity: 0.9;
+}
+
 .result-info {
     display: flex;
     flex-direction: column;

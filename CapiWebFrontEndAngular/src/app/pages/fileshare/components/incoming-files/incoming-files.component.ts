@@ -2351,6 +2351,10 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
         return /\.(mp4|webm|ogg|avi|mov|wmv|flv|mkv|3gp|m4v|mpg|mpeg)$/i.test(filename);
     }
 
+    isAudio(filename: string): boolean {
+        return /\.(mp3|wav|ogg|m4a|aac|flac|wma|opus)$/i.test(filename);
+    }
+
     hasThumbnail(filename: string): boolean {
         // Imágenes y videos tienen miniatura
         return this.isImage(filename) || this.isVideo(filename);

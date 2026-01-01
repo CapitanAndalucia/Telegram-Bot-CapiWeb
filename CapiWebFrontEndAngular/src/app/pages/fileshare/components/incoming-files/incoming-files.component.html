@@ -46,11 +46,14 @@
                 <button class="toggleBtn" [class.active]="viewMode() === 'list'" (click)="viewMode.set('list')"
                     title="Lista">☰</button>
                 <button class="toggleBtn" [class.active]="viewMode() === 'grid'" (click)="viewMode.set('grid')"
-                    title="Cuadrícula">⊞</button>
+                    title="Cuadrícula">
+                    <img src="assets/icons/cuadricula.png" alt="Cuadrícula" class="toggle-icon">
+                </button>
             </div>
         </div>
         <div class="breadcrumbs">
-            <span class="breadcrumb-root-icon">📁</span>
+            <span class="breadcrumb-root-icon"><img src="assets/icons/carpeta.png" alt="Folder"
+                    style="width: 1.4rem; height: 1.4rem;"></span>
             <span class="crumb" (click)="handleBreadcrumbClick(0)" [class.active]="breadcrumbs().length === 1"
                 (dragover)="handleBreadcrumbDragOver($event, breadcrumbs()[0])"
                 (dragenter)="handleBreadcrumbDragEnter($event, breadcrumbs()[0])"
@@ -97,9 +100,11 @@
                 <div class="search-result-item" (click)="handleSearchResultClick(file, 'file')">
                     <span class="result-icon">
                         @if (isImage(file.filename)) {
-                        📷
+                        <img src="assets/icons/image-file-icon.png" alt="Image" class="icon-img">
                         } @else if (isVideo(file.filename)) {
-                        🎬
+                        <img src="assets/icons/camara-de-video.png" alt="Video" class="icon-img">
+                        } @else if (isAudio(file.filename)) {
+                        <img src="assets/icons/altavoz.png" alt="Audio" class="icon-img">
                         } @else {
                         📄
                         }
@@ -116,7 +121,7 @@
 
                 @for (folder of searchFilteredFolders(); track folder.id) {
                 <div class="search-result-item" (click)="handleSearchResultClick(folder, 'folder')">
-                    <span class="result-icon">📁</span>
+                    <span class="result-icon"><img src="assets/icons/carpeta.png" alt="Folder" class="icon-img"></span>
                     <div class="result-info">
                         <div class="result-name">{{ folder.name }}</div>
                     </div>
@@ -216,7 +221,8 @@
 
                     <ng-container *ngIf="viewMode() === 'grid'">
                         <div class="cardHeader">
-                            <div class="cardIconSmall">📁</div>
+                            <div class="cardIconSmall"><img src="assets/icons/carpeta.png" alt="Folder"
+                                    class="fileTypeIcon"></div>
                             <div class="cardName">{{ folder.name }}</div>
                             <!-- <span (click)="handleContextMenu($event, 'folder', folder); $event.stopPropagation()"
                                 class="optionsBtn" [class.active]="isOptionsActive('folder', folder)" title="Opciones">
@@ -230,7 +236,8 @@
                     </ng-container>
 
                     <div class="previewContainer">
-                        <div class="folderIcon" style="font-size: 3rem; margin: 0;">📁</div>
+                        <div class="folderIcon" style="margin: 0;"><img src="assets/icons/carpeta.png" alt="Folder"
+                                style="width: 3rem; height: 3rem;"></div>
                     </div>
 
                     <ng-container *ngIf="viewMode() === 'list'">
@@ -283,8 +290,12 @@
                             <div class="cardIconSmall">
                                 <img *ngIf="isImage(file.filename)" src="assets/icons/image-file-icon.png" alt="Image"
                                     class="fileTypeIcon" />
-                                <span *ngIf="isVideo(file.filename)" style="font-size: 1.2rem;">🎬</span>
-                                <span *ngIf="!isImage(file.filename) && !isVideo(file.filename)">📄</span>
+                                <img *ngIf="isVideo(file.filename)" src="assets/icons/camara-de-video.png" alt="Video"
+                                    class="fileTypeIcon" />
+                                <img *ngIf="isAudio(file.filename)" src="assets/icons/altavoz.png" alt="Audio"
+                                    class="fileTypeIcon" />
+                                <span
+                                    *ngIf="!isImage(file.filename) && !isVideo(file.filename) && !isAudio(file.filename)">📄</span>
                             </div>
                             <div class="cardName">{{ file.filename }}</div>
                             <!-- <span (click)="handleContextMenu($event, 'file', file); $event.stopPropagation()"
@@ -375,7 +386,8 @@
                     <span class="icon">📄</span> Subir archivo
                 </button>
                 <button (click)="createFolder(); closeContextMenu()">
-                    <span class="icon">📁</span> Nueva carpeta
+                    <span class="icon"><img src="assets/icons/carpeta.png" alt="Folder"
+                            style="width: 1rem; height: 1rem; opacity: 0.8;"></span> Nueva carpeta
                 </button>
             </ng-container>
         </div>

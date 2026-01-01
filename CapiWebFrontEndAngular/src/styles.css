@@ -492,7 +492,7 @@ button:focus-visible {
         max-width: 300px;
         height: 100vh;
         background: #1a1a1a;
-        z-index: 1000;
+        z-index: 2000;
         transition: left 0.3s ease;
         box-shadow: 10px 0 30px rgba(0, 0, 0, 0.5);
         border-right: 1px solid var(--glass-border);
@@ -529,7 +529,7 @@ button:focus-visible {
         width: 100%;
         height: 100%;
         background: rgba(0, 0, 0, 0.7);
-        z-index: 999;
+        z-index: 1990;
         backdrop-filter: blur(2px);
     }
 

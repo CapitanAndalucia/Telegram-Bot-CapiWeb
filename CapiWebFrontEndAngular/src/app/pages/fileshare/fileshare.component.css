@@ -112,6 +112,19 @@
     opacity: 0.9;
 }
 
+/* Gray filter for folder icons in preview */
+.folderIcon img,
+.previewContainer img[src*="carpeta.png"] {
+    filter: brightness(0) saturate(100%) invert(60%) sepia(0%) saturate(0%) hue-rotate(180deg) brightness(95%) contrast(90%);
+    opacity: 0.7;
+}
+
+/* Breadcrumb folder icon - light gray */
+.breadcrumb-root-icon img {
+    filter: brightness(0) saturate(100%) invert(80%) sepia(0%) saturate(0%) hue-rotate(0deg) brightness(95%) contrast(90%);
+    opacity: 0.9;
+}
+
 /* Hover effects */
 @media (hover: hover) {
 
@@ -385,6 +398,25 @@ p {
     color: #fff;
 }
 
+.toggle-icon {
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
+    filter: brightness(0) saturate(100%) invert(80%) sepia(0%) saturate(0%) hue-rotate(0deg) brightness(95%) contrast(90%);
+    opacity: 0.9;
+}
+
+.toggleBtn.active .toggle-icon {
+    filter: brightness(0) saturate(100%);
+    /* Black/Dark for contrast on bright accent or white if accent is dark. */
+    /* Access primary is usually bright cyan #00f2ff. Black is better contrast on cyan than white. */
+    /* But the existing text color is white? Let's check. */
+    /* .toggleBtn.active sets color: #fff. White on Cyan is 1.25:1 contrast (bad). */
+    /* The image shown by user has a cyan button with a BLACK plus sign inside a square. */
+    /* So the active icon should be black. */
+    filter: brightness(0) saturate(100%);
+}
+
 /* Sort menu */
 .sortContainer {
     position: relative;
@@ -630,6 +662,36 @@ p {
     overflow: hidden;
     min-width: 0;
     flex: 1;
+}
+
+.friendActions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.friendActions button {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 0.25rem;
+    transition: transform 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.friendActions button:hover {
+    transform: scale(1.1);
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+}
+
+.friendActions img {
+    width: 1.4rem;
+    height: 1.4rem;
+    object-fit: contain;
+    filter: brightness(0) saturate(100%) invert(80%) sepia(0%) saturate(0%) hue-rotate(0deg) brightness(95%) contrast(90%);
+    opacity: 0.9;
 }
 
 .friendInfo span {
@@ -1240,17 +1302,32 @@ p {
     transform: translateY(-1px);
 }
 
+.bell-icon {
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
+    filter: brightness(0) saturate(100%) invert(80%) sepia(0%) saturate(0%) hue-rotate(0deg) brightness(95%) contrast(90%);
+    opacity: 0.9;
+}
+
+.icon-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
 .bellButton .badge {
     position: absolute;
-    top: -5px;
-    right: -5px;
+    top: -8px;
+    right: -8px;
     background: var(--accent-primary);
     color: #000;
     font-size: 0.7rem;
     padding: 2px 6px;
     border-radius: 10px;
     font-weight: bold;
-    border: 2px solid #111;
+    border: 2px solid #1a1a1a;
     min-width: 18px;
     height: 18px;
     display: flex;
@@ -1265,7 +1342,7 @@ p {
     top: calc(100% + 15px);
     max-height: 400px;
     overflow-y: auto;
-    z-index: 1000;
+    z-index: 1100;
 }
 
 @media (max-width: 768px) {
@@ -1810,6 +1887,21 @@ p {
 .result-date {
     font-size: 0.75rem;
     color: #9ca3af;
+}
+
+/* Icon images */
+.icon-img {
+    width: 1.3rem;
+    height: 1.3rem;
+    object-fit: contain;
+    opacity: 0.9;
+    filter: brightness(0) saturate(100%) invert(80%) sepia(0%) saturate(0%) hue-rotate(0deg) brightness(95%) contrast(90%) !important;
+}
+
+.fileTypeIcon {
+    width: 1.2rem;
+    height: 1.2rem;
+    object-fit: contain;
 }
 
 /* Scrollbar for dropdown */
