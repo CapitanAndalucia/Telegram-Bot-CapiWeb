@@ -193,7 +193,7 @@ class FileTransferSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = [
             'uploader', 'uploader_username', 'owner_username', 'size',
-            'filename', 'created_at', 'is_downloaded', 'is_viewed',
+            'created_at', 'is_downloaded', 'is_viewed',
             'has_executables', 'executable_files', 'access_list', 'has_access', 'has_thumbnail'
         ]
 

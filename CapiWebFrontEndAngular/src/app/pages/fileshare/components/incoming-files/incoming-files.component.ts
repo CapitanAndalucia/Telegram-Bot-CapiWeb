@@ -147,6 +147,10 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
     selectedFileIds = signal<Set<number>>(new Set());
     selectedFolderIds = signal<Set<number>>(new Set());
 
+    // Search signals
+    searchTerm = signal<string>('');
+    showSearchResults = signal<boolean>(false);
+
     // Touch handling
     private touchStartX = 0;
     private touchStartY = 0;
@@ -181,6 +185,25 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
     sortedFiles = computed(() => {
         const files = this.files();
         return [...files].sort((a, b) => this.compareItems(a, b, 'file'));
+    });
+
+    // Search filtered lists
+    searchFilteredFolders = computed(() => {
+        const term = this.searchTerm().toLowerCase().trim();
+        if (!term) return [];
+
+        return this.folders().filter(folder =>
+            folder.name.toLowerCase().includes(term)
+        ).slice(0, 10); // Limit to 10 results
+    });
+
+    searchFilteredFiles = computed(() => {
+        const term = this.searchTerm().toLowerCase().trim();
+        if (!term) return [];
+
+        return this.files().filter(file =>
+            file.filename.toLowerCase().includes(term)
+        ).slice(0, 10); // Limit to 10 results
     });
 
     /**
@@ -2367,6 +2390,50 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
     closeModal(): void {
         this.selectedFile.set(null);
     }
+
+    /**
+     * Maneja cambios en el input de búsqueda.
+     * Actualiza el término de búsqueda y muestra el dropdown de resultados.
+     * 
+     * @param value - El valor actual del input de búsqueda
+     */
+    onSearchInput(value: string): void {
+        this.searchTerm.set(value);
+        this.showSearchResults.set(true);
+    }
+
+    /**
+     * Limpia el término de búsqueda y cierra el dropdown.
+     */
+    clearSearch(): void {
+        this.searchTerm.set('');
+        this.showSearchResults.set(false);
+    }
+
+    /**
+     * Cierra el dropdown de resultados de búsqueda.
+     */
+    closeSearchDropdown(): void {
+        this.showSearchResults.set(false);
+    }
+
+    /**
+     * Maneja el clic en un resultado de búsqueda.
+     * Navega a la carpeta o abre la previsualización del archivo.
+     * 
+     * @param item - El archivo o carpeta clickeado
+     * @param type - El tipo del item ('file' o 'folder')
+     */
+    async handleSearchResultClick(item: FileItem | Folder, type: 'file' | 'folder'): Promise<void> {
+        this.clearSearch();
+
+        if (type === 'folder') {
+            await this.navigateToFolder(item as Folder);
+        } else {
+            this.openFilePreview(item as FileItem);
+        }
+    }
+
 
     private isExternalDrag(event: DragEvent): boolean {
         const dataTransfer = event.dataTransfer;

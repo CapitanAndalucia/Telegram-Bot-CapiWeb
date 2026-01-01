@@ -73,6 +73,60 @@
             </ng-container>
         </div>
 
+        <!-- Search Bar -->
+        <div class="search-bar-container" (click)="$event.stopPropagation()">
+            <div class="search-input-wrapper">
+                <span class="search-icon">🔍</span>
+                <input type="text" class="search-input" placeholder="Buscar archivos y carpetas..."
+                    [value]="searchTerm()" (input)="onSearchInput($any($event.target).value)"
+                    (focus)="showSearchResults.set(true)" />
+                @if (searchTerm()) {
+                <button class="clear-search-btn" (click)="clearSearch()">✕</button>
+                }
+            </div>
+
+            @if (showSearchResults() && searchTerm()) {
+            <div class="search-dropdown">
+                @if (searchFilteredFolders().length === 0 && searchFilteredFiles().length === 0) {
+                <div class="search-no-results">No se encontraron resultados</div>
+                }
+
+                @if (searchFilteredFiles().length > 0) {
+
+                @for (file of searchFilteredFiles(); track file.id) {
+                <div class="search-result-item" (click)="handleSearchResultClick(file, 'file')">
+                    <span class="result-icon">
+                        @if (isImage(file.filename)) {
+                        📷
+                        } @else if (isVideo(file.filename)) {
+                        🎬
+                        } @else {
+                        📄
+                        }
+                    </span>
+                    <div class="result-info">
+                        <div class="result-name">{{ file.filename }}</div>
+                        <div class="result-date">{{ (file.size / 1024).toFixed(1) }} KB</div>
+                    </div>
+                </div>
+                }
+                }
+
+                @if (searchFilteredFolders().length > 0) {
+
+                @for (folder of searchFilteredFolders(); track folder.id) {
+                <div class="search-result-item" (click)="handleSearchResultClick(folder, 'folder')">
+                    <span class="result-icon">📁</span>
+                    <div class="result-info">
+                        <div class="result-name">{{ folder.name }}</div>
+                    </div>
+                </div>
+                }
+                }
+            </div>
+            }
+        </div>
+
     </div>
 
     <!-- Loading state - initial load -->
