@@ -605,10 +605,12 @@ class FileTransferViewSet(viewsets.ModelViewSet):
         Set the sender to the current user and expires_at to 3 days from now
         Handle inheritance of ownership and access for files in shared folders
         """
-        # Sólo usuarios staff pueden subir archivos
-        if not getattr(self.request.user, 'is_staff', False):
+        from .permissions import has_fileshare_permission
+        
+        # Check permissions (Staff, Superuser, or fileshareGROUP)
+        if not has_fileshare_permission(self.request.user):
             from rest_framework.exceptions import PermissionDenied
-            raise PermissionDenied('Solo usuarios staff pueden subir archivos.')
+            raise PermissionDenied('No tienes permisos para subir archivos. Contacta al administrador.')
         
         # Get file size from request
         file_obj = self.request.FILES.get('file')

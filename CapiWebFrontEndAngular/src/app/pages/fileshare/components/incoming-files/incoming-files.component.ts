@@ -2065,10 +2065,11 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
             return { valid: false, error: 'Debes estar autenticado para subir archivos' };
         }
 
-        // Validar que el usuario sea staff
-        if (!this.user()!.is_staff) {
-            return { valid: false, error: 'Solo usuarios staff pueden subir archivos' };
-        }
+        // NOTA: La validación de permisos se maneja en el backend (staff, superuser o grupo fileshare)
+        // Eliminamos la validación del lado del cliente para permitir que el backend decida
+        // if (!this.user()!.is_staff) {
+        //    return { valid: false, error: 'Solo usuarios staff pueden subir archivos' };
+        // }
 
         // Validar número de archivos
         if (files.length === 0) {

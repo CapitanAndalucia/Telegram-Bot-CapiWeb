@@ -14,8 +14,11 @@ class StaffUserRateThrottle(UserRateThrottle):
     
     def get_cache_key(self, request, view):
         if request.user and request.user.is_authenticated:
-            # Use different scopes for staff/superuser vs regular users
-            if request.user.is_staff or request.user.is_superuser:
+            # Use different scopes for staff/superuser/fileshare users vs regular users
+            # Import here to avoid potential circular imports if transfers imports api
+            from transfers.permissions import has_fileshare_permission
+            
+            if has_fileshare_permission(request.user):
                 self.scope = 'staff'
             else:
                 self.scope = 'user'
