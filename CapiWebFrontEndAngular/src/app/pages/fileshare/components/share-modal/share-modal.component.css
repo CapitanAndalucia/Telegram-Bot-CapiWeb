@@ -279,10 +279,7 @@
     font-weight: 500;
 }
 
-.access-list-scroll {
-    max-height: 200px;
-    overflow-y: auto;
-}
+
 
 .access-row {
     display: flex;
