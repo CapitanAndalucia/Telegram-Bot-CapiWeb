@@ -667,6 +667,11 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
     onDocumentClick(event: MouseEvent): void {
         const target = event.target as HTMLElement;
 
+        // Skip processing while share modal is open - let the modal handle its own events
+        if (this.shareModalItem()) {
+            return;
+        }
+
         // Si hay un menú FAB móvil abierto, manejar su cierre
         if (this.mobileFabOpen()) {
             const isFabButton = target.closest('.mobile-fab');
@@ -717,6 +722,11 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
      */
     @HostListener('document:touchstart', ['$event'])
     onDocumentTouchStart(event: TouchEvent): void {
+        // Skip processing while share modal is open
+        if (this.shareModalItem()) {
+            return;
+        }
+
         const target = event.target as HTMLElement;
 
         // Si hay un menú FAB móvil abierto, manejar su cierre
@@ -1416,6 +1426,11 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
      */
     @HostListener('document:mousedown', ['$event'])
     onDocumentMouseDown(event: MouseEvent): void {
+        // Skip processing while share modal is open
+        if (this.shareModalItem()) {
+            return;
+        }
+
         const target = event.target as HTMLElement;
 
         // Cerrar menú si se hace click fuera del componente o en áreas ng-star-inserted que no sean el menú

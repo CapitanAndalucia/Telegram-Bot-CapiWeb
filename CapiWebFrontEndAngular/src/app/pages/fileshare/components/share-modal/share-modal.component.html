@@ -1,5 +1,5 @@
-<div class="comp-overlay" (click)="onBackdropClick($event); closeDropdown()">
-    <div class="comp-modal" [class.closing]="isClosing()">
+<div class="comp-overlay" (click)="closeDropdown()">
+    <div class="comp-modal" [class.closing]="isClosing()" (click)="closeDropdown(); $event.stopPropagation()">
         <div class="dialog-header">
             <h3>Compartir "{{ type === 'file' ? $any(item).filename : $any(item).name }}"</h3>
             <div class="header-actions">
@@ -52,7 +52,8 @@
                 @if (searchResults().length > 0) {
                 <div class="search-results-dropdown">
                     @for (user of searchResults(); track user.id) {
-                    <div class="result-item" (click)="selectUser(user); $event.stopPropagation()">
+                    <div class="result-item" (mousedown)="$event.stopImmediatePropagation(); $event.preventDefault()"
+                        (click)="$event.stopImmediatePropagation(); selectUser(user)">
                         <div class="result-avatar">{{ user.username.charAt(0).toUpperCase() }}</div>
                         <div class="result-info">
                             <span class="result-name">{{ user.username }}</span>

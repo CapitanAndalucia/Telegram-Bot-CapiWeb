@@ -55,6 +55,9 @@ export class ShareModalComponent implements OnChanges {
     generalAccess = signal<'restricted' | 'anyone'>('restricted');
     generalAccessRole = signal<'read' | 'edit'>('read');
 
+    // Close protection flag - prevents modal from closing during critical operations
+    private closeProtection = signal(false);
+
     constructor() {
         // Load friends initially
         this.loadFriends();
@@ -187,6 +190,9 @@ export class ShareModalComponent implements OnChanges {
     }
 
     selectUser(user: any): void {
+        // Enable close protection to prevent race conditions in Chromium
+        this.closeProtection.set(true);
+
         const currentPending = this.pendingInvites();
         if (!currentPending.find(u => u.id === user.id)) {
             this.pendingInvites.update(prev => [...prev, user]);
@@ -194,6 +200,9 @@ export class ShareModalComponent implements OnChanges {
         this.searchQuery.set('');
         this.searchResults.set([]);
         this.viewMode.set('invite');
+
+        // Disable protection after a short delay
+        setTimeout(() => this.closeProtection.set(false), 200);
     }
 
     removeFromPending(userId: number): void {
@@ -513,7 +522,14 @@ export class ShareModalComponent implements OnChanges {
     }
 
     onBackdropClick(event: MouseEvent): void {
-        if ((event.target as HTMLElement).classList.contains('comp-overlay')) {
+        // Skip if close protection is active (prevents race conditions in Chromium)
+        if (this.closeProtection()) {
+            return;
+        }
+
+        // Strict check: only close if the user clicked directly on the overlay,
+        // not on any child element that bubbled the event up.
+        if (event.target === event.currentTarget) {
             this.closeModal();
         }
     }
