@@ -1,0 +1,187 @@
+.photo-editor-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.95);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 20000;
+}
+
+.photo-editor-container {
+    background: #1a1a1a;
+    border-radius: 16px;
+    width: 90%;
+    max-width: 400px;
+    padding: 0;
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+.editor-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid #333;
+}
+
+.editor-header h3 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 500;
+    color: #fff;
+}
+
+.back-btn {
+    background: none;
+    border: none;
+    color: #fff;
+    font-size: 1.25rem;
+    cursor: pointer;
+    padding: 0.25rem 0.5rem;
+    transition: opacity 0.2s;
+}
+
+.back-btn:hover {
+    opacity: 0.7;
+}
+
+.apply-btn {
+    background: #6366f1;
+    border: none;
+    border-radius: 20px;
+    color: #fff;
+    font-size: 0.9rem;
+    font-weight: 500;
+    padding: 0.5rem 1.25rem;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.apply-btn:hover {
+    background: #7c7ff7;
+}
+
+.canvas-area {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 1.5rem;
+    background: #0a0a0a;
+}
+
+canvas {
+    border-radius: 8px;
+    cursor: grab;
+    touch-action: none;
+}
+
+canvas:active {
+    cursor: grabbing;
+}
+
+.controls {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1.25rem;
+    border-top: 1px solid #333;
+}
+
+.zoom-control {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.zoom-slider {
+    flex: 1;
+    height: 4px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: #333;
+    border-radius: 2px;
+    outline: none;
+}
+
+.zoom-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    background: #6366f1;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: transform 0.2s, background 0.2s;
+}
+
+.zoom-slider::-webkit-slider-thumb:hover {
+    background: #7c7ff7;
+    transform: scale(1.1);
+}
+
+.zoom-slider::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    background: #6366f1;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+}
+
+.control-btn {
+    background: #2a2a2a;
+    border: 1px solid #444;
+    border-radius: 8px;
+    color: #fff;
+    font-size: 1rem;
+    padding: 0.5rem 0.75rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.control-btn:hover {
+    background: #3a3a3a;
+    border-color: #555;
+}
+
+.control-btn .icon {
+    font-size: 1rem;
+}
+
+.rotation-control {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+}
+
+.rotate-btn {
+    width: 48px;
+    height: 48px;
+    font-size: 1.5rem;
+}
+
+.rotate-btn .icon {
+    font-size: 1.5rem;
+}
+
+/* Mobile adjustments */
+@media (max-width: 480px) {
+    .photo-editor-container {
+        width: 100%;
+        max-width: none;
+        height: 100vh;
+        border-radius: 0;
+    }
+
+    .canvas-area {
+        flex: 1;
+    }
+}

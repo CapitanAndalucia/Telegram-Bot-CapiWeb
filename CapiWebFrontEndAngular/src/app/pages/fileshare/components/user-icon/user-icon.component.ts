@@ -1,9 +1,10 @@
-import { Component, input, output, signal, ElementRef, HostListener, inject } from '@angular/core';
+import { Component, input, output, signal, ElementRef, HostListener, inject, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
 import { ApiClientService } from '../../../../services/api-client.service';
+import { ProfilePhotoEditorComponent } from '../../../../shared/components/profile-photo-editor/profile-photo-editor.component';
 
 interface User {
     id: number;
@@ -11,6 +12,7 @@ interface User {
     email?: string;
     telegram_id?: number | null;
     is_staff?: boolean;
+    profile_picture_url?: string | null;
 }
 
 interface EditData {
@@ -24,7 +26,7 @@ interface EditData {
 
 @Component({
     selector: 'app-user-icon',
-    imports: [CommonModule, FormsModule],
+    imports: [CommonModule, FormsModule, ProfilePhotoEditorComponent],
     templateUrl: './user-icon.component.html',
     styleUrls: ['../../fileshare.component.css', './user-icon.component.css'],
 })
@@ -51,6 +53,17 @@ export class UserIconComponent {
     showOldPassword = signal(false);
     showNewPassword1 = signal(false);
     showNewPassword2 = signal(false);
+
+    // Profile photo states
+    showPhotoEditor = signal(false);
+    selectedPhotoFile = signal<File | null>(null);
+    photoUploading = signal(false);
+
+    // Staged photo (not yet uploaded)
+    stagedPhotoBlob = signal<Blob | null>(null);
+    stagedPhotoUrl = signal<string | null>(null);
+
+    @ViewChild('fileInput') fileInputRef!: ElementRef<HTMLInputElement>;
 
     constructor(private router: Router, private el: ElementRef) { }
 
@@ -141,21 +154,14 @@ export class UserIconComponent {
             payload.telegram_id = null;
         }
 
-        const wantsPasswordChange = [
-            this.editData().oldPassword.trim(),
-            this.editData().newPassword1.trim(),
-            this.editData().newPassword2.trim()
-        ].some(Boolean);
+        // Only process password change if old password AND at least one new password field is filled
+        const oldPwd = this.editData().oldPassword.trim();
+        const new1 = this.editData().newPassword1.trim();
+        const new2 = this.editData().newPassword2.trim();
+
+        const wantsPasswordChange = oldPwd && (new1 || new2);
 
         if (wantsPasswordChange) {
-            const oldPwd = this.editData().oldPassword.trim();
-            const new1 = this.editData().newPassword1.trim();
-            const new2 = this.editData().newPassword2.trim();
-
-            if (!oldPwd) {
-                this.editError.set('Debes introducir tu contraseña actual.');
-                return;
-            }
             if (!new1 || !new2) {
                 this.editError.set('Debes introducir la nueva contraseña dos veces.');
                 return;
@@ -167,22 +173,105 @@ export class UserIconComponent {
 
             payload.old_password = oldPwd;
             payload.password = new1;
+        } else if (new1 || new2) {
+            // User filled new password but not old password
+            this.editError.set('Debes introducir tu contraseña actual para cambiarla.');
+            return;
         }
 
-        this.editLoading.set(true);
+        // Close modal and show spinner on avatar
+        this.showEditModal.set(false);
+        this.photoUploading.set(true);
         this.editError.set(null);
         this.editSuccess.set(null);
 
         try {
+            // Upload staged photo first if exists
+            let newProfilePictureUrl: string | null = null;
+            const stagedBlob = this.stagedPhotoBlob();
+            if (stagedBlob) {
+                const photoResult = await this.apiClient.uploadProfilePhoto(stagedBlob);
+                newProfilePictureUrl = photoResult.profile_picture_url;
+                this.clearStagedPhoto();
+            }
+
+            // Update user data
             const updated = await firstValueFrom(this.apiClient.updateUserDetail(currentUser.id, payload));
-            this.userUpdated.emit({ ...currentUser, ...updated } as User);
-            this.editSuccess.set('Datos actualizados correctamente');
-            this.showEditModal.set(false);
+
+            // Merge all updates
+            const timestamp = new Date().getTime();
+            const finalProfilePictureUrl = newProfilePictureUrl
+                ? `${newProfilePictureUrl}?t=${timestamp}`
+                : (currentUser.profile_picture_url ? `${currentUser.profile_picture_url.split('?')[0]}?t=${timestamp}` : null);
+
+            const finalUser = {
+                ...currentUser,
+                ...updated,
+                ...(newProfilePictureUrl ? { profile_picture_url: finalProfilePictureUrl } : {})
+            } as User;
+
+            this.userUpdated.emit(finalUser);
         } catch (error: any) {
             const message = error?.message || 'No se pudieron actualizar los datos';
+            // Re-open modal to show error
+            this.showEditModal.set(true);
             this.editError.set(message);
         } finally {
-            this.editLoading.set(false);
+            this.photoUploading.set(false);
         }
     }
+
+    // ---- Profile Photo Methods ----
+    triggerPhotoSelect(): void {
+        this.fileInputRef?.nativeElement?.click();
+    }
+
+    onPhotoSelected(event: Event): void {
+        const input = event.target as HTMLInputElement;
+        if (input.files && input.files[0]) {
+            const file = input.files[0];
+            // Validate it's an image
+            if (!file.type.startsWith('image/')) {
+                this.editError.set('Por favor selecciona una imagen válida');
+                return;
+            }
+            this.selectedPhotoFile.set(file);
+            this.showPhotoEditor.set(true);
+        }
+        // Reset input for re-selection
+        input.value = '';
+    }
+
+    onPhotoApply(imageBlob: Blob): void {
+        // Stage the photo locally (don't upload yet)
+        // Revoke old URL if exists
+        const oldUrl = this.stagedPhotoUrl();
+        if (oldUrl) {
+            URL.revokeObjectURL(oldUrl);
+        }
+
+        // Create preview URL for the staged photo
+        const previewUrl = URL.createObjectURL(imageBlob);
+        this.stagedPhotoBlob.set(imageBlob);
+        this.stagedPhotoUrl.set(previewUrl);
+
+        // Close editor, stay in modal
+        this.showPhotoEditor.set(false);
+        this.selectedPhotoFile.set(null);
+    }
+
+    onPhotoCanceled(): void {
+        this.showPhotoEditor.set(false);
+        this.selectedPhotoFile.set(null);
+    }
+
+    private clearStagedPhoto(): void {
+        const url = this.stagedPhotoUrl();
+        if (url) {
+            URL.revokeObjectURL(url);
+        }
+        this.stagedPhotoBlob.set(null);
+        this.stagedPhotoUrl.set(null);
+    }
 }
+

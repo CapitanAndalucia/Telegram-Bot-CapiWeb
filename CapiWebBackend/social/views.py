@@ -133,3 +133,39 @@ class FriendViewSet(viewsets.ViewSet):
         friend_profile, created = Profile.objects.get_or_create(user=friend_user)
         profile.friends.remove(friend_profile)
         return Response({'status': 'Friend removed'})
+
+    @action(detail=False, methods=['post'])
+    def upload_profile_photo(self, request):
+        """Upload a profile photo"""
+        if 'image' not in request.FILES:
+            return Response({'error': 'No image file provided'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        profile, created = Profile.objects.get_or_create(user=request.user)
+        
+        # Delete old profile picture if exists
+        if profile.profile_picture:
+            profile.profile_picture.delete(save=False)
+        
+        # Save new profile picture
+        profile.profile_picture = request.FILES['image']
+        profile.save()
+        
+        # Return the URL of the new profile picture
+        profile_picture_url = request.build_absolute_uri(profile.profile_picture.url) if profile.profile_picture else None
+        
+        return Response({
+            'status': 'Profile photo uploaded',
+            'profile_picture_url': profile_picture_url
+        })
+
+    @action(detail=False, methods=['post'])
+    def remove_profile_photo(self, request):
+        """Remove current profile photo"""
+        profile, created = Profile.objects.get_or_create(user=request.user)
+        
+        if profile.profile_picture:
+            profile.profile_picture.delete(save=True)
+            return Response({'status': 'Profile photo removed'})
+        
+        return Response({'error': 'No profile photo to remove'}, status=status.HTTP_400_BAD_REQUEST)
+

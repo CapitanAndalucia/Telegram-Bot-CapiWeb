@@ -319,6 +319,30 @@ export class ApiClientService {
         });
     }
 
+    // ---- Profile Photo -------------------------------------------------------
+    uploadProfilePhoto(imageBlob: Blob): Promise<any> {
+        const formData = new FormData();
+        formData.append('image', imageBlob, 'profile.png');
+
+        return new Promise((resolve, reject) => {
+            this.http.post(`${this.baseUrl}/friends/upload_profile_photo/`, formData, {
+                withCredentials: true
+            }).pipe(catchError(this.handleError.bind(this))).subscribe({
+                next: (data) => resolve(data),
+                error: (err) => reject(err)
+            });
+        });
+    }
+
+    removeProfilePhoto(): Promise<any> {
+        return new Promise((resolve, reject) => {
+            this.request('/friends/remove_profile_photo/', 'POST').subscribe({
+                next: (data) => resolve(data),
+                error: (err) => reject(err)
+            });
+        });
+    }
+
     // ---- Transfers -----------------------------------------------------------
     listFiles(folderId?: number | null, scope: 'mine' | 'shared' | 'sent' = 'mine'): Promise<any> {
         const params: any = { scope };

@@ -1691,7 +1691,8 @@ p {
 /* UserIcon Styles */
 .userIconContainer {
     position: relative;
-    margin-left: 1rem;
+    display: flex;
+    align-items: center;
 }
 
 .userButton {
@@ -1699,11 +1700,18 @@ p {
     border: none;
     cursor: pointer;
     padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .avatarSmall {
     width: 40px;
     height: 40px;
+    min-width: 40px;
+    min-height: 40px;
+    max-width: 40px;
+    max-height: 40px;
     background: var(--accent-primary);
     border-radius: 50%;
     display: flex;
@@ -1712,6 +1720,7 @@ p {
     font-weight: bold;
     color: #000;
     font-size: 1.2rem;
+    overflow: hidden;
 }
 
 .avatarPlaceholder {

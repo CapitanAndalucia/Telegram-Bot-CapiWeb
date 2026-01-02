@@ -3,9 +3,22 @@ from .models import Profile, FriendRequest
 from django.contrib.auth.models import User
 
 class UserSerializer(serializers.ModelSerializer):
+    profile_picture_url = serializers.SerializerMethodField()
+    
     class Meta:
         model = User
-        fields = ['id', 'username', 'email']
+        fields = ['id', 'username', 'email', 'profile_picture_url']
+    
+    def get_profile_picture_url(self, obj):
+        try:
+            if hasattr(obj, 'profile') and obj.profile.profile_picture:
+                request = self.context.get('request')
+                if request:
+                    return request.build_absolute_uri(obj.profile.profile_picture.url)
+                return obj.profile.profile_picture.url
+        except Exception:
+            pass
+        return None
 
 class ProfileSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)

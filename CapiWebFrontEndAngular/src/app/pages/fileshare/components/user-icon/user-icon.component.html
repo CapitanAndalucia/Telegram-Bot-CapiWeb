@@ -1,7 +1,15 @@
 <div class="userIconContainer">
-    <button class="userButton" (click)="toggleDropdown()">
-        @if (user()) {
+    <button class="userButton" (click)="toggleDropdown()" [disabled]="photoUploading()">
+        @if (photoUploading()) {
+        <div class="avatarSmall avatarLoading">
+            <div class="avatar-spinner"></div>
+        </div>
+        } @else if (user()) {
+        @if (user()!.profile_picture_url) {
+        <img class="avatarSmall avatarImage" [src]="user()!.profile_picture_url" alt="Avatar" />
+        } @else {
         <div class="avatarSmall">{{ user()!.username[0].toUpperCase() }}</div>
+        }
         } @else {
         <div class="avatarPlaceholder">👤</div>
         }
@@ -37,6 +45,9 @@
     }
 </div>
 
+<!-- Hidden file input for photo selection -->
+<input type="file" #fileInput accept="image/*" (change)="onPhotoSelected($event)" style="display: none;" />
+
 <!-- Edit Modal -->
 @if (showEditModal()) {
 <div class="modal-backdrop" (click)="closeEditModal()">
@@ -53,6 +64,24 @@
             @if (editSuccess()) {
             <div class="alert success">{{ editSuccess() }}</div>
             }
+
+            <!-- Profile Photo Section -->
+            <div class="photo-section">
+                <div class="current-photo">
+                    @if (stagedPhotoUrl()) {
+                    <img [src]="stagedPhotoUrl()" alt="Foto de perfil nueva" class="photo-preview" />
+                    } @else if (user()?.profile_picture_url) {
+                    <img [src]="user()!.profile_picture_url" alt="Foto de perfil" class="photo-preview" />
+                    } @else {
+                    <div class="photo-placeholder">
+                        {{ user()?.username?.[0]?.toUpperCase() || '?' }}
+                    </div>
+                    }
+                </div>
+                <button type="button" class="change-photo-btn" (click)="triggerPhotoSelect()">
+                    📷 Cambiar foto
+                </button>
+            </div>
 
             <div class="form-group">
                 <label>Usuario</label>
@@ -117,4 +146,10 @@
         </div>
     </div>
 </div>
+}
+
+<!-- Profile Photo Editor -->
+@if (showPhotoEditor() && selectedPhotoFile()) {
+<app-profile-photo-editor [imageFile]="selectedPhotoFile()" (apply)="onPhotoApply($event)" (cancel)="onPhotoCanceled()">
+</app-profile-photo-editor>
 }

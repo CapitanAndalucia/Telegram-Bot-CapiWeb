@@ -274,10 +274,21 @@ def check_auth_view(request):
     """
     Verifica si el usuario está autenticado
     """
+    # Get profile picture URL if exists
+    profile_picture_url = None
+    try:
+        if hasattr(request.user, 'profile') and request.user.profile.profile_picture:
+            profile_picture_url = request.build_absolute_uri(request.user.profile.profile_picture.url)
+    except Exception:
+        pass
+    
     return Response({
         'authenticated': True,
+        'id': request.user.id,
         'username': request.user.username,
         'user_id': request.user.id,
         'email': request.user.email,
-        'is_staff': request.user.is_staff
+        'is_staff': request.user.is_staff,
+        'profile_picture_url': profile_picture_url
     }, status=status.HTTP_200_OK)
+

@@ -16,6 +16,7 @@ interface User {
   email?: string;
   telegram_id?: number | null;
   is_staff?: boolean;
+  profile_picture_url?: string | null;
 }
 
 @Component({
