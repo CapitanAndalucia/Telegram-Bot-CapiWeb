@@ -32,7 +32,11 @@
         @for (friend of friends(); track friend.id) {
         <li class="friendItem">
             <div class="friendInfo">
+                @if (friend.profile_picture_url) {
+                <img class="avatar friendAvatarImage" [src]="friend.profile_picture_url" alt="Avatar" />
+                } @else {
                 <div class="avatar">{{ friend.username[0].toUpperCase() }}</div>
+                }
                 <span [title]="friend.username">{{ friend.username }}</span>
             </div>
             <div class="friendActions">

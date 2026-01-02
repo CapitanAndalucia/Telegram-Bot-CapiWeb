@@ -19,6 +19,7 @@ import { Subject, debounceTime, distinctUntilChanged } from 'rxjs';
 interface Friend {
     id: number;
     username: string;
+    profile_picture_url?: string;
 }
 
 interface SearchUser {
