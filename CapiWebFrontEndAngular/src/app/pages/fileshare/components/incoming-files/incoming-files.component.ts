@@ -485,7 +485,7 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
         try {
             await this.simulateLatency(); // DEV: Remove or disable for production
             const folderId = this.currentFolder()?.id;
-            console.debug('[incoming-files] fetchFiles parentId=', folderId);
+            // console.debug('[incoming-files] fetchFiles parentId=', folderId);
             const data = await this.apiClient.listFiles(folderId, this.scope());
 
             if (data && data.results && Array.isArray(data.results)) {
@@ -530,7 +530,7 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
         try {
             await this.simulateLatency(); // DEV: Remove or disable for production
             const parentId = this.currentFolder()?.id;
-            console.debug('[incoming-files] fetchFolders parentId=', parentId, 'scope=', this.scope());
+            // console.debug('[incoming-files] fetchFolders parentId=', parentId, 'scope=', this.scope());
             const data = await this.apiClient.listFolders(parentId, this.scope());
             this.folders.set(this.normalizeFolderResponse(data));
         } catch (error) {
@@ -581,7 +581,7 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
         const now = Date.now();
         const targetId = folder?.id ?? null;
         if (this.lastNavigationTarget === targetId && (now - this.lastNavigationTime) < 700) {
-            console.debug('[incoming-files] Ignoring duplicate navigation to', targetId);
+            // console.debug('[incoming-files] Ignoring duplicate navigation to', targetId);
             return;
         }
         this.lastNavigationTarget = targetId;
@@ -599,7 +599,7 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
         } else {
             try {
                 const fullPath = await this.buildBreadcrumbsForFolder(folder);
-                console.debug('[incoming-files] built fullPath:', fullPath);
+                // console.debug('[incoming-files] built fullPath:', fullPath);
                 this.breadcrumbs.set(fullPath);
             } catch (err) {
                 const currentPath = this.breadcrumbs();
@@ -1474,7 +1474,7 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
             }
 
             stack.reverse();
-            console.debug('[incoming-files] ancestor stack reversed:', stack);
+            // console.debug('[incoming-files] ancestor stack reversed:', stack);
             stack.forEach(f => crumbs.push({ id: f.id, name: f.name, folder: f }));
         } catch (error) {
             console.error('Error building breadcrumbs for folder', error);
