@@ -183,6 +183,8 @@
         </div>
 
         <div class="incomingContent" [class.listMode]="viewMode() === 'list'" [class.selectionMode]="isSelectionMode()">
+            <!-- Header Row removed as per user request -->
+
             <!-- Folders -->
             <ng-container *ngFor="let folder of sortedFolders(); let i = index">
                 <div class="folderCard" [class.listMode]="viewMode() === 'list'" [attr.data-folder-id]="folder.id"
@@ -235,19 +237,20 @@
                         </div>
                     </ng-container>
 
-                    <div class="previewContainer">
+                    <div class="previewContainer" *ngIf="viewMode() === 'grid'">
                         <div class="folderIcon" style="margin: 0;"><img src="assets/icons/carpeta.png" alt="Folder"
                                 style="width: 3rem; height: 3rem;"></div>
                     </div>
 
                     <ng-container *ngIf="viewMode() === 'list'">
-                        <div class="fileInfoList">
+                        <div class="fileInfoList list-grid">
+                            <div class="list-icon-container">
+                                <img src="assets/icons/carpeta.png" alt="Folder" class="list-icon">
+                            </div>
+
                             <span class="cardName">{{ folder.name }}</span>
+                            <span class="list-cell date-cell">{{ folder.created_at | date:'d MMM yyyy' }}</span>
                         </div>
-                        <!-- <span (click)="handleContextMenu($event, 'folder', folder); $event.stopPropagation()"
-                            class="optionsBtn listModeBtn" [class.active]="isOptionsActive('folder', folder)" title="Opciones">
-                            ⋮
-                        </span> -->
                         <img src="assets/icons/menu.png" alt="Opciones"
                             (click)="handleContextMenu($event, 'folder', folder); $event.stopPropagation()"
                             class="optionsBtn" [class.active]="isOptionsActive('folder', folder)" title="Opciones" />
@@ -309,8 +312,8 @@
                         </div>
                     </ng-container>
 
-                    <!-- New Phase: Preview Body -->
-                    <div class="previewContainer">
+                    <!-- New Phase: Preview Body - ONLY IN GRID MODE -->
+                    <div class="previewContainer" *ngIf="viewMode() === 'grid'">
                         @if (hasThumbnail(file.filename)) {
                         <div class="imageWrapper">
                             <img [src]="getThumbnailUrl(file.id, file.filename)" [alt]="file.filename" class="fileImage"
@@ -329,15 +332,25 @@
                     </div>
 
                     <!-- List View Fallback (keep existing logic for list mode) -->
+                    <!-- List View Grid Layout -->
                     <ng-container *ngIf="viewMode() === 'list'">
-                        <div class="fileInfoList">
+                        <div class="fileInfoList list-grid">
+                            <!-- Small Icon for List View -->
+                            <div class="list-icon-container">
+                                <img *ngIf="isImage(file.filename)" src="assets/icons/image-file-icon.png" alt="Image"
+                                    class="list-icon" />
+                                <img *ngIf="isVideo(file.filename)" src="assets/icons/camara-de-video.png" alt="Video"
+                                    class="list-icon" />
+                                <img *ngIf="isAudio(file.filename)" src="assets/icons/altavoz.png" alt="Audio"
+                                    class="list-icon" />
+                                <span
+                                    *ngIf="!isImage(file.filename) && !isVideo(file.filename) && !isAudio(file.filename)"
+                                    class="list-icon text-icon">📄</span>
+                            </div>
+
                             <span class="fileNameList">{{ file.filename }}</span>
-                            <span class="fileSizeList">{{ (file.size / 1024).toFixed(1) }} KB</span>
+                            <span class="list-cell date-cell">{{ file.created_at | date:'d MMM yyyy' }}</span>
                         </div>
-                        <!-- <span (click)="handleContextMenu($event, 'file', file); $event.stopPropagation()"
-                            class="optionsBtn listModeBtn" [class.active]="isOptionsActive('file', file)" title="Opciones">
-                            ⋮
-                        </span> -->
                         <img src="assets/icons/menu.png" alt="Opciones"
                             (click)="handleContextMenu($event, 'file', file); $event.stopPropagation()"
                             class="optionsBtn listModeBtn" [class.active]="isOptionsActive('file', file)"

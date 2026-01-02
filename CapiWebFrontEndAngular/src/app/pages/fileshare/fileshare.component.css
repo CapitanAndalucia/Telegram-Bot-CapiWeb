@@ -138,9 +138,11 @@
 
 /* List mode specific styles */
 .incomingContent.listMode {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
+    display: flex !important;
+    flex-direction: column !important;
+    flex-wrap: nowrap !important;
+    gap: 0.5rem !important;
+    align-items: stretch !important;
 }
 
 .incomingContent.listMode .fileCard,
@@ -173,18 +175,210 @@
 }
 
 .incomingContent.listMode .fileNameList {
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    line-clamp: 2;
-    -webkit-box-orient: vertical;
+    white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    font-size: 0.95rem;
-    margin-bottom: 0.25rem;
-    word-break: break-word;
-    line-height: 1.2;
-    letter-spacing: 0.5px;
+    font-weight: 500;
 }
+
+/* List Grid Layout */
+.list-grid {
+    display: grid;
+    grid-template-columns: minmax(200px, 3fr) 1.5fr 1.5fr 120px 50px;
+    align-items: center;
+    gap: 1rem;
+    width: 100%;
+}
+
+/* Header Row Styles */
+.list-header-row {
+    padding: 0 1rem 0.5rem 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    margin-bottom: 0.5rem;
+    color: #9ca3af;
+    font-size: 0.85rem;
+    font-weight: 600;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.header-cell {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.header-cell.actions-header {
+    text-align: center;
+}
+
+/* List Cell Styles */
+.list-cell {
+    color: #9ca3af;
+    font-size: 0.9rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.owner-cell {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #fff;
+    /* Owner name usually more visible */
+}
+
+/* Avatar placeholder until we have real images */
+.owner-avatar-placeholder {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #333;
+    color: #aaa;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    font-weight: bold;
+}
+
+.owner-avatar {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+/* Override existing fileInfoList to be transparent wrapper for grid items if needed, 
+   or actually the grid container itself is applied to fileInfoList, so we just reset flex. */
+.incomingContent.listMode .fileInfoList {
+    display: grid;
+    /* Be the grid container */
+    padding: 0;
+    /* Padding moved to item container if needed or kept */
+    flex: 1;
+    /* Take all space apart from menu btn if outside? Wait, menu btn is separate? */
+    /* In HTML, fileInfoList contains the first 4 columns. The menu button is outside. 
+       Actually, to make the grid align perfectly including the header, the menu button should ideally be IN the grid 
+       or the grid columns should account for it. 
+       In my HTML, the menu button is OUTSIDE .fileInfoList. 
+       The Header has 5 columns. 
+       My .fileInfoList inside the item has 4 columns (Name, Owner, Date, Size).
+       So .fileInfoList should be `display: contents` or `subgrid` (not well supported) or just flex? 
+       
+       Better approach: Make .fileInfoList `display: contents` so its children become part of the parent grid? 
+       No, the parent is .fileCard (flex row). 
+       
+       Let's stick to the plan: 
+       .fileInfoList itself is the grid container for the *data* columns. 
+       BUT the header has 5 columns including actions. 
+       The item row (.fileCard) is a flex row containing [.fileInfoList, .optionsBtn].
+       
+       To align with the header (which is a single grid), the items need to mimic that geometry.
+       
+       If .fileInfoList is `display: grid` with 4 columns, and it takes `flex: 1`. 
+       And .optionsBtn takes fixed space.
+       The header defined 5 cols: `3fr 1.5fr 1.5fr 120px 50px`.
+       
+       If I make .fileInfoList have `grid-template-columns: 3fr 1.5fr 1.5fr 120px`, 
+       and make the .optionsBtn width match the last column width (50px)?
+       
+       Correction: 
+       .list-grid currently defined as `3fr 1.5fr 1.5fr 120px 50px`.
+       The header uses .list-grid transparently.
+       
+       For the items:
+       .fileInfoList needs to match the first 4 cols? 
+       Actually, `3fr 1.5fr 1.5fr 120px`.
+       And the button is outside.
+       
+       Let's refine:
+       .list-grid (for header): `... 50px` (last col).
+       
+       For .fileInfoList: `display: grid; grid-template-columns: minmax(200px, 3fr) 1.5fr 1.5fr 120px; ...`
+       
+       Wait, if I use the SAME class `.list-grid` for both header and `.fileInfoList`, `.fileInfoList` will expect 5 children.
+       But `.fileInfoList` only has 4 children (Name, Owner, Date, Size).
+       The 5th column in Header is "Actions".
+       The 5th element in Item is `.optionsBtn`, which is OUTSIDE `.fileInfoList`.
+       
+       So I should define a sub-grid or specific cols for `.fileInfoList`.
+       
+       Let's define `.item-data-grid` for `.fileInfoList`.
+       columns: `minmax(200px, 3fr) 1.5fr 1.5fr 120px`.
+       The parent .fileCard has `padding-right: 1rem` which might mess up alignment with header if header has padding.
+       
+       Let's adjust CSS to match.
+    */
+}
+
+/* Remove card styling in list mode to make it flat */
+.incomingContent.listMode .fileCard,
+.incomingContent.listMode .folderCard {
+    background: transparent !important;
+    border: none !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+    border-radius: 0 !important;
+    padding: 0.5rem 0.5rem 0.5rem 1rem !important;
+    /* Adjust padding */
+    margin: 0 !important;
+    box-shadow: none !important;
+    transition: background-color 0.2s ease;
+}
+
+.incomingContent.listMode .fileCard:hover,
+.incomingContent.listMode .folderCard:hover {
+    background-color: rgba(255, 255, 255, 0.03) !important;
+    transform: none !important;
+    /* Disable lift effect */
+    border-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+/* Align text and icons */
+.incomingContent.listMode .fileInfoList {
+    /* Columns: Icon | Name (flexible) | Date */
+    grid-template-columns: 32px 1fr 120px;
+    align-items: center;
+    gap: 1rem;
+    flex: 1;
+}
+
+/* Small list icon styles */
+.list-icon-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+}
+
+.list-icon {
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
+    opacity: 0.9;
+    filter: invert(0.8);
+    /* Light gray for dark theme */
+}
+
+.list-icon.text-icon {
+    font-size: 1.2rem;
+    line-height: 1;
+}
+
+/* Header needs to match the item layout + action button space */
+.list-header-row {
+    display: grid;
+    /* Match item data grid (32px + rest) + action btn width (50px) */
+    grid-template-columns: 32px minmax(200px, 3fr) 1.5fr 1.5fr 50px;
+    gap: 1rem;
+    /* padding-right needs to account for scrollbar or item padding? */
+    padding-right: 2rem;
+    /* Approx matches item padding + btn space if not exact */
+}
+
+
 
 .incomingContent.listMode .fileSizeList {
     font-size: 0.8rem;
