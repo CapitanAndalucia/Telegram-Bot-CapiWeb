@@ -3084,17 +3084,42 @@ p {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 2rem;
+    margin-bottom: 1rem;
     position: relative;
+    flex-wrap: wrap;
+    /* Enable wrapping for 2-row layout */
 }
 
-/* Desktop: ensure headerControls sits on the right and doesn't change desktop ordering */
+/* Explicit ordering for 2-row layout:
+   Row 1: Search Bar (Full Width)
+   Row 2: Breadcrumbs (Left) ... Controls (Right)
+*/
+
+.filesHeader .breadcrumbs {
+    order: 2;
+    margin-right: auto;
+    /* Push controls to right */
+    padding-bottom: 0.5rem;
+    /* Optical spacing */
+    margin-top: 0.5rem;
+}
+
+/* Desktop: ensure headerControls sits on the right */
 .filesHeader .headerControls {
     display: flex;
     gap: 0.5rem;
     align-items: center;
-    order: 2;
-    margin-left: auto;
+    order: 3;
+    margin-left: 0;
+    margin-top: 0.5rem;
+}
+
+/* Search bar moves to top row */
+.search-bar-container {
+    order: 1;
+    width: 100%;
+    margin-top: 0;
+    margin-bottom: 0.5rem;
 }
 
 .sortContainer {
