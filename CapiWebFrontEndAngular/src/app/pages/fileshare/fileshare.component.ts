@@ -11,8 +11,10 @@ import { UserIconComponent } from './components/user-icon/user-icon.component';
 import { DownloadsMenuComponent } from '../../shared/components/downloads-menu/downloads-menu.component';
 
 interface User {
+  id: number;
   username: string;
   email?: string;
+  telegram_id?: number | null;
   is_staff?: boolean;
 }
 
@@ -143,6 +145,10 @@ export class FileshareComponent implements OnInit {
     } catch (error) {
       console.error('Logout failed', error);
     }
+  }
+
+  handleUserUpdated(updatedUser: User): void {
+    this.user.set(updatedUser);
   }
 
   setActiveTab(tab: 'files' | 'upload'): void {

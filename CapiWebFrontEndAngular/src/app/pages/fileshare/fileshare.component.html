@@ -37,7 +37,8 @@
                 @if (user()) {
                 <app-notification-center (accepted)="handleFriendAccepted()"></app-notification-center>
                 }
-                <app-user-icon [user]="user()" (logout)="handleLogout()"></app-user-icon>
+                <app-user-icon [user]="user()" (logout)="handleLogout()"
+                    (userUpdated)="handleUserUpdated($event)"></app-user-icon>
             </div>
         </header>
 
