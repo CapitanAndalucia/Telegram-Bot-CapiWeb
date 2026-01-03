@@ -346,3 +346,10 @@ else:
 
 CORS_ALLOW_CREDENTIALS = True
 
+# =============================================================================
+# GOOGLE OAUTH 2.0 CONFIGURATION
+# =============================================================================
+# Las credenciales se obtienen en: https://console.cloud.google.com/apis/credentials
+GOOGLE_CLIENT_ID = env('GOOGLE_CLIENT_ID', default=None)
+GOOGLE_CLIENT_SECRET = env('GOOGLE_CLIENT_SECRET', default=None)
+GOOGLE_OAUTH_ENABLED = bool(GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET)

@@ -8,4 +8,6 @@ export const environment = {
     appName: 'CapiWeb (DEV)',
     recaptchaSiteKey: '', // Rellena con tu site key en desarrollo si quieres activar CAPTCHA
     recaptchaEnabled: false,
+    // Google OAuth - Se obtiene dinámicamente del backend via /api/auth/google/config/
+    googleClientId: '',
 };

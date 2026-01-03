@@ -1,10 +1,11 @@
-import { Component, signal, computed, OnInit, Input } from '@angular/core';
+import { Component, signal, computed, OnInit, Input, inject } from '@angular/core';
 import { environment } from '../../../environments/environment';
 import { Router, ActivatedRoute, RouterModule } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiClientService } from '../../services/api-client.service';
 import { ApiError } from '../../models/api-error';
+import { GoogleAuthService, GoogleAuthResponse } from '../../services/google-auth.service';
 
 interface AuthForm {
     username: string;
@@ -26,6 +27,8 @@ interface PasswordStrength {
     styleUrl: './auth.component.css'
 })
 export class AuthComponent implements OnInit {
+    private googleAuth = inject(GoogleAuthService);
+
     @Input() set initialMode(value: 'login' | 'register') {
         this.mode.set(value);
     }
@@ -46,6 +49,19 @@ export class AuthComponent implements OnInit {
         error: '',
         success: ''
     });
+
+    // Google OAuth states
+    googleEnabled = signal(false);
+    googleLoading = signal(false);
+
+    // Modal states para flujo de Google
+    showLinkModal = signal(false);
+    showUsernameModal = signal(false);
+    pendingToken = signal<string | null>(null);  // Token temporal del backend
+    pendingGoogleEmail = signal<string>('');
+    pendingExistingUsername = signal<string>('');
+    suggestedUsername = signal<string>('');
+    newUsername = signal<string>('');
 
     passwordStrength = computed(() => this.calculatePasswordStrength(this.form().password));
 
@@ -81,8 +97,10 @@ export class AuthComponent implements OnInit {
         protected route: ActivatedRoute
     ) { }
 
-    ngOnInit() {
-        // Override in child components
+    async ngOnInit() {
+        // Inicializar Google Auth
+        const googleReady = await this.googleAuth.initialize();
+        this.googleEnabled.set(googleReady);
     }
 
     goBack() {
@@ -92,6 +110,162 @@ export class AuthComponent implements OnInit {
     updateForm(field: keyof AuthForm, value: string) {
         this.form.update(f => ({ ...f, [field]: value }));
     }
+
+    // ==================== Google OAuth Methods ====================
+
+    async handleGoogleLogin() {
+        if (!this.googleEnabled()) return;
+
+        this.googleLoading.set(true);
+        this.status.set({ loading: false, error: '', success: '' });
+
+        try {
+            // Obtener código de Google (abre popup)
+            const code = await this.googleAuth.requestAuthCode();
+
+            // Enviar al backend
+            const response = await this.googleAuth.authenticate(code);
+
+            if (response.status === 'link_required') {
+                // Hay cuenta existente con mismo email - preguntar si vincular
+                this.pendingToken.set(response.pending_token || null);
+                this.pendingGoogleEmail.set(response.google_email || '');
+                this.pendingExistingUsername.set(response.existing_username || '');
+                this.showLinkModal.set(true);
+            } else if (response.status === 'username_required') {
+                // Usuario nuevo - pedir que elija username
+                this.pendingToken.set(response.pending_token || null);
+                this.pendingGoogleEmail.set(response.google_email || '');
+                this.suggestedUsername.set(response.suggested_username || '');
+                this.newUsername.set(response.suggested_username || '');
+                this.showUsernameModal.set(true);
+            } else if (response.user) {
+                // Login exitoso
+                this.status.set({
+                    loading: false,
+                    error: '',
+                    success: 'Inicio de sesión exitoso con Google. Redirigiendo...'
+                });
+                setTimeout(() => this.router.navigate([this.redirectPath], { replaceUrl: true }), 600);
+            }
+        } catch (error: any) {
+            const message = error?.error?.error || error?.message || 'Error al iniciar sesión con Google';
+            this.status.set({
+                loading: false,
+                error: message,
+                success: ''
+            });
+        } finally {
+            this.googleLoading.set(false);
+        }
+    }
+
+    async confirmLinkAccount() {
+        const token = this.pendingToken();
+        if (!token) {
+            this.status.set({ loading: false, error: 'Token expirado. Intenta de nuevo.', success: '' });
+            return;
+        }
+
+        this.googleLoading.set(true);
+        this.showLinkModal.set(false);
+
+        try {
+            // Usar el pending_token para confirmar sin re-autenticar con Google
+            const response = await this.googleAuth.authenticate(token, {
+                confirm_link: true,
+                isPendingToken: true
+            });
+
+            if (response.user) {
+                this.status.set({
+                    loading: false,
+                    error: '',
+                    success: 'Cuenta vinculada exitosamente. Redirigiendo...'
+                });
+                setTimeout(() => this.router.navigate([this.redirectPath], { replaceUrl: true }), 600);
+            }
+        } catch (error: any) {
+            const message = error?.error?.error || error?.message || 'Error al vincular cuenta';
+            this.status.set({
+                loading: false,
+                error: message,
+                success: ''
+            });
+        } finally {
+            this.googleLoading.set(false);
+            this.pendingToken.set(null);
+        }
+    }
+
+    cancelLinkAccount() {
+        this.showLinkModal.set(false);
+        this.pendingToken.set(null);
+        this.status.set({
+            loading: false,
+            error: 'Vinculación cancelada. Debes vincular tu cuenta para usar Google.',
+            success: ''
+        });
+    }
+
+    async confirmNewUsername() {
+        const token = this.pendingToken();
+        const username = this.newUsername().trim();
+
+        if (!token) {
+            this.status.set({ loading: false, error: 'Token expirado. Intenta de nuevo.', success: '' });
+            return;
+        }
+
+        if (!username) return;
+
+        if (username.length < 3) {
+            this.status.set({
+                loading: false,
+                error: 'El nombre de usuario debe tener al menos 3 caracteres',
+                success: ''
+            });
+            return;
+        }
+
+        this.googleLoading.set(true);
+        this.showUsernameModal.set(false);
+
+        try {
+            // Usar el pending_token para crear usuario sin re-autenticar con Google
+            const response = await this.googleAuth.authenticate(token, {
+                username,
+                isPendingToken: true
+            });
+            if (response.user) {
+                this.status.set({
+                    loading: false,
+                    error: '',
+                    success: 'Cuenta creada exitosamente. Redirigiendo...'
+                });
+                setTimeout(() => this.router.navigate([this.redirectPath], { replaceUrl: true }), 600);
+            } else if (response.error) {
+                this.status.set({ loading: false, error: response.error, success: '' });
+            }
+        } catch (error: any) {
+            const message = error?.error?.error || error?.message || 'Error al crear usuario';
+            this.status.set({
+                loading: false,
+                error: message,
+                success: ''
+            });
+        } finally {
+            this.googleLoading.set(false);
+            this.pendingToken.set(null);
+        }
+    }
+
+    cancelNewUsername() {
+        this.showUsernameModal.set(false);
+        this.pendingToken.set(null);
+    }
+
+    // ==================== Standard Auth Methods ====================
 
     async handleSubmit() {
         const formData = this.form();

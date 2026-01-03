@@ -274,21 +274,33 @@ def check_auth_view(request):
     """
     Verifica si el usuario está autenticado
     """
+    user = request.user
+    
     # Get profile picture URL if exists
     profile_picture_url = None
     try:
-        if hasattr(request.user, 'profile') and request.user.profile.profile_picture:
-            profile_picture_url = request.build_absolute_uri(request.user.profile.profile_picture.url)
+        if hasattr(user, 'profile') and user.profile.profile_picture:
+            profile_picture_url = request.build_absolute_uri(user.profile.profile_picture.url)
     except Exception:
         pass
     
+    # Google OAuth info
+    has_google = hasattr(user, 'google_profile')
+    google_email = None
+    if has_google:
+        google_email = user.google_profile.google_email
+    
     return Response({
         'authenticated': True,
-        'id': request.user.id,
-        'username': request.user.username,
-        'user_id': request.user.id,
-        'email': request.user.email,
-        'is_staff': request.user.is_staff,
-        'profile_picture_url': profile_picture_url
+        'id': user.id,
+        'username': user.username,
+        'user_id': user.id,
+        'email': user.email,
+        'is_staff': user.is_staff,
+        'profile_picture_url': profile_picture_url,
+        'has_google': has_google,
+        'google_email': google_email,
+        'has_password': user.has_usable_password(),
     }, status=status.HTTP_200_OK)
+
 

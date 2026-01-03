@@ -17,6 +17,9 @@ interface User {
   telegram_id?: number | null;
   is_staff?: boolean;
   profile_picture_url?: string | null;
+  has_google?: boolean;
+  google_email?: string | null;
+  has_password?: boolean;
 }
 
 @Component({

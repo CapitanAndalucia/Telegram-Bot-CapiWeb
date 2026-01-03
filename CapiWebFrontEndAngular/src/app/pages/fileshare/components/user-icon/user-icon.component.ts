@@ -1,9 +1,11 @@
-import { Component, input, output, signal, ElementRef, HostListener, inject, ViewChild } from '@angular/core';
+import { Component, input, output, signal, ElementRef, HostListener, inject, ViewChild, TemplateRef } from '@angular/core';
+import { MatDialog, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
 import { ApiClientService } from '../../../../services/api-client.service';
+import { GoogleAuthService } from '../../../../services/google-auth.service';
 import { ProfilePhotoEditorComponent } from '../../../../shared/components/profile-photo-editor/profile-photo-editor.component';
 
 interface User {
@@ -13,6 +15,9 @@ interface User {
     telegram_id?: number | null;
     is_staff?: boolean;
     profile_picture_url?: string | null;
+    has_google?: boolean;
+    google_email?: string | null;
+    has_password?: boolean;
 }
 
 interface EditData {
@@ -26,7 +31,7 @@ interface EditData {
 
 @Component({
     selector: 'app-user-icon',
-    imports: [CommonModule, FormsModule, ProfilePhotoEditorComponent],
+    imports: [CommonModule, FormsModule, ProfilePhotoEditorComponent, MatDialogModule],
     templateUrl: './user-icon.component.html',
     styleUrls: ['../../fileshare.component.css', './user-icon.component.css'],
 })
@@ -36,6 +41,13 @@ export class UserIconComponent {
     userUpdated = output<User>();
 
     private apiClient = inject(ApiClientService);
+    private googleAuth = inject(GoogleAuthService);
+    private dialog = inject(MatDialog);
+
+    @ViewChild('editModalTemplate') editModalTemplate!: TemplateRef<any>;
+    @ViewChild('photoEditorTemplate') photoEditorTemplate!: TemplateRef<any>;
+    photoDialogRef: MatDialogRef<any> | null = null;
+
 
     isOpen = signal(false);
     showEditModal = signal(false);
@@ -63,9 +75,22 @@ export class UserIconComponent {
     stagedPhotoBlob = signal<Blob | null>(null);
     stagedPhotoUrl = signal<string | null>(null);
 
+    // Google OAuth states
+    googleEnabled = signal(false);
+    googleLoading = signal(false);
+    googleError = signal<string | null>(null);
+
     @ViewChild('fileInput') fileInputRef!: ElementRef<HTMLInputElement>;
 
-    constructor(private router: Router, private el: ElementRef) { }
+    constructor(private router: Router, private el: ElementRef) {
+        // Initialize Google Auth
+        this.initGoogleAuth();
+    }
+
+    private async initGoogleAuth() {
+        const enabled = await this.googleAuth.initialize();
+        this.googleEnabled.set(enabled);
+    }
 
     @HostListener('document:mousedown', ['$event'])
     onGlobalClick(event: MouseEvent): void {
@@ -113,11 +138,26 @@ export class UserIconComponent {
         this.editError.set(null);
         this.editSuccess.set(null);
         this.isOpen.set(false);
-        this.showEditModal.set(true);
+
+        console.log('UserIcon: Intentando abrir modal de edición');
+        if (!this.editModalTemplate) {
+            console.error('UserIcon: editModalTemplate no encontrado!');
+        } else {
+            console.log('UserIcon: Abriendo MatDialog...');
+        }
+
+        // Open MatDialog
+        this.dialog.open(this.editModalTemplate, {
+            panelClass: 'dark-dialog-panel',
+            width: '520px',
+            maxWidth: '95vw',
+            maxHeight: '90vh',
+            autoFocus: false
+        });
     }
 
     closeEditModal(): void {
-        this.showEditModal.set(false);
+        this.dialog.closeAll();
     }
 
     onEditFieldChange(field: keyof EditData, value: string): void {
@@ -180,7 +220,8 @@ export class UserIconComponent {
         }
 
         // Close modal and show spinner on avatar
-        this.showEditModal.set(false);
+        // Close modal and show spinner on avatar
+        this.dialog.closeAll();
         this.photoUploading.set(true);
         this.editError.set(null);
         this.editSuccess.set(null);
@@ -214,7 +255,8 @@ export class UserIconComponent {
         } catch (error: any) {
             const message = error?.message || 'No se pudieron actualizar los datos';
             // Re-open modal to show error
-            this.showEditModal.set(true);
+            // Re-open modal to show error - we need to reopen it since we closed it
+            this.openEditModal();
             this.editError.set(message);
         } finally {
             this.photoUploading.set(false);
@@ -236,7 +278,16 @@ export class UserIconComponent {
                 return;
             }
             this.selectedPhotoFile.set(file);
-            this.showPhotoEditor.set(true);
+
+            // Open Photo Editor in a Dialog (on top of edit modal)
+            this.photoDialogRef = this.dialog.open(this.photoEditorTemplate, {
+                panelClass: 'photo-editor-dialog',
+                maxWidth: '100vw',
+                maxHeight: '100vh',
+                height: '100vh',
+                width: '100vw',
+                hasBackdrop: false // Component has its own backdrop
+            });
         }
         // Reset input for re-selection
         input.value = '';
@@ -255,13 +306,15 @@ export class UserIconComponent {
         this.stagedPhotoBlob.set(imageBlob);
         this.stagedPhotoUrl.set(previewUrl);
 
-        // Close editor, stay in modal
-        this.showPhotoEditor.set(false);
+        this.stagedPhotoUrl.set(previewUrl);
+
+        // Close editor dialog
+        this.photoDialogRef?.close();
         this.selectedPhotoFile.set(null);
     }
 
     onPhotoCanceled(): void {
-        this.showPhotoEditor.set(false);
+        this.photoDialogRef?.close();
         this.selectedPhotoFile.set(null);
     }
 
@@ -272,6 +325,62 @@ export class UserIconComponent {
         }
         this.stagedPhotoBlob.set(null);
         this.stagedPhotoUrl.set(null);
+    }
+
+    // ---- Google OAuth Methods ----
+    async linkGoogleAccount(): Promise<void> {
+        if (!this.googleEnabled()) return;
+
+        this.googleLoading.set(true);
+        this.googleError.set(null);
+
+        try {
+            const code = await this.googleAuth.requestAuthCode();
+            const result = await this.googleAuth.linkAccount(code);
+
+            // Update user with Google info
+            const currentUser = this.user();
+            if (currentUser) {
+                this.userUpdated.emit({
+                    ...currentUser,
+                    has_google: true,
+                    google_email: result.google_email,
+                });
+            }
+
+            this.editSuccess.set('Cuenta de Google vinculada exitosamente');
+        } catch (error: any) {
+            const message = error?.error?.error || error?.message || 'Error al vincular cuenta de Google';
+            this.googleError.set(message);
+        } finally {
+            this.googleLoading.set(false);
+        }
+    }
+
+    async unlinkGoogleAccount(): Promise<void> {
+        this.googleLoading.set(true);
+        this.googleError.set(null);
+
+        try {
+            await this.googleAuth.unlinkAccount();
+
+            // Update user
+            const currentUser = this.user();
+            if (currentUser) {
+                this.userUpdated.emit({
+                    ...currentUser,
+                    has_google: false,
+                    google_email: null,
+                });
+            }
+
+            this.editSuccess.set('Cuenta de Google desvinculada exitosamente');
+        } catch (error: any) {
+            const message = error?.error?.error || error?.message || 'Error al desvincular cuenta de Google';
+            this.googleError.set(message);
+        } finally {
+            this.googleLoading.set(false);
+        }
     }
 }
 

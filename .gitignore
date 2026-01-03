@@ -139,7 +139,7 @@ dmypy.json
 .env
 
 
-/botTelegram
+/botTelegram/
 /log/
 
 CapiWebBackend/config/media/

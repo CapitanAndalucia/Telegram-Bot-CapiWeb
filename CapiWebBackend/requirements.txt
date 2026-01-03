@@ -21,3 +21,7 @@ psycopg2-binary
 # psycopg2
 python-dotenv
 
+# Google OAuth 2.0
+google-auth>=2.0.0
+google-auth-httplib2>=0.1.0
+requests>=2.28.0

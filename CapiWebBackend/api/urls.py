@@ -19,6 +19,12 @@ from .auth_views import (
     refresh_token_view,
     check_auth_view
 )
+from .google_auth_views import (
+    google_auth_view,
+    google_link_view,
+    google_unlink_view,
+    google_config_view,
+)
 
 from social.views import FriendViewSet
 from transfers.views import FileTransferViewSet, FolderViewSet, ShareLinkViewSet
@@ -50,6 +56,11 @@ urlpatterns = [
     path("auth/logout/", logout_view, name="api_auth_logout"),
     path("auth/refresh/", refresh_token_view, name="api_auth_refresh"),
     path("auth/check/", check_auth_view, name="api_auth_check"),
+    # Google OAuth
+    path("auth/google/", google_auth_view, name="api_auth_google"),
+    path("auth/google/link/", google_link_view, name="api_auth_google_link"),
+    path("auth/google/unlink/", google_unlink_view, name="api_auth_google_unlink"),
+    path("auth/google/config/", google_config_view, name="api_auth_google_config"),
     # API de Telegram
     path("telegram/user/", get_telegram_id_by_username, name="telegram_user_by_username"),
     path("telegram/profiles/", TelegramProfileListView.as_view(), name="telegram_profiles"),

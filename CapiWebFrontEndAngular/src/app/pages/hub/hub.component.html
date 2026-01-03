@@ -13,15 +13,8 @@
         </div>
         <div class="user-section mobile">
           @if (user()) {
-          <div class="user-avatar" [class.active]="showUserMenu()" (click)="toggleUserMenu()">
-            {{ user().username.substring(0, 2).toUpperCase() }}
-            @if (showUserMenu()) {
-            <div class="user-dropdown" (click)="$event.stopPropagation()">
-              <div class="dropdown-item" (click)="openEditModal()">Editar datos</div>
-              <div class="dropdown-item" (click)="logout()">Cerrar sesión</div>
-            </div>
-            }
-          </div>
+          <app-user-icon [user]="user()" (logout)="handleLogout()" (userUpdated)="handleUserUpdated($event)">
+          </app-user-icon>
           } @else {
           <div class="user-avatar guest" [class.active]="showUserMenu()" (click)="toggleUserMenu()">
             👤
@@ -76,15 +69,8 @@
           </div>
 
           @if (user()) {
-          <div class="user-avatar" [class.active]="showUserMenu()" (click)="toggleUserMenu()">
-            {{ user().username.substring(0, 2).toUpperCase() }}
-            @if (showUserMenu()) {
-            <div class="user-dropdown" (click)="$event.stopPropagation()">
-              <div class="dropdown-item" (click)="openEditModal()">Editar datos</div>
-              <div class="dropdown-item" (click)="logout()">Cerrar sesión</div>
-            </div>
-            }
-          </div>
+          <app-user-icon [user]="user()" (logout)="handleLogout()" (userUpdated)="handleUserUpdated($event)">
+          </app-user-icon>
           } @else {
           <div class="user-avatar guest" [class.active]="showUserMenu()" (click)="toggleUserMenu()">
             👤
@@ -121,80 +107,4 @@
       </section>
     </div>
   </div>
-
-  @if (showEditModal()) {
-  <div class="modal-backdrop" (click)="closeEditModal()">
-    <div class="modal" (click)="$event.stopPropagation()">
-      <div class="modal-header">
-        <h3>Editar mis datos</h3>
-        <button class="close-btn" (click)="closeEditModal()">×</button>
-      </div>
-
-      @if (editError()) {
-      <div class="alert error">{{ editError() }}</div>
-      }
-      @if (editSuccess()) {
-      <div class="alert success">{{ editSuccess() }}</div>
-      }
-
-      <div class="form-group">
-        <label>Usuario</label>
-        <input type="text" [value]="editData().username"
-          (input)="onEditFieldChange('username', $any($event.target).value)" />
-      </div>
-
-      <div class="form-group">
-        <label>Email</label>
-        <input type="email" [value]="editData().email"
-          (input)="onEditFieldChange('email', $any($event.target).value)" />
-      </div>
-
-      <div class="form-group">
-        <label>Telegram ID</label>
-        <input type="number" [value]="editData().telegram_id"
-          (input)="onEditFieldChange('telegram_id', $any($event.target).value)" />
-      </div>
-
-      <div class="form-group">
-        <label>Contraseña actual</label>
-        <div class="password-field">
-          <input [type]="showOldPassword() ? 'text' : 'password'" placeholder="Obligatoria para cambiar la contraseña"
-            [value]="editData().oldPassword" (input)="onEditFieldChange('oldPassword', $any($event.target).value)" />
-          <button type="button" class="toggle-eye" (click)="toggleOldPasswordVisibility()">
-            @if (showOldPassword()) { Ocultar } @else { Ver }
-          </button>
-        </div>
-      </div>
-
-      <div class="form-group">
-        <label>Nueva contraseña</label>
-        <div class="password-field">
-          <input [type]="showNewPassword1() ? 'text' : 'password'" placeholder="Introduce la nueva contraseña"
-            [value]="editData().newPassword1" (input)="onEditFieldChange('newPassword1', $any($event.target).value)" />
-          <button type="button" class="toggle-eye" (click)="toggleNewPassword1Visibility()">
-            @if (showNewPassword1()) { Ocultar } @else { Ver }
-          </button>
-        </div>
-      </div>
-
-      <div class="form-group">
-        <label>Repite la nueva contraseña</label>
-        <div class="password-field">
-          <input [type]="showNewPassword2() ? 'text' : 'password'" placeholder="Repite la nueva contraseña"
-            [value]="editData().newPassword2" (input)="onEditFieldChange('newPassword2', $any($event.target).value)" />
-          <button type="button" class="toggle-eye" (click)="toggleNewPassword2Visibility()">
-            @if (showNewPassword2()) { Ocultar } @else { Ver }
-          </button>
-        </div>
-      </div>
-
-      <div class="modal-actions">
-        <button class="secondary" (click)="closeEditModal()">Cancelar</button>
-        <button class="primary" [disabled]="editLoading()" (click)="saveUserEdits()">
-          @if (editLoading()) { Guardando... } @else { Guardar cambios }
-        </button>
-      </div>
-    </div>
-  </div>
-  }
 </div>

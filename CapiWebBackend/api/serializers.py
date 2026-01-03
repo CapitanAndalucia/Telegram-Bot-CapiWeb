@@ -55,10 +55,32 @@ class UserTelegramSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=False, allow_blank=True)
     old_password = serializers.CharField(write_only=True, required=False, allow_blank=True)
     
+    # Campos de Google OAuth (solo lectura)
+    has_google = serializers.SerializerMethodField()
+    google_email = serializers.SerializerMethodField()
+    has_password = serializers.SerializerMethodField()
+    
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'telegram_id', 'password', 'old_password']
-        read_only_fields = ['id', 'old_password']
+        fields = [
+            'id', 'username', 'email', 'telegram_id', 'password', 'old_password',
+            'has_google', 'google_email', 'has_password'
+        ]
+        read_only_fields = ['id', 'old_password', 'has_google', 'google_email', 'has_password']
+    
+    def get_has_google(self, obj):
+        """Indica si el usuario tiene una cuenta de Google vinculada"""
+        return hasattr(obj, 'google_profile')
+    
+    def get_google_email(self, obj):
+        """Email de la cuenta de Google vinculada, si existe"""
+        if hasattr(obj, 'google_profile'):
+            return obj.google_profile.google_email
+        return None
+    
+    def get_has_password(self, obj):
+        """Indica si el usuario tiene contraseña establecida (importante para desvincular Google)"""
+        return obj.has_usable_password()
     
     def validate(self, attrs):
         password = attrs.get('password')
