@@ -1,61 +1,73 @@
 /* Avatar Container */
 :host {
     display: inline-block;
+    width: 40px;
+    height: 40px;
 }
 
 .userIconContainer {
-    width: 40px;
-    height: 40px;
+    width: 100%;
+    height: 100%;
     position: relative;
     border-radius: 50%;
 }
 
 .userButton {
     background: none;
-    border: 2px solid transparent;
+    border: none;
+    /* Removed border to prevent size calc issues */
     padding: 0;
     margin: 0;
     cursor: pointer;
     width: 100%;
     height: 100%;
     border-radius: 50%;
-    display: block;
+    display: flex;
+    /* Ensure centering of inner div */
+    align-items: center;
+    justify-content: center;
     transition: all 0.2s ease;
     overflow: hidden;
+    box-sizing: border-box;
+    /* Use outline or box-shadow for focus/hover ring to avoid affecting layout */
+    outline: 2px solid transparent;
+    outline-offset: 2px;
 }
 
 .userButton:hover,
 .userButton[aria-expanded="true"] {
-    border-color: #6366f1;
+    /* border-color: #6366f1; Replaced with box-shadow */
+    box-shadow: 0 0 0 2px #6366f1;
+    /* Ring effect without layout shift */
     transform: scale(1.05);
 }
 
 .userButton:disabled {
     cursor: default;
     transform: none;
-    border-color: transparent;
+    box-shadow: none;
 }
 
-/* Avatar Image */
+/* Force avatar to fill the button exactly */
+.avatarSmall,
+.avatarPlaceholder,
 .avatarImage {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
+    width: 100% !important;
+    height: 100% !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    max-width: none !important;
+    max-height: none !important;
     border-radius: 50%;
-    display: block;
-}
-
-.avatarPlaceholder {
-    width: 100%;
-    height: 100%;
+    /* Ensure roundness */
+    object-fit: cover;
+    margin: 0 !important;
+    padding: 0 !important;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-    color: #fff;
-    font-weight: 600;
-    font-size: 1.2rem;
-    border-radius: 50%;
+    line-height: normal !important;
+    /* Reset line-height to let flex center it */
 }
 
 /* Loading Spinner */

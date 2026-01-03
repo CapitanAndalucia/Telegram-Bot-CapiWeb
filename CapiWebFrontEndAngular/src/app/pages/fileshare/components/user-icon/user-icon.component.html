@@ -8,7 +8,8 @@
         @if (user()!.profile_picture_url) {
         <img class="avatarSmall avatarImage" [src]="user()!.profile_picture_url" alt="Avatar" />
         } @else {
-        <div class="avatarSmall">{{ user()!.username[0].toUpperCase() }}</div>
+        <div class="avatarSmall" [style.background]="getUserColor(user()!.username)">{{
+            user()!.username[0].toUpperCase() }}</div>
         }
         } @else {
         <div class="avatarPlaceholder">👤</div>
