@@ -15,7 +15,7 @@ class FriendViewSet(viewsets.ViewSet):
         profile, created = Profile.objects.get_or_create(user=request.user)
         friends = profile.friends.all().values_list('user', flat=True)
         users = User.objects.filter(id__in=friends)
-        serializer = UserSerializer(users, many=True)
+        serializer = UserSerializer(users, many=True, context={'request': request})
         return Response(serializer.data)
 
     @action(detail=False, methods=['get'])
@@ -39,7 +39,7 @@ class FriendViewSet(viewsets.ViewSet):
             id=request.user.id  # Exclude current user
         )[:10]  # Limit to 10 results
         
-        serializer = UserSerializer(users, many=True)
+        serializer = UserSerializer(users, many=True, context={'request': request})
         return Response(serializer.data)
 
     @action(detail=False, methods=['post'])
