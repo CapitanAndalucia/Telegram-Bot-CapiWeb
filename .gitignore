@@ -155,3 +155,10 @@ nginx/
 
 CapiWebFrontEndAngular/angular.json
 
+CapiWebBackend/botTelegram/bin/normalizer
+CapiWebBackend/botTelegram/bin/pyrsa-decrypt
+CapiWebBackend/botTelegram/bin/pyrsa-encrypt
+CapiWebBackend/botTelegram/bin/pyrsa-keygen
+CapiWebBackend/botTelegram/bin/pyrsa-priv2pub
+CapiWebBackend/botTelegram/bin/pyrsa-sign
+CapiWebBackend/botTelegram/bin/pyrsa-verify
