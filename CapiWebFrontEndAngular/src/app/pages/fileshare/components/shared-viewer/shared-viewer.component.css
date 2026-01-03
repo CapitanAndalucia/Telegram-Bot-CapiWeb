@@ -93,6 +93,25 @@
     font-size: 4rem;
 }
 
+.download-folder-btn {
+    background: linear-gradient(135deg, #00f2ff, #00d4e0);
+    color: #000;
+    border: none;
+    padding: 0.75rem 1.25rem;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+    margin-left: auto;
+}
+
+.download-folder-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 242, 255, 0.4);
+}
+
 .file-details h2,
 .folder-details h2 {
     margin: 0 0 0.5rem 0;
@@ -287,6 +306,49 @@
 .file-type-icon {
     font-size: 3rem;
     opacity: 0.6;
+}
+
+/* Image loading overlay */
+.image-wrapper {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+
+.image-wrapper img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: opacity 0.3s ease;
+}
+
+.image-wrapper img.loading {
+    opacity: 0;
+}
+
+.loading-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.4);
+    gap: 0.5rem;
+}
+
+.loading-overlay .spinner {
+    width: 24px;
+    height: 24px;
+    border-width: 2px;
+    margin: 0;
+}
+
+.loading-overlay span {
+    font-size: 0.7rem;
+    color: #00f2ff;
+    text-transform: uppercase;
+    letter-spacing: 1px;
 }
 
 .file-card-footer {

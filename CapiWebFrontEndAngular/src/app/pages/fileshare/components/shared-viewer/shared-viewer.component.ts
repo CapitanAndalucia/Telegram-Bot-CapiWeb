@@ -6,11 +6,12 @@ import { ToastrService } from 'ngx-toastr';
 import { DownloadService } from '../../../../shared/services/download.service';
 import { FilePreviewModalComponent } from '../file-preview-modal/file-preview-modal.component';
 import { DownloadsMenuComponent } from '../../../../shared/components/downloads-menu/downloads-menu.component';
+import { LazyLoadImageDirective } from '../../../../shared/directives/lazy-load-image.directive';
 
 @Component({
     selector: 'app-shared-viewer',
     standalone: true,
-    imports: [CommonModule, FilePreviewModalComponent, DownloadsMenuComponent],
+    imports: [CommonModule, FilePreviewModalComponent, DownloadsMenuComponent, LazyLoadImageDirective],
     templateUrl: './shared-viewer.component.html',
     styleUrls: ['./shared-viewer.component.css']
 })
@@ -23,6 +24,9 @@ export class SharedViewerComponent implements OnInit {
     loadingContents = signal(false);
     shareToken = signal<string>('');
     selectedFile = signal<any>(null);
+
+    // Track which images are still loading
+    loadingImages = signal<Set<number>>(new Set());
 
     constructor(
         private route: ActivatedRoute,
@@ -114,6 +118,16 @@ export class SharedViewerComponent implements OnInit {
         this.toast.success('Descargando archivo...');
     }
 
+    downloadFolder(): void {
+        const data = this.sharedData();
+        if (data?.folder) {
+            // Download folder as ZIP using share token
+            const downloadUrl = `/api/share-links/${this.shareToken()}/download-folder/`;
+            this.downloadService.downloadFile(downloadUrl, `${data.folder.name}.zip`);
+            this.toast.success('Descargando carpeta como ZIP...');
+        }
+    }
+
     formatFileSize(bytes: number): string {
         if (bytes === 0) return '0 Bytes';
         const k = 1024;
@@ -161,5 +175,27 @@ export class SharedViewerComponent implements OnInit {
 
     closePreview(): void {
         this.selectedFile.set(null);
+    }
+
+    // Gestión del estado de carga de imágenes
+    onImageLoadingChange(fileId: number, isLoading: boolean): void {
+        const current = new Set(this.loadingImages());
+        if (isLoading) {
+            current.add(fileId);
+        } else {
+            current.delete(fileId);
+        }
+        this.loadingImages.set(current);
+    }
+
+    isImageLoading(fileId: number): boolean {
+        return this.loadingImages().has(fileId);
+    }
+
+    // Inicializa todas las imágenes como "cargando" al renderizar
+    initImageLoading(fileId: number): void {
+        const current = new Set(this.loadingImages());
+        current.add(fileId);
+        this.loadingImages.set(current);
     }
 }

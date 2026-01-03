@@ -237,9 +237,9 @@ REST_FRAMEWORK = {
         "api.throttling.StaffUserRateThrottle",  # Throttle personalizado para staff
     ],
     "DEFAULT_THROTTLE_RATES": {
-        "anon": "50/min",
-        "user": "200/min",      # Usuarios normales: 200 peticiones/min
-        "staff": "500/min",     # Usuarios staff: 500 peticiones/min
+        "anon": "50/min",          # Reducido para probar retry (cambiar a 300 en producción)
+        "user": "500/min",         # Usuarios normales: 500 peticiones/min
+        "staff": "1000/min",       # Staff y superusuarios: 1000 peticiones/min
         # scopes específicos
         "login": "5/min",
         "register": "3/min",

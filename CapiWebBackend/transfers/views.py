@@ -1340,3 +1340,65 @@ class ShareLinkViewSet(viewsets.ModelViewSet):
         )
         response['Content-Length'] = file_obj.size
         return response
+
+    @action(detail=True, methods=['get'], url_path='download-folder', permission_classes=[permissions.AllowAny])
+    def download_folder(self, request, pk=None):
+        """
+        Endpoint público para descargar toda la carpeta como ZIP via share token.
+        URL: /api/share-links/{token}/download-folder/
+        """
+        token = pk
+        
+        try:
+            link = ShareLink.objects.select_related('folder').get(
+                token=token, is_active=True
+            )
+        except ShareLink.DoesNotExist:
+            return Response({'error': 'Enlace no válido'}, status=status.HTTP_404_NOT_FOUND)
+        
+        # Verificar que es un enlace de carpeta
+        if not link.folder:
+            return Response({'error': 'Este enlace no es para una carpeta'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Verificar expiración
+        if link.expires_at and link.expires_at < timezone.now():
+            return Response({'error': 'Enlace expirado'}, status=status.HTTP_410_GONE)
+        
+        folder = link.folder
+        
+        # Crear ZIP en memoria
+        zip_buffer = BytesIO()
+        
+        with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+            self._add_shared_folder_to_zip(zip_file, folder, '')
+        
+        zip_buffer.seek(0)
+        
+        response = FileResponse(
+            zip_buffer,
+            as_attachment=True,
+            filename=f'{folder.name}.zip'
+        )
+        response['Content-Type'] = 'application/zip'
+        return response
+
+    def _add_shared_folder_to_zip(self, zip_file, folder, base_path):
+        """Recursively add folder contents to ZIP for shared links"""
+        folder_path = os.path.join(base_path, folder.name) if base_path else folder.name
+        
+        # Add files in this folder
+        files = FileTransfer.objects.filter(folder=folder)
+        
+        for file_transfer in files:
+            if file_transfer.file and os.path.exists(file_transfer.file.path):
+                zip_file.write(
+                    file_transfer.file.path,
+                    os.path.join(folder_path, file_transfer.filename)
+                )
+        
+        # Recursively add subfolders
+        subfolders = Folder.objects.filter(parent=folder)
+        
+        for subfolder in subfolders:
+            self._add_shared_folder_to_zip(zip_file, subfolder, folder_path)
+

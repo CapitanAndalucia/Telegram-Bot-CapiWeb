@@ -63,6 +63,9 @@
                         <span>Permisos: {{ sharedData().permission === 'edit' ? 'Edición' : 'Lectura' }}</span>
                     </div>
                 </div>
+                <button class="download-folder-btn" (click)="downloadFolder()">
+                    ⬇️ Descargar Carpeta
+                </button>
             </div>
 
             <!-- Subfolders -->
@@ -92,7 +95,17 @@
                         </div>
                         <div class="file-thumbnail">
                             @if (file.is_image) {
-                            <img [src]="getThumbnailUrl(file.id)" [alt]="file.filename" loading="lazy" />
+                            <div class="image-wrapper">
+                                <img [appLazyLoad]="getThumbnailUrl(file.id)" [alt]="file.filename"
+                                    (lazyLoading)="onImageLoadingChange(file.id, $event)"
+                                    [class.loading]="isImageLoading(file.id)" />
+                                @if (isImageLoading(file.id)) {
+                                <div class="loading-overlay">
+                                    <div class="spinner"></div>
+                                    <span>Cargando...</span>
+                                </div>
+                                }
+                            </div>
                             } @else {
                             <div class="file-type-icon">
                                 {{ getFileIcon(file.filename) }}

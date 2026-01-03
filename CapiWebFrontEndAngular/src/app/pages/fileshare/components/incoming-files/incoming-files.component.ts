@@ -48,10 +48,11 @@ interface SortConfig {
 }
 
 import { trigger, transition, style, animate, query, stagger } from '@angular/animations';
+import { LazyLoadImageDirective } from '../../../../shared/directives/lazy-load-image.directive';
 
 @Component({
     selector: 'app-incoming-files',
-    imports: [CommonModule, FilePreviewModalComponent, ShareModalComponent, MatDialogModule],
+    imports: [CommonModule, FilePreviewModalComponent, ShareModalComponent, MatDialogModule, LazyLoadImageDirective],
     templateUrl: './incoming-files.component.html',
     styleUrls: ['../../fileshare.component.css'],
     animations: [
