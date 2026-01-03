@@ -232,9 +232,9 @@ export class ShareModalComponent implements OnChanges {
             // For now, we loop parallelly
             const promises = users.map(user => {
                 if (this.type === 'folder') {
-                    return this.api.shareFolder(this.item.id, user.id, role);
+                    return this.api.shareFolder(this.item.id, user.username, role);
                 } else {
-                    return this.api.shareFile(this.item.id, user.id, role);
+                    return this.api.shareFile(this.item.id, user.username, role);
                 }
             });
 
