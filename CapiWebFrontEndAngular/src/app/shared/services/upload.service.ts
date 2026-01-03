@@ -107,6 +107,7 @@ export class UploadService {
 
       const formData = new FormData();
       formData.append('file', task.file);
+      formData.append('filename', task.file.name); // Campo requerido por el backend
       formData.append('recipient_username', currentState.currentUser || 'unknown');
 
       if (currentState.currentFolder) {

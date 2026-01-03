@@ -511,11 +511,8 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
      * @param files - Array de items de archivo a establecer
      */
     private setFilesWithLoadingState(files: FileItem[]): void {
-        const imageIds = files
-            .filter(f => this.isImage(f.filename))
-            .map(f => f.id);
-
-        this.loadingImages.set(new Set(imageIds));
+        // La directiva lazy-load maneja cuándo cada imagen empieza a cargar
+        this.loadingImages.set(new Set());
         this.files.set(files);
     }
 
@@ -2400,6 +2397,16 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
     onImageError(fileId: number): void {
         const currentLoading = new Set(this.loadingImages());
         currentLoading.delete(fileId);
+        this.loadingImages.set(currentLoading);
+    }
+
+    onImageLoadingChange(fileId: number, isLoading: boolean): void {
+        const currentLoading = new Set(this.loadingImages());
+        if (isLoading) {
+            currentLoading.add(fileId);
+        } else {
+            currentLoading.delete(fileId);
+        }
         this.loadingImages.set(currentLoading);
     }
 

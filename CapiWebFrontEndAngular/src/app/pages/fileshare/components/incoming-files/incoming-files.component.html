@@ -317,8 +317,8 @@
                         @if (hasThumbnail(file.filename)) {
                         <div class="imageWrapper">
                             <img [appLazyLoad]="getThumbnailUrl(file.id, file.filename)" [alt]="file.filename"
-                                class="fileImage" (load)="onImageLoad(file.id)" (error)="onImageError(file.id)"
-                                [style.display]="isImageLoading(file.id) ? 'none' : 'block'" />
+                                class="fileImage" (lazyLoading)="onImageLoadingChange(file.id, $event)"
+                                [class.loading]="isImageLoading(file.id)" />
                             @if (isImageLoading(file.id)) {
                             <div class="imageLoadingSpinner">
                                 <div class="spinner"></div>
