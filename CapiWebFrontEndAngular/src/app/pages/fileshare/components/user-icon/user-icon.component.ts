@@ -33,6 +33,7 @@ interface EditData {
 
 @Component({
     selector: 'app-user-icon',
+    standalone: true,
     imports: [CommonModule, FormsModule, ProfilePhotoEditorComponent, MatDialogModule, MatMenuModule, MatButtonModule],
     templateUrl: './user-icon.component.html',
     styleUrls: ['../../fileshare.component.css', './user-icon.component.css'],
