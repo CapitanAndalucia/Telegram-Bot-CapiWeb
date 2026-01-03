@@ -1,5 +1,5 @@
 <div class="userIconContainer">
-    <button class="userButton" (click)="toggleDropdown()" [disabled]="photoUploading()">
+    <button class="userButton" [matMenuTriggerFor]="userMenu" [disabled]="photoUploading()">
         @if (photoUploading()) {
         <div class="avatarSmall avatarLoading">
             <div class="avatar-spinner"></div>
@@ -15,34 +15,30 @@
         }
     </button>
 
-    @if (isOpen()) {
-    <div class="dropdown">
-        <div class="menu">
-            @if (user()) {
-            <div class="userInfo">
-                <span class="menuTitle">Sesión iniciada como</span>
-                <p class="userName">{{ user()!.username }}</p>
-            </div>
-            <button (click)="openEditModal()" class="menuItem">
-                <span class="icon">✏️</span> Editar datos
-            </button>
-            <button (click)="handleLogoutClick()" class="menuItem">
-                <span class="icon">🚪</span> Cerrar Sesión
-            </button>
-            } @else {
-            <div class="userInfo">
-                <p class="userName">Cuenta</p>
-            </div>
-            <button (click)="navigateToLogin()" class="menuItem">
-                <span class="icon">🔑</span> Iniciar Sesión
-            </button>
-            <button (click)="navigateToRegister()" class="menuItem">
-                <span class="icon">📝</span> Registrarse
-            </button>
-            }
+    <mat-menu #userMenu="matMenu" xPosition="before" class="custom-user-menu">
+        @if (user()) {
+        <div class="date-menu-header" (click)="$event.stopPropagation()">
+            <span class="menuTitle">Sesión iniciada como</span>
+            <p class="userName">{{ user()!.username }}</p>
         </div>
-    </div>
-    }
+        <button mat-menu-item (click)="openEditModal()">
+            <span>✏️ Editar datos</span>
+        </button>
+        <button mat-menu-item (click)="handleLogoutClick()">
+            <span>🚪 Cerrar Sesión</span>
+        </button>
+        } @else {
+        <div class="date-menu-header" (click)="$event.stopPropagation()">
+            <p class="userName">Cuenta</p>
+        </div>
+        <button mat-menu-item (click)="navigateToLogin()">
+            <span>🔑 Iniciar Sesión</span>
+        </button>
+        <button mat-menu-item (click)="navigateToRegister()">
+            <span>📝 Registrarse</span>
+        </button>
+        }
+    </mat-menu>
 </div>
 
 <!-- Hidden file input for photo selection -->

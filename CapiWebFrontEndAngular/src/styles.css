@@ -1150,3 +1150,58 @@ app-user-icon .edit-modal {
     box-shadow: none !important;
     overflow: visible !important;
 }
+
+/* ==========================================================================
+   Custom User Menu Styles (MatMenu Migration)
+   ========================================================================== */
+.custom-user-menu.mat-mdc-menu-panel {
+    background: #1a1a1a !important;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px !important;
+    min-width: 260px !important;
+    max-width: 300px;
+}
+
+.custom-user-menu .mat-mdc-menu-content {
+    padding: 0 !important;
+}
+
+.custom-user-menu .date-menu-header {
+    padding: 1.25rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.02);
+    display: flex;
+    flex-direction: column;
+}
+
+.custom-user-menu .menuTitle {
+    font-size: 0.75rem;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: block;
+    margin-bottom: 0.5rem;
+}
+
+.custom-user-menu .userName {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #fff;
+    line-height: 1.2;
+}
+
+/* MenuItem Overrides */
+.custom-user-menu button.mat-mdc-menu-item {
+    color: #ddd !important;
+    font-family: inherit !important;
+    font-size: 0.95rem !important;
+    height: 50px !important;
+    transition: all 0.2s;
+}
+
+.custom-user-menu button.mat-mdc-menu-item:hover {
+    background: rgba(255, 255, 255, 0.05) !important;
+    color: #fff !important;
+    padding-left: 20px !important; /* Mimic old hover effect */
+}

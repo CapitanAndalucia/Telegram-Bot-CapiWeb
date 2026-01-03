@@ -1,5 +1,7 @@
-import { Component, input, output, signal, ElementRef, HostListener, inject, ViewChild, TemplateRef } from '@angular/core';
+import { Component, input, output, signal, inject, ViewChild, TemplateRef, ElementRef } from '@angular/core';
 import { MatDialog, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
+import { MatMenuModule } from '@angular/material/menu';
+import { MatButtonModule } from '@angular/material/button';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -31,7 +33,7 @@ interface EditData {
 
 @Component({
     selector: 'app-user-icon',
-    imports: [CommonModule, FormsModule, ProfilePhotoEditorComponent, MatDialogModule],
+    imports: [CommonModule, FormsModule, ProfilePhotoEditorComponent, MatDialogModule, MatMenuModule, MatButtonModule],
     templateUrl: './user-icon.component.html',
     styleUrls: ['../../fileshare.component.css', './user-icon.component.css'],
 })
@@ -48,8 +50,7 @@ export class UserIconComponent {
     @ViewChild('photoEditorTemplate') photoEditorTemplate!: TemplateRef<any>;
     photoDialogRef: MatDialogRef<any> | null = null;
 
-
-    isOpen = signal(false);
+    // isOpen logic removed as MatMenu handles visibility
     showEditModal = signal(false);
     editData = signal<EditData>({
         username: '',
@@ -82,7 +83,7 @@ export class UserIconComponent {
 
     @ViewChild('fileInput') fileInputRef!: ElementRef<HTMLInputElement>;
 
-    constructor(private router: Router, private el: ElementRef) {
+    constructor(private router: Router) {
         // Initialize Google Auth
         this.initGoogleAuth();
     }
@@ -92,20 +93,10 @@ export class UserIconComponent {
         this.googleEnabled.set(enabled);
     }
 
-    @HostListener('document:mousedown', ['$event'])
-    onGlobalClick(event: MouseEvent): void {
-        if (!this.el.nativeElement.contains(event.target) && !this.showEditModal()) {
-            this.isOpen.set(false);
-        }
-    }
-
-    toggleDropdown(): void {
-        this.isOpen.update((v) => !v);
-    }
+    // Dropdown toggle logic removed (replaced by MatMenu)
 
     handleLogoutClick(): void {
         this.logout.emit();
-        this.isOpen.set(false);
     }
 
     navigateToLogin(): void {
@@ -137,7 +128,7 @@ export class UserIconComponent {
         });
         this.editError.set(null);
         this.editSuccess.set(null);
-        this.isOpen.set(false);
+        // this.isOpen.set(false); // No needed
 
         console.log('UserIcon: Intentando abrir modal de edición');
         if (!this.editModalTemplate) {
