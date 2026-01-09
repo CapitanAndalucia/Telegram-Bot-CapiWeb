@@ -1,11 +1,56 @@
+/**
+ * api-client.service.ts
+ * ====================
+ * 
+ * Servicio principal para comunicación con la API REST del backend.
+ * 
+ * Este servicio centraliza todas las llamadas HTTP al backend Django,
+ * proporcionando métodos tipados para cada recurso de la API.
+ * 
+ * Características:
+ * - Autenticación automática mediante cookies HTTP-only
+ * - Manejo centralizado de errores
+ * - Soporte para subida de archivos con progreso
+ * - Conversión automática de respuestas JSON
+ * 
+ * Módulos de la API:
+ * - Auth: Registro, login, logout, verificación de sesión
+ * - Dibujos: CRUD de galería de arte
+ * - Proyectos/Tecnologías: Portfolio profesional
+ * - Tickets: Gestión de gastos
+ * - Social: Amigos y solicitudes
+ * - Transfers: Gestión de archivos y carpetas
+ * - Notifications: Sistema de notificaciones
+ * - Share Links: Enlaces para compartir archivos
+ * 
+ * @example
+ * // Inyección del servicio
+ * constructor(private apiClient: ApiClientService) {}
+ * 
+ * // Uso de métodos
+ * await this.apiClient.login({ username: 'user', password: 'pass' });
+ * const files = await this.apiClient.listFiles();
+ */
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams, HttpHeaders, HttpErrorResponse } from '@angular/common/http';
 import { Observable, throwError, from } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 import { ApiError } from '../models/api-error';
 
+/** URL base por defecto para la API */
 const DEFAULT_BASE_URL = '/api';
 
+/**
+ * Servicio cliente HTTP para comunicación con el backend.
+ * 
+ * Proporciona métodos para todas las operaciones de la API REST,
+ * con manejo automático de autenticación y errores.
+ * 
+ * @remarks
+ * - Todas las peticiones incluyen credenciales (cookies) automáticamente
+ * - Los errores se transforman en objetos ApiError consistentes
+ * - Soporta tanto Observable como Promise según el caso de uso
+ */
 @Injectable({
     providedIn: 'root'
 })
@@ -13,6 +58,12 @@ export class ApiClientService {
     private http = inject(HttpClient);
     private baseUrl: string;
 
+    /**
+     * Constructor del servicio.
+     * 
+     * Inicializa la URL base de la API. Si existe una variable global
+     * `window.__API_BASE_URL`, la usa; de lo contrario, usa '/api'.
+     */
     constructor() {
         // Check for global API base URL or use default
         this.baseUrl = (typeof window !== 'undefined' && (window as any).__API_BASE_URL)
@@ -20,6 +71,17 @@ export class ApiClientService {
             : DEFAULT_BASE_URL;
     }
 
+    /**
+     * Construye una URL completa con parámetros de query.
+     * 
+     * @param path - Ruta del endpoint (ej: '/auth/login/')
+     * @param params - Objeto con parámetros de query opcionales
+     * @returns URL completa con query string si hay parámetros
+     * 
+     * @example
+     * buildUrl('/tickets/', { fecha__gte: '2024-01-01' })
+     * // Retorna: '/api/tickets/?fecha__gte=2024-01-01'
+     */
     private buildUrl(path: string, params?: Record<string, any>): string {
         const normalizedPath = path.startsWith('/') ? path : `/${path}`;
         const baseUrl = this.baseUrl;
@@ -35,6 +97,18 @@ export class ApiClientService {
         return finalUrl;
     }
 
+    /**
+     * Maneja errores HTTP y los transforma en ApiError.
+     * 
+     * Procesa diferentes tipos de errores según el código de estado:
+     * - 0: Error de conexión
+     * - 403: Errores de permisos (con mensajes específicos)
+     * - 500: Errores del servidor
+     * - Otros: Extrae mensaje del cuerpo de respuesta
+     * 
+     * @param error - Objeto de error HTTP de Angular
+     * @returns Observable que emite un ApiError
+     */
     private handleError(error: HttpErrorResponse): Observable<never> {
         let errorMessage = 'An unknown error occurred';
 
@@ -67,6 +141,30 @@ export class ApiClientService {
         return throwError(() => new ApiError(errorMessage, error.status, error.error));
     }
 
+    /**
+     * Método genérico para realizar peticiones HTTP.
+     * 
+     * Este es el método base utilizado por todos los demás métodos del servicio.
+     * Configura automáticamente headers, credenciales y manejo de errores.
+     * 
+     * @typeParam T - Tipo de respuesta esperada
+     * @param path - Ruta del endpoint
+     * @param method - Método HTTP (GET, POST, PUT, PATCH, DELETE)
+     * @param options - Opciones adicionales de la petición
+     * @param options.data - Cuerpo de la petición (para POST/PUT/PATCH)
+     * @param options.params - Parámetros de query
+     * @param options.headers - Headers personalizados
+     * @param options.responseType - Tipo de respuesta ('json', 'blob', etc.)
+     * @param options.silent - Si true, no lanza error en 401
+     * @returns Observable con la respuesta tipada
+     * 
+     * @example
+     * // Petición GET simple
+     * request<User[]>('/users/', 'GET')
+     * 
+     * // Petición POST con datos
+     * request<LoginResponse>('/auth/login/', 'POST', { data: credentials })
+     */
     private request<T>(
         path: string,
         method: string = 'GET',
@@ -117,7 +215,19 @@ export class ApiClientService {
         }));
     }
 
-    // ---- Auth ----------------------------------------------------------------
+    // ==================== AUTENTICACIÓN ====================
+
+    /**
+     * Registra un nuevo usuario en el sistema.
+     * 
+     * @param data - Datos del nuevo usuario
+     * @param data.username - Nombre de usuario único
+     * @param data.password - Contraseña
+     * @param data.email - Email opcional
+     * @returns Observable con datos del usuario creado o error
+     * 
+     * Endpoint: POST /api/auth/register/
+     */
     register(data: { username: string; password: string; email?: string }): Observable<any> {
         return this.request('/auth/register/', 'POST', { data });
     }

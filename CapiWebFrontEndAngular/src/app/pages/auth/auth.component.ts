@@ -1,3 +1,26 @@
+/**
+ * auth.component.ts
+ * ==================
+ * 
+ * Componente de autenticación para login y registro de usuarios.
+ * 
+ * Este componente maneja tanto la autenticación tradicional (usuario/contraseña)
+ * como la autenticación con Google OAuth 2.0. Incluye flujos para:
+ * - Login tradicional
+ * - Registro tradicional con validación de contraseña
+ * - Login con Google
+ * - Vinculación de cuenta Google a cuenta existente
+ * - Creación de cuenta nueva desde Google
+ * 
+ * Rutas relacionadas:
+ * - /login: Muestra formulario de login
+ * - /register: Muestra formulario de registro
+ * 
+ * @example
+ * // En las rutas:
+ * { path: 'login', component: LoginComponent }
+ * { path: 'register', component: RegisterComponent }
+ */
 import { Component, signal, computed, OnInit, Input, inject } from '@angular/core';
 import { environment } from '../../../environments/environment';
 import { Router, ActivatedRoute, RouterModule } from '@angular/router';
@@ -7,19 +30,60 @@ import { ApiClientService } from '../../services/api-client.service';
 import { ApiError } from '../../models/api-error';
 import { GoogleAuthService, GoogleAuthResponse } from '../../services/google-auth.service';
 
+/**
+ * Interfaz para el formulario de autenticación.
+ * 
+ * Contiene los campos necesarios tanto para login como para registro.
+ */
 interface AuthForm {
+    /** Nombre de usuario */
     username: string;
+    /** Correo electrónico (solo para registro) */
     email: string;
+    /** Contraseña */
     password: string;
+    /** Confirmación de contraseña (solo para registro) */
     confirmPassword: string;
 }
 
+/**
+ * Interfaz para el indicador de fortaleza de contraseña.
+ * 
+ * Se utiliza para mostrar visualmente qué tan segura es la contraseña
+ * durante el proceso de registro.
+ */
 interface PasswordStrength {
+    /** Ancho de la barra de progreso (porcentaje) */
     width: string;
+    /** Nivel de seguridad: vacío, débil, medio o fuerte */
     level: 'empty' | 'weak' | 'medium' | 'strong';
+    /** Etiqueta descriptiva mostrada al usuario */
     label: string;
 }
 
+/**
+ * Componente de autenticación (login/registro).
+ * 
+ * Maneja toda la lógica de autenticación de usuarios, incluyendo:
+ * - Formularios de login y registro
+ * - Validación de contraseñas con indicador de fortaleza
+ * - Integración con Google OAuth
+ * - Modales para flujos especiales de Google (vincular cuenta, crear usuario)
+ * - Redirección post-autenticación
+ * 
+ * @selector app-auth
+ * 
+ * Inputs:
+ * - initialMode: 'login' | 'register' - Modo inicial del formulario
+ * - redirectPath: string - Ruta a redirigir tras autenticación (default: '/')
+ * - customTitle: string - Título personalizado opcional
+ * 
+ * Señales (signals) principales:
+ * - mode: Modo actual (login/register)
+ * - form: Datos del formulario
+ * - status: Estado de la operación (loading, error, success)
+ * - googleEnabled: Si Google OAuth está disponible
+ */
 @Component({
     selector: 'app-auth',
     imports: [CommonModule, FormsModule, RouterModule],
@@ -27,16 +91,27 @@ interface PasswordStrength {
     styleUrl: './auth.component.css'
 })
 export class AuthComponent implements OnInit {
+    /** Servicio de autenticación con Google */
     private googleAuth = inject(GoogleAuthService);
 
+    /**
+     * Establece el modo inicial del formulario.
+     * @param value - 'login' para iniciar sesión, 'register' para crear cuenta
+     */
     @Input() set initialMode(value: 'login' | 'register') {
         this.mode.set(value);
     }
+
+    /** Ruta a la que redirigir después de autenticación exitosa */
     @Input() redirectPath = '/';
+
+    /** Título personalizado para el formulario (opcional) */
     @Input() customTitle?: string;
 
+    /** Modo actual del formulario: login o register */
     mode = signal<'login' | 'register'>('login');
 
+    /** Datos del formulario de autenticación */
     form = signal<AuthForm>({
         username: '',
         email: '',
@@ -44,27 +119,51 @@ export class AuthComponent implements OnInit {
         confirmPassword: ''
     });
 
+    /** Estado de la operación actual */
     status = signal({
+        /** Indica si hay una operación en curso */
         loading: false,
+        /** Mensaje de error si la operación falló */
         error: '',
+        /** Mensaje de éxito si la operación fue exitosa */
         success: ''
     });
 
-    // Google OAuth states
+    // ==================== Estados de Google OAuth ====================
+
+    /** Indica si Google OAuth está disponible y configurado */
     googleEnabled = signal(false);
+
+    /** Indica si hay una operación de Google en curso */
     googleLoading = signal(false);
 
-    // Modal states para flujo de Google
+    // Estados para modales de flujo de Google
+
+    /** Muestra el modal para vincular cuenta Google a cuenta existente */
     showLinkModal = signal(false);
+
+    /** Muestra el modal para elegir nombre de usuario (nuevo usuario de Google) */
     showUsernameModal = signal(false);
-    pendingToken = signal<string | null>(null);  // Token temporal del backend
+
+    /** Token temporal del backend para completar flujo de Google */
+    pendingToken = signal<string | null>(null);
+
+    /** Email de la cuenta de Google */
     pendingGoogleEmail = signal<string>('');
+
+    /** Username de la cuenta existente (para vincular) */
     pendingExistingUsername = signal<string>('');
+
+    /** Username sugerido por el backend */
     suggestedUsername = signal<string>('');
+
+    /** Username elegido por el usuario */
     newUsername = signal<string>('');
 
+    /** Fortaleza de la contraseña calculada (computed signal) */
     passwordStrength = computed(() => this.calculatePasswordStrength(this.form().password));
 
+    /** Metadatos del formulario según el modo (textos, botones) */
     meta = computed(() => {
         const titles = {
             login: {
@@ -87,31 +186,57 @@ export class AuthComponent implements OnInit {
         return titles[this.mode()];
     });
 
+    /** Título a mostrar (personalizado o por defecto) */
     displayTitle = computed(() => this.customTitle || this.meta().heading);
+
+    /** Clave del sitio para reCAPTCHA */
     recaptchaSiteKey = environment.recaptchaSiteKey;
+
+    /** Indica si reCAPTCHA está habilitado */
     recaptchaEnabled = environment.recaptchaEnabled;
 
+    /**
+     * Constructor del componente.
+     * 
+     * @param apiClient - Servicio para comunicación con el backend
+     * @param router - Router de Angular para navegación
+     * @param route - Ruta activa para obtener parámetros
+     */
     constructor(
         private apiClient: ApiClientService,
         private router: Router,
         protected route: ActivatedRoute
     ) { }
 
+    /**
+     * Inicializa el componente.
+     * 
+     * Configura Google OAuth si está disponible en el entorno.
+     */
     async ngOnInit() {
         // Inicializar Google Auth
         const googleReady = await this.googleAuth.initialize();
         this.googleEnabled.set(googleReady);
     }
 
+    /**
+     * Navega de vuelta a la página principal.
+     */
     goBack() {
         this.router.navigate(['/']);
     }
 
+    /**
+     * Actualiza un campo del formulario.
+     * 
+     * @param field - Nombre del campo a actualizar
+     * @param value - Nuevo valor del campo
+     */
     updateForm(field: keyof AuthForm, value: string) {
         this.form.update(f => ({ ...f, [field]: value }));
     }
 
-    // ==================== Google OAuth Methods ====================
+    // ==================== Métodos de Google OAuth ====================
 
     async handleGoogleLogin() {
         if (!this.googleEnabled()) return;

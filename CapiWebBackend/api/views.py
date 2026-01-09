@@ -1,3 +1,27 @@
+"""
+api/views.py
+============
+
+Módulo de vistas de la API REST del backend.
+
+Este módulo contiene los ViewSets y vistas que gestionan las operaciones CRUD
+para los diferentes recursos de la aplicación, incluyendo tickets, portfolio,
+dibujos, proyectos y perfiles de Telegram.
+
+Clases principales:
+    - TicketViewSet: Gestión de tickets/gastos del usuario
+    - PortfolioPhotoViewSet: Gestión de foto de portfolio (singleton)
+    - DibujosViewSet: Gestión de galería de dibujos/arte
+    - TecnologiaViewSet: Gestión de tecnologías del portfolio
+    - ProyectoViewSet: Gestión de proyectos del portfolio
+    - UserDetailView: Vista de detalle y edición de usuario
+    - TelegramProfileListView: Lista de perfiles de Telegram
+
+Autenticación:
+    Todas las vistas requieren autenticación JWT mediante cookies HTTP-only.
+    Algunas vistas requieren permisos de administrador.
+"""
+
 from django.shortcuts import render, redirect
 
 from rest_framework import viewsets
@@ -30,12 +54,48 @@ from .models import Dibujos
 from .serializers import DibujosSerializer, TecnologiaSerializer, ProyectoSerializer
 from .permissions import IsAdminOrReadOnly
 
+
 class TicketViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet para la gestión de tickets/gastos de usuarios.
+    
+    Este ViewSet permite a los usuarios autenticados crear, leer, actualizar
+    y eliminar sus propios tickets de gastos. Los administradores pueden
+    gestionar tickets de cualquier usuario.
+    
+    Endpoints:
+        GET    /api/tickets/           - Lista todos los tickets del usuario
+        POST   /api/tickets/           - Crea un nuevo ticket
+        GET    /api/tickets/{id}/      - Obtiene un ticket específico
+        PUT    /api/tickets/{id}/      - Actualiza un ticket completo
+        PATCH  /api/tickets/{id}/      - Actualiza parcialmente un ticket
+        DELETE /api/tickets/{id}/      - Elimina un ticket
+        GET    /api/tickets/total_entre_fechas/ - Suma de gastos entre fechas
+    
+    Parámetros de filtrado (GET):
+        fecha__gte: Fecha mínima (formato YYYY-MM-DD)
+        fecha__lte: Fecha máxima (formato YYYY-MM-DD)
+        ordering: Campo de ordenamiento (default: '-fecha')
+    
+    Permisos:
+        - Requiere autenticación
+        - Usuarios ven solo sus propios tickets
+        - Administradores pueden ver/crear tickets de otros usuarios
+    """
     queryset = Ticket.objects.all()
     serializer_class = TicketSerializer
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
+        """
+        Obtiene el queryset de tickets filtrado por usuario.
+        
+        Filtra los tickets para mostrar solo los del usuario autenticado
+        y aplica filtros opcionales de fecha y ordenamiento.
+        
+        Retorna:
+            QuerySet: Tickets filtrados y ordenados del usuario actual.
+        """
         # Solo mostrar tickets del usuario autenticado
         queryset = Ticket.objects.filter(usuario=self.request.user)
         
@@ -55,6 +115,16 @@ class TicketViewSet(viewsets.ModelViewSet):
         return queryset
     
     def perform_create(self, serializer):
+        """
+        Ejecuta la creación de un nuevo ticket.
+        
+        Si el usuario es administrador y especifica un usuario en los datos,
+        crea el ticket para ese usuario. De lo contrario, asigna el ticket
+        al usuario autenticado.
+        
+        Args:
+            serializer: Serializador con los datos validados del ticket.
+        """
         # Si es admin y se especifica un usuario, usarlo; sino, usar el usuario autenticado
         if self.request.user.is_staff and 'usuario' in self.request.data:
             # Admin puede crear tickets para otros usuarios
@@ -66,8 +136,33 @@ class TicketViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=["get"])
     def total_entre_fechas(self, request):
         """
-        Devuelve la suma de los tickets entre 2 fechas del usuario autenticado.
-        Parámetros esperados: ?inicio=YYYY-MM-DD&fin=YYYY-MM-DD
+        Calcula el total de gastos entre dos fechas.
+        
+        Acción personalizada que suma los costes de todos los tickets
+        del usuario autenticado dentro del rango de fechas especificado.
+        
+        Endpoint:
+            GET /api/tickets/total_entre_fechas/?inicio=YYYY-MM-DD&fin=YYYY-MM-DD
+        
+        Args:
+            request: Objeto de petición HTTP con los parámetros 'inicio' y 'fin'.
+        
+        Parámetros de query (obligatorios):
+            inicio (str): Fecha de inicio en formato YYYY-MM-DD
+            fin (str): Fecha de fin en formato YYYY-MM-DD
+        
+        Retorna:
+            Response: JSON con las fechas y el total sumado en EUR.
+            
+        Ejemplo de respuesta exitosa:
+            {
+                "inicio": "2024-01-01",
+                "fin": "2024-12-31",
+                "total": "150.50 EUR"
+            }
+        
+        Errores:
+            400: Falta algún parámetro o error en el cálculo.
         """
         inicio = request.query_params.get("inicio")
         fin = request.query_params.get("fin")
@@ -96,8 +191,26 @@ class TicketViewSet(viewsets.ModelViewSet):
 
 class PortfolioPhotoViewSet(viewsets.ModelViewSet):
     """
-    Solo permite una única imagen de portafolio.
-    Si ya existe, el POST actualizará la existente.
+    ViewSet para gestión de la foto de portfolio (patrón Singleton).
+    
+    Este ViewSet implementa un patrón singleton para la imagen de portfolio,
+    permitiendo solo una imagen a la vez. Si ya existe una imagen y se intenta
+    crear otra, se actualiza la existente en lugar de crear una nueva.
+    
+    Endpoints:
+        GET    /api/portfolio-photo/     - Obtiene la imagen de portfolio
+        POST   /api/portfolio-photo/     - Crea/actualiza la imagen
+        PUT    /api/portfolio-photo/{id}/ - Actualiza la imagen
+        DELETE /api/portfolio-photo/{id}/ - Elimina la imagen
+    
+    Permisos:
+        - Lectura: Público (cualquier usuario)
+        - Escritura: Solo administradores
+    
+    Comportamiento especial:
+        - list() siempre devuelve máximo 1 elemento
+        - create() actualiza si ya existe una imagen
+        - retrieve() devuelve la única imagen sin necesidad de ID
     """
     queryset = PortfolioPhoto.objects.all()
     serializer_class = PortfolioPhotoSerializer
@@ -105,7 +218,23 @@ class PortfolioPhotoViewSet(viewsets.ModelViewSet):
 
     def create(self, request, *args, **kwargs):
         """
-        Si ya hay una imagen, se actualiza en lugar de crear una nueva.
+        Crea o actualiza la imagen de portfolio.
+        
+        Si ya existe una imagen, la actualiza con los nuevos datos.
+        Si no existe, crea una nueva imagen de portfolio.
+        
+        Args:
+            request: Petición HTTP con datos de la imagen (multipart/form-data)
+            *args: Argumentos posicionales adicionales
+            **kwargs: Argumentos de palabra clave adicionales
+        
+        Datos esperados (multipart/form-data):
+            image: Archivo de imagen (JPEG, PNG, etc.)
+        
+        Retorna:
+            Response: JSON con mensaje de éxito y datos de la imagen.
+            - 200 OK si se actualizó una existente
+            - 201 Created si se creó una nueva
         """
         existing = PortfolioPhoto.objects.first()
 
@@ -124,7 +253,20 @@ class PortfolioPhotoViewSet(viewsets.ModelViewSet):
 
     def list(self, request, *args, **kwargs):
         """
-        Siempre devuelve solo una imagen (la primera) o vacío si no hay.
+        Lista la imagen de portfolio (máximo 1 elemento).
+        
+        Devuelve un array con la única imagen de portfolio existente,
+        o un array vacío si no hay ninguna imagen configurada.
+        
+        Args:
+            request: Petición HTTP GET
+            *args: Argumentos posicionales adicionales
+            **kwargs: Argumentos de palabra clave adicionales
+        
+        Retorna:
+            Response: Array JSON con 0 o 1 imagen:
+            - [] si no hay imagen
+            - [{...datos_imagen...}] si existe
         """
         instance = PortfolioPhoto.objects.first()
         if not instance:
@@ -134,7 +276,20 @@ class PortfolioPhotoViewSet(viewsets.ModelViewSet):
 
     def retrieve(self, request, *args, **kwargs):
         """
-        Siempre devuelve la única imagen existente (sin necesidad de ID).
+        Obtiene la imagen de portfolio.
+        
+        Ignora el parámetro ID y devuelve siempre la única imagen
+        de portfolio existente, implementando el patrón singleton.
+        
+        Args:
+            request: Petición HTTP GET
+            *args: Argumentos posicionales adicionales
+            **kwargs: Argumentos con 'pk' (ignorado)
+        
+        Retorna:
+            Response: JSON con los datos de la imagen.
+            - 200 OK con datos si existe
+            - 404 Not Found si no hay imagen
         """
         instance = PortfolioPhoto.objects.first()
         if not instance:
@@ -146,6 +301,35 @@ class PortfolioPhotoViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 class DibujosViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet para la gestión de la galería de dibujos/arte.
+    
+    Permite operaciones CRUD sobre los dibujos del portfolio artístico.
+    Los dibujos se ordenan por pin (destacados primero) y fecha de creación.
+    
+    Endpoints:
+        GET    /api/dibujos/        - Lista todos los dibujos
+        POST   /api/dibujos/        - Crea un nuevo dibujo
+        GET    /api/dibujos/{id}/   - Obtiene un dibujo específico
+        PUT    /api/dibujos/{id}/   - Actualiza un dibujo
+        PATCH  /api/dibujos/{id}/   - Actualiza parcialmente un dibujo
+        DELETE /api/dibujos/{id}/   - Elimina un dibujo
+    
+    Campos del modelo:
+        - descripcion: Descripción del dibujo
+        - imagen: Archivo de imagen
+        - palabras_clave: Tags/keywords separados por comas
+        - fecha_creacion: Fecha de creación (auto)
+        - pin: Boolean para destacar el dibujo
+    
+    Ordenamiento:
+        Por defecto se ordenan primero los destacados (pin=True),
+        luego por fecha de creación descendente.
+    
+    Permisos:
+        - Lectura: Público
+        - Escritura: Solo administradores
+    """
     queryset = Dibujos.objects.all().order_by('-pin', '-fecha_creacion')
     serializer_class = DibujosSerializer
     permission_classes = [IsAdminOrReadOnly]
@@ -153,9 +337,40 @@ class DibujosViewSet(viewsets.ModelViewSet):
 
 def api_login_page(request):
     """
-    Página de inicio de sesión para la API.
-    GET: renderiza formulario
-    POST: autentica y establece cookies JWT
+    Página de inicio de sesión para la API (basada en formulario HTML).
+    
+    Esta vista renderiza un formulario HTML para autenticar usuarios
+    y establecer las cookies JWT necesarias para acceder a la API.
+    
+    URL:
+        GET/POST /api/login/
+    
+    Métodos HTTP:
+        GET: Renderiza el formulario de login.
+             Si el usuario ya está autenticado, muestra su nombre.
+        
+        POST: Procesa el formulario de autenticación:
+              1. Valida las credenciales
+              2. Genera tokens JWT (access y refresh)
+              3. Establece cookies HTTP-only
+              4. Redirige a /api/
+    
+    Parámetros POST:
+        username (str): Nombre de usuario
+        password (str): Contraseña
+    
+    Cookies establecidas (POST exitoso):
+        access_token: Token JWT de acceso (corta duración)
+        refresh_token: Token JWT de refresco (larga duración)
+    
+    Retorna:
+        GET: Renderiza template 'api/login.html'
+        POST exitoso: Redirige a '/api/' con cookies JWT
+        POST fallido: Renderiza template con mensaje de error
+    
+    Seguridad:
+        Las cookies se configuran como HTTP-only para prevenir ataques XSS.
+        La configuración de secure y samesite se toma de SIMPLE_JWT settings.
     """
     if request.method == 'POST':
         username = request.POST.get('username', '').strip()
@@ -210,11 +425,59 @@ def api_login_page(request):
     return render(request, 'api/login.html', ctx)
 
 class TecnologiaViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet para la gestión de tecnologías del portfolio.
+    
+    Permite operaciones CRUD sobre las tecnologías que se muestran
+    en los proyectos del portfolio profesional.
+    
+    Endpoints:
+        GET    /api/tecnologias/        - Lista todas las tecnologías
+        POST   /api/tecnologias/        - Crea una nueva tecnología
+        GET    /api/tecnologias/{id}/   - Obtiene una tecnología específica
+        PUT    /api/tecnologias/{id}/   - Actualiza una tecnología
+        PATCH  /api/tecnologias/{id}/   - Actualiza parcialmente
+        DELETE /api/tecnologias/{id}/   - Elimina una tecnología
+    
+    Campos del modelo:
+        - id: Identificador único
+        - nombre: Nombre de la tecnología (ej: "Python", "Angular")
+        - icono: URL o ruta al icono de la tecnología
+    
+    Permisos:
+        Por defecto, operaciones CRUD estándar sin restricciones adicionales.
+    """
     queryset = Tecnologia.objects.all()
     serializer_class = TecnologiaSerializer
 
 
 class ProyectoViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet para la gestión de proyectos del portfolio.
+    
+    Permite operaciones CRUD sobre los proyectos que se muestran
+    en el portfolio profesional. Cada proyecto puede estar asociado
+    a múltiples tecnologías.
+    
+    Endpoints:
+        GET    /api/proyectos/        - Lista todos los proyectos
+        POST   /api/proyectos/        - Crea un nuevo proyecto
+        GET    /api/proyectos/{id}/   - Obtiene un proyecto específico
+        PUT    /api/proyectos/{id}/   - Actualiza un proyecto
+        PATCH  /api/proyectos/{id}/   - Actualiza parcialmente
+        DELETE /api/proyectos/{id}/   - Elimina un proyecto
+    
+    Campos del modelo:
+        - id: Identificador único
+        - titulo: Título del proyecto
+        - descripcion: Descripción detallada
+        - imagen: Imagen/captura del proyecto
+        - tecnologias: M2M con Tecnologia (lectura)
+        - tecnologias_ids: IDs de tecnologías (escritura)
+    
+    Permisos:
+        Por defecto, operaciones CRUD estándar sin restricciones adicionales.
+    """
     queryset = Proyecto.objects.all()
     serializer_class = ProyectoSerializer
 
@@ -231,9 +494,38 @@ from .permissions import IsAdminOrStaff
 @permission_classes([IsAdminOrStaff])
 def get_telegram_id_by_username(request):
     """
-    Endpoint para que el bot obtenga el telegram_id de un usuario por su username.
-    Solo accesible por usuarios admin.
-    GET /api/telegram/user/<username>/
+    Obtiene el ID de Telegram de un usuario por su nombre de usuario.
+    
+    Este endpoint es utilizado por el bot de Telegram para obtener
+    el ID de Telegram asociado a un usuario del sistema.
+    
+    Endpoint:
+        GET /api/telegram/user/?username=<username>
+    
+    Parámetros de query:
+        username (str, obligatorio): Nombre de usuario a buscar
+    
+    Permisos:
+        Solo accesible por administradores o staff.
+    
+    Retorna:
+        200 OK: Usuario encontrado con ID de Telegram configurado
+            {
+                "username": "john_doe",
+                "telegram_id": 123456789,
+                "user_id": 42
+            }
+        
+        400 Bad Request: Falta el parámetro username
+            {"error": "Se requiere el parámetro username"}
+        
+        404 Not Found: Usuario no existe o no tiene Telegram configurado
+            {"error": "El usuario X no tiene un ID de Telegram configurado"}
+            {"error": "Usuario X no encontrado"}
+    
+    Uso por el bot:
+        El bot de Telegram utiliza este endpoint para vincular
+        cuentas de usuario con sus chats de Telegram.
     """
     username = request.GET.get('username')
     

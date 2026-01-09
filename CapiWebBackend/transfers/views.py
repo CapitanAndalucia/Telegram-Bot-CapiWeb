@@ -1,3 +1,35 @@
+"""
+transfers/views.py
+===================
+
+Módulo de vistas para el sistema de transferencia y gestión de archivos.
+
+Este módulo implementa la API REST para gestionar archivos y carpetas,
+incluyendo funcionalidades de:
+- Subida y descarga de archivos
+- Creación y gestión de carpetas
+- Sistema de permisos y compartición
+- Generación de miniaturas
+- Escaneo de seguridad/malware
+- Enlaces compartidos (ShareLinks)
+
+Clases principales:
+    - FolderViewSet: CRUD de carpetas con permisos heredados
+    - FileTransferViewSet: CRUD de archivos con streaming y thumbnails
+    - ShareLinkViewSet: Gestión de enlaces para compartir
+    - FriendViewSet: Gestión de contactos/amigos
+    - UserSearchViewSet: Búsqueda de usuarios
+
+Seguridad:
+    - Autenticación JWT requerida
+    - Rate limiting por tamaño de archivo
+    - Escaneo de malware en archivos subidos
+    - Detección de ejecutables en archivos comprimidos
+
+Configuración:
+    Los parámetros de seguridad se cargan desde security_config.json
+"""
+
 from rest_framework import viewsets, permissions, status
 from django.contrib.auth.models import User
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
@@ -32,13 +64,70 @@ from io import BytesIO
 # Load security configuration
 SECURITY_CONFIG = load_security_config()
 
+
 class FolderViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet para la gestión de carpetas en el sistema de archivos.
+    
+    Proporciona operaciones CRUD completas para carpetas, incluyendo
+    herencia de permisos, descarga como ZIP, y gestión de accesos.
+    
+    Endpoints principales:
+        GET    /api/folders/                     - Lista carpetas del usuario
+        POST   /api/folders/                     - Crea una nueva carpeta
+        GET    /api/folders/{id}/                - Obtiene una carpeta específica
+        PUT    /api/folders/{id}/                - Actualiza una carpeta
+        PATCH  /api/folders/{id}/                - Actualiza parcialmente
+        DELETE /api/folders/{id}/                - Elimina una carpeta
+    
+    Acciones personalizadas:
+        GET    /api/folders/{id}/download/       - Descarga como ZIP
+        POST   /api/folders/{id}/mark_contents_viewed/ - Marca contenido como visto
+        GET    /api/folders/{id}/access/         - Lista permisos de acceso
+        POST   /api/folders/{id}/access/         - Otorga acceso a usuario
+        DELETE /api/folders/{id}/access/{user_id}/ - Revoca acceso
+        DELETE /api/folders/{id}/delete_folder/  - Elimina recursivamente
+    
+    Parámetros de query (GET lista):
+        scope: 'mine' (propias), 'shared' (compartidas), 'sent' (enviadas)
+        parent: ID de carpeta padre o 'null' para raíz
+    
+    Sistema de permisos:
+        - 'edit': Puede modificar, eliminar, gestionar accesos
+        - 'read': Solo puede ver y descargar
+        - El propietario siempre tiene permisos 'edit'
+        - Los permisos se heredan a subcarpetas y archivos
+    
+    Herencia de propiedad:
+        Al crear una carpeta dentro de otra compartida, el propietario
+        es el dueño de la carpeta padre, no el creador.
+    """
     serializer_class = FolderSerializer
     permission_classes = [permissions.IsAuthenticated]
     parser_classes = (MultiPartParser, FormParser, JSONParser)
     pagination_class = None  # Deshabilitar paginación para mostrar todas las carpetas
 
     def get_queryset(self):
+        """
+        Obtiene el queryset de carpetas accesibles para el usuario actual.
+        
+        Filtra las carpetas según:
+        1. El usuario es propietario
+        2. El usuario tiene acceso concedido
+        
+        Aplica filtros adicionales según el parámetro 'scope':
+        - 'mine': Carpetas propias (default)
+        - 'shared': Carpetas compartidas con el usuario
+        - 'sent': No aplica a carpetas (retorna vacío)
+        
+        Optimizaciones:
+        - Prefetch de archivos no vistos para has_new_content
+        - Select_related para owner y uploader
+        - Prefetch de access_list
+        
+        Retorna:
+            QuerySet: Carpetas filtradas y optimizadas
+        """
         user = self.request.user
         from django.db.models import Prefetch
         
@@ -491,12 +580,85 @@ class FolderViewSet(viewsets.ModelViewSet):
             )
 
 class FileTransferViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet para la gestión de archivos en el sistema de transferencias.
+    
+    Proporciona operaciones CRUD completas para archivos, incluyendo
+    subida con escaneo de seguridad, descarga con streaming, y thumbnails.
+    
+    Endpoints principales:
+        GET    /api/files/                    - Lista archivos del usuario
+        POST   /api/files/                    - Sube un nuevo archivo
+        GET    /api/files/{id}/               - Obtiene metadatos de un archivo
+        PUT    /api/files/{id}/               - Actualiza un archivo
+        PATCH  /api/files/{id}/               - Actualiza parcialmente (ej: renombrar)
+        DELETE /api/files/{id}/               - Elimina un archivo
+    
+    Acciones personalizadas:
+        GET    /api/files/{id}/download/      - Descarga el archivo
+        GET    /api/files/{id}/thumbnail/     - Obtiene miniatura (imágenes/videos)
+        GET    /api/files/{id}/check_archive/ - Verifica ejecutables en archivos comprimidos
+        POST   /api/files/{id}/mark_viewed/   - Marca como visto
+        DELETE /api/files/{id}/delete_file/   - Elimina archivo y fichero físico
+        GET    /api/files/{id}/access/        - Lista permisos de acceso
+        POST   /api/files/{id}/access/        - Otorga acceso a usuario
+        DELETE /api/files/{id}/access/{user_id}/ - Revoca acceso
+    
+    Parámetros de query (GET lista):
+        scope: 'all' (todos), 'shared' (compartidos), 'sent' (enviados al usuario)
+        folder: ID de carpeta o 'null' para archivos en raíz
+    
+    Campos del modelo:
+        - file: Archivo físico (subida multipart)
+        - filename: Nombre original del archivo
+        - size: Tamaño en bytes (calculado automáticamente)
+        - description: Descripción opcional
+        - folder: Carpeta contenedora (opcional)
+        - owner: Usuario propietario
+        - uploader: Usuario que subió el archivo
+        - thumbnail: Miniatura generada (imágenes/videos)
+        - is_viewed: Indica si el dueño ha visto el archivo
+        - is_downloaded: Indica si ha sido descargado
+    
+    Seguridad en subida:
+        1. Validación de extensión y tamaño
+        2. Rate limiting según tamaño de archivo
+        3. Escaneo de malware (ClamAV si disponible)
+        4. Detección de ejecutables en archivos comprimidos
+    
+    Generación de thumbnails:
+        - Automática para imágenes (JPEG, PNG, GIF, WebP, etc.)
+        - Automática para videos (requiere ffmpeg)
+        - Generación lazy si no existe al solicitar /thumbnail/
+    
+    Sistema de permisos:
+        - 'edit': Puede modificar, eliminar, gestionar accesos
+        - 'read': Solo puede ver y descargar
+        - Herencia de permisos de carpeta padre
+    """
     serializer_class = FileTransferSerializer
     permission_classes = [permissions.IsAuthenticated]
     parser_classes = (MultiPartParser, FormParser, JSONParser)
     pagination_class = None  # Deshabilitar paginación para mostrar todos los archivos
 
     def get_queryset(self):
+        """
+        Obtiene el queryset de archivos accesibles para el usuario actual.
+        
+        Filtra los archivos donde el usuario:
+        1. Es propietario (owner)
+        2. Es quien lo subió (uploader)
+        3. Tiene acceso directo al archivo
+        4. Tiene acceso a la carpeta contenedora
+        
+        Optimizaciones:
+            - Prefetch de access_list
+            - Ordenamiento por fecha de creación descendente
+            - Distinct para evitar duplicados por múltiples accesos
+        
+        Retorna:
+            QuerySet: Archivos filtrados y ordenados
+        """
         user = self.request.user
         if not user.is_authenticated:
             return FileTransfer.objects.none()
@@ -509,7 +671,20 @@ class FileTransferViewSet(viewsets.ModelViewSet):
         ).prefetch_related('access_list').order_by('-created_at').distinct()
 
     def update(self, request, *args, **kwargs):
-        """Override update to check permissions for renaming files"""
+        """
+        Actualiza un archivo (requiere permisos de edición).
+        
+        Verifica que el usuario tenga permiso 'edit' antes de
+        permitir la actualización del archivo.
+        
+        Args:
+            request: Petición HTTP con los datos a actualizar
+            *args: Argumentos posicionales
+            **kwargs: Debe incluir 'pk' del archivo
+        
+        Retorna:
+            Response: Archivo actualizado o error 403 si no tiene permisos
+        """
         instance = self.get_object()
         
         # Check if user has edit permission
