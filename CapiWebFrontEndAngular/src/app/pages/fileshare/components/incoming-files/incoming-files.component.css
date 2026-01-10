@@ -9,3 +9,13 @@
     display: block;
     height: 100%;
 }
+
+/* Search Result Item - Force border visibility to override global button resets */
+.search-result-item {
+    border-bottom: 1px solid #4b5563 !important;
+    /* gray-600 */
+}
+
+.search-result-item:last-child {
+    border-bottom: none !important;
+}

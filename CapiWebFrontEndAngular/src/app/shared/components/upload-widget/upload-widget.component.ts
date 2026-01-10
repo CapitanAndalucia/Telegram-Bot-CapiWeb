@@ -11,7 +11,7 @@ import { UploadService, UploadState, UploadTask } from '../../services/upload.se
     CommonModule
   ],
   template: `
-    <div *ngIf="uploadState && uploadState.isVisible && uploadState.totalFiles > 0" class="upload-widget" [class.expanded]="isExpanded" [class.collapsed]="!isExpanded" [class.hiding]="isHiding">
+    <div *ngIf="uploadState && uploadState.isVisible && uploadState.totalFiles > 0" class="upload-widget bg-gd-card border border-gd-border shadow-gd-menu text-gd-text" [class.expanded]="isExpanded" [class.collapsed]="!isExpanded" [class.hiding]="isHiding">
       <!-- Header principal -->
       <div class="widget-header" (click)="toggleExpanded()">
         <div class="progress-circle">
@@ -89,12 +89,11 @@ import { UploadService, UploadState, UploadTask } from '../../services/upload.se
       position: fixed;
       bottom: 20px;
       right: 20px;
-      background: rgba(20, 20, 25, 0.95);
-      backdrop-filter: blur(20px);
+      /* background: handled by tailwind bg-gd-card */
+      /* border: handled by tailwind border-gd-border */
       border-radius: 12px;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      color: white;
+      /* box-shadow: handled by tailwind shadow-gd-menu */
+      /* color: handled by tailwind text-gd-text */
       min-width: 320px;
       max-width: 400px;
       z-index: 9999;
@@ -135,19 +134,19 @@ import { UploadService, UploadState, UploadTask } from '../../services/upload.se
     }
 
     .progress-ring-progress {
-      stroke: #00f2ff;
+      stroke: #8ab4f8; /* gd-blue */
       stroke-linecap: round;
       transition: stroke-dashoffset 0.3s ease;
     }
 
     .progress-text {
       position: absolute;
-      top: 43%;
+      top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
       font-size: 10px;
       font-weight: 600;
-      color: #00f2ff;
+      color: #8ab4f8; /* gd-blue */
     }
 
     .header-info {
@@ -162,7 +161,7 @@ import { UploadService, UploadState, UploadTask } from '../../services/upload.se
 
     .subtitle {
       font-size: 12px;
-      color: rgba(255, 255, 255, 0.7);
+      color: #9aa0a6; /* gd-text-secondary */
     }
 
     .error-count {
@@ -226,7 +225,7 @@ import { UploadService, UploadState, UploadTask } from '../../services/upload.se
 
     .progress-fill {
       height: 100%;
-      background: #00f2ff;
+      background: #8ab4f8; /* gd-blue */
       border-radius: 2px;
       transition: width 0.3s ease;
     }
@@ -250,7 +249,7 @@ import { UploadService, UploadState, UploadTask } from '../../services/upload.se
     }
 
     .error {
-      color: #ff4444;
+      color: #ea4335;
     }
 
     .close-btn {
@@ -312,7 +311,7 @@ export class UploadWidgetComponent implements OnInit, OnDestroy {
   uploadState: UploadState | null = null;
   isExpanded = false;
   isHiding = false;
-  
+
   private destroy$ = new Subject<void>();
   circumference = 2 * Math.PI * 18; // 2πr donde r=18
 
@@ -344,7 +343,7 @@ export class UploadWidgetComponent implements OnInit, OnDestroy {
   closeWidget(): void {
     // Iniciar animación de desvanecimiento
     this.isHiding = true;
-    
+
     // Esperar a que termine la animación antes de ocultar
     setTimeout(() => {
       this.uploadService.hideUploadWidget();

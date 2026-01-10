@@ -115,6 +115,13 @@ export class FileshareComponent implements OnInit {
     try {
       const userData = await this.apiClient.checkAuth();
       if (userData && userData.username) {
+        // Cache bust profile picture
+        if (userData.profile_picture_url) {
+          const timestamp = new Date().getTime();
+          // Ensure we don't append multiple timestamps if one already exists (though unlikely from backend)
+          const baseUrl = userData.profile_picture_url.split('?')[0];
+          userData.profile_picture_url = `${baseUrl}?t=${timestamp}`;
+        }
         this.user.set(userData);
       }
     } catch (error) {
@@ -183,5 +190,16 @@ export class FileshareComponent implements OnInit {
 
   onRecipientChange(recipient: string): void {
     this.selectedRecipient.set(recipient);
+  }
+
+  // Header visibility logic
+  isHeaderVisible = signal(true);
+
+  handleScroll(direction: 'up' | 'down'): void {
+    if (direction === 'down') {
+      this.isHeaderVisible.set(false);
+    } else {
+      this.isHeaderVisible.set(true);
+    }
   }
 }

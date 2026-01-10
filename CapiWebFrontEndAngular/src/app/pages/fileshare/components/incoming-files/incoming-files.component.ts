@@ -1,4 +1,4 @@
-import { Component, signal, computed, effect, inject, ChangeDetectorRef, HostListener, OnInit, input, output, untracked, OnDestroy, ViewChild, ElementRef } from '@angular/core';
+import { Component, signal, computed, effect, inject, ChangeDetectorRef, HostListener, OnInit, input, untracked, OnDestroy, ViewChild, ElementRef, Output, EventEmitter } from '@angular/core';
 import { UploadService } from '../../../../shared/services/upload.service';
 import { DownloadService } from '../../../../shared/services/download.service';
 import { CommonModule } from '@angular/common';
@@ -54,7 +54,7 @@ import { LazyLoadImageDirective } from '../../../../shared/directives/lazy-load-
     selector: 'app-incoming-files',
     imports: [CommonModule, FilePreviewModalComponent, ShareModalComponent, MatDialogModule, LazyLoadImageDirective],
     templateUrl: './incoming-files.component.html',
-    styleUrls: ['../../fileshare.component.css'],
+    styleUrls: ['../../fileshare.component.css', './incoming-files.component.css'],
     styles: [`
         :host {
             position: relative;
@@ -106,8 +106,9 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
     initialPreviewFileId = input<number | null>(null);
 
     // Outputs
-    unreadCountChange = output<number>();
-    openUpload = output<void>();
+    @Output() unreadCountChange = new EventEmitter<number>();
+    @Output() openUpload = new EventEmitter<void>();
+    @Output() scrollDirection = new EventEmitter<'up' | 'down'>(); // New output
 
     // Mobile FAB state
     mobileFabOpen = signal(false);
@@ -128,6 +129,41 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
     // Computed signal combining folders and files for easier searching/iteration
     items = computed(() => [...this.folders(), ...this.files()]);
     breadcrumbs = signal<Breadcrumb[]>([{ id: null, name: 'Mi unidad', folder: null }]);
+
+    displayBreadcrumbs = computed(() => {
+        const raw = this.breadcrumbs();
+        const mobile = this.isMobile();
+        const limit = mobile ? 3 : 5; // Truncate threshold
+
+        const display = [];
+
+        // Always show Root
+        if (raw.length > 0) {
+            display.push({ data: raw[0], index: 0, type: 'root' });
+        }
+
+        if (raw.length <= limit) {
+            // Show all intermediate items
+            for (let i = 1; i < raw.length; i++) {
+                display.push({ data: raw[i], index: i, type: 'normal' });
+            }
+        } else {
+            // Truncate logic
+            display.push({ data: null, index: -1, type: 'ellipsis' });
+
+            // Keep closest folders
+            const keepCount = mobile ? 2 : 3;
+            const startIndex = raw.length - keepCount;
+
+            // Ensure startIndex > 0 (don't duplicate root)
+            const safeStart = Math.max(1, startIndex);
+
+            for (let i = safeStart; i < raw.length; i++) {
+                display.push({ data: raw[i], index: i, type: 'normal' });
+            }
+        }
+        return display;
+    });
 
     // UI state signals
     loading = signal(true);
@@ -160,14 +196,39 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
     shareModalType = signal<'file' | 'folder'>('file');
 
     // Selection mode signals
+
     isSelectionMode = signal(false);
     bulkSelectionActive = signal(false);
     selectedFileIds = signal<Set<number>>(new Set());
     selectedFolderIds = signal<Set<number>>(new Set());
 
+    // Long Press logic
+    private longPressTimer: any;
+    private animationTimer: any;
+    pressingItemId = signal<string | null>(null); // 'folder-123' or 'file-456'
+
+
+
     // Search signals
     searchTerm = signal<string>('');
     showSearchResults = signal<boolean>(false);
+    isSearchExpanded = signal<boolean>(false);
+
+    toggleSearch(): void {
+        this.isSearchExpanded.update(v => !v);
+        if (this.isSearchExpanded()) {
+            setTimeout(() => {
+                const input = document.querySelector('input[placeholder="Buscar archivos y carpetas..."]') as HTMLInputElement;
+                if (input) input.focus();
+            });
+        }
+    }
+
+    // Drag and Drop
+    private dragDragEnterCount = 0;
+
+    // Scroll handling
+    private lastScrollTop = 0;
 
     // Touch handling
     private touchStartX = 0;
@@ -178,8 +239,10 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
     private touchTimer: any = null;
     private preSelectionTimer: any = null;
     private longPressActive = false;
+    private ignoreNextClick = false;
+
     private dragPreviewElement: HTMLElement | null = null;
-    pressingItemId = signal<number | null>(null);
+
     // Helper to detect if the touch started on an options button
     private touchStartedOnOptions = false;
     // Touch-drag emulation state
@@ -1179,229 +1242,7 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
         return !!this.contextMenu() || this.mobileFabOpen();
     }
 
-    /**
-     * Maneja el inicio de un touch en un archivo o carpeta.
-     * Inicia temporizadores para long-press (selección) y emulación de drag.
-     * 
-     * @description Detecta si el touch comenzó en el botón de opciones e ignora en ese caso.
-     * En modo selección, permite toggle rápido. Usa un delay de pre-selección para evitar
-     * conflictos con el scroll.
-     * 
-     * @llamadoPor Template (evento touchstart en items)
-     * @cuando El usuario toca un archivo o carpeta en móvil
-     * @param event - El evento de touch
-     * @param type - Tipo de item: 'file' o 'folder'
-     * @param item - El item tocado
-     */
-    handleItemTouchStart(event: TouchEvent, type?: 'file' | 'folder', item?: any): void {
-        // If type and item are not provided, we can't proceed with selection logic
-        if (type === undefined || item === undefined) {
-            return;
-        }
 
-        // Detect if the touch started on the options button; if so, don't trigger preview/select logic
-        const targetEl = event.target as HTMLElement | null;
-        this.touchStartedOnOptions = !!(targetEl && targetEl.closest && targetEl.closest('.optionsBtn'));
-        if (this.touchStartedOnOptions) {
-            // Let the native click on the options button run; don't start timers or selection.
-            return;
-        }
-
-        // If in selection mode, toggle immediately (quick select)
-        if (this.isSelectionMode()) {
-            // We still track touch start to distinguish from scroll, but no long press needed for subsequent items
-            // Actually, the click handler usually handles this, but touchstart + click can be tricky.
-            // We'll let the click handler or short-tap logic handle the toggle to avoid double-toggling.
-            // Just record start time/pos for movement detection.
-            this.touchStartX = event.touches[0].clientX;
-            this.touchStartY = event.touches[0].clientY;
-            this.touchStartTime = Date.now();
-            return;
-        }
-
-        this.touchStartX = event.touches[0].clientX;
-        this.touchStartY = event.touches[0].clientY;
-        this.touchStartTime = Date.now();
-        this.longPressActive = false;
-
-        // Clear any previous timers
-        if (this.preSelectionTimer) clearTimeout(this.preSelectionTimer);
-        if (this.touchTimer) clearTimeout(this.touchTimer);
-
-        // Start pre-selection timer (500ms dead zone)
-        this.preSelectionTimer = setTimeout(() => {
-            // Once pre-delay is over, show visual feedback and start the actual selection timer
-            if (item && item.id) {
-                this.pressingItemId.set(Number(item.id));
-            }
-
-            this.touchTimer = setTimeout(() => {
-                this.longPressActive = true;
-                this.pressingItemId.set(null); // Animation done
-                this.toggleItemSelection(type, item);
-                // Optional: Vibrate if supported
-                if (navigator && navigator.vibrate) navigator.vibrate(50);
-            }, this.TOUCH_DELAY);
-        }, this.PRE_SELECTION_DELAY);
-
-        // mark a candidate for touch-drag emulation (files and folders)
-        if ((type === 'file' || type === 'folder') && item) {
-            this.touchDraggingItem = item as any;
-            this.touchDragActive = false;
-        }
-    }
-
-    /**
-     * Maneja el fin de un touch en un archivo o carpeta.
-     * Detecta tap corto para vista previa/navegación, o completa una operación drag/drop.
-     * 
-     * @description Limpia timers de long-press, maneja navegación de carpetas con tap corto,
-     * abre vista previa de archivos, y procesa drops de touch-drag emulado.
-     * 
-     * @llamadoPor Template (evento touchend en items)
-     * @cuando El usuario levanta el dedo de un archivo o carpeta en móvil
-     * @param event - El evento de touch
-     * @param type - Tipo de item: 'file' o 'folder'
-     * @param item - El item donde terminó el touch
-     * @returns Promise que se resuelve tras completar la acción
-     */
-    async handleItemTouchEnd(event: TouchEvent, type: 'file' | 'folder', item: any): Promise<void> {
-        if (this.preSelectionTimer) {
-            clearTimeout(this.preSelectionTimer);
-            this.preSelectionTimer = null;
-        }
-        if (this.touchTimer) {
-            clearTimeout(this.touchTimer);
-            this.touchTimer = null;
-        }
-        this.pressingItemId.set(null);
-
-        // Si hay un menú contextual abierto, no hacer nada
-        if (this.contextMenu()) {
-            this.touchStartedOnOptions = false;
-            return;
-        }
-
-        // If the touch started on an options button, don't trigger previews or navigation here.
-        if (this.touchStartedOnOptions) {
-            this.touchStartedOnOptions = false;
-            return;
-        }
-
-        // Check if touch target is the selection checkbox
-        const targetEl = event.target as HTMLElement;
-        if (targetEl && targetEl.closest && targetEl.closest('.selectionCheckbox')) {
-            this.toggleItemSelection(type, item);
-            event.preventDefault();
-            return;
-        }
-
-        if (this.longPressActive) {
-            this.longPressActive = false;
-            // cleanup any touch-drag remnants
-            this.removeTouchPreview();
-            this.touchDragActive = false;
-            this.touchDraggingItem = null;
-            this.isDragging.set(false);
-            this.hoveredFolderId.set(null);
-            this.currentDraggedFolderId = null;
-            return;
-        }
-
-        // If a touch-drag emulation was active, handle drop logic
-        if (this.touchDragActive && this.touchDraggingItem) {
-            // determine hovered folder id
-            const targetFolderId = this.hoveredFolderId();
-            const itemId = Number((this.touchDraggingItem as any).id);
-            const isFile = !!(this.touchDraggingItem as any).filename;
-            this.removeTouchPreview();
-            this.touchDragActive = false;
-            const dragged = this.touchDraggingItem;
-            this.touchDraggingItem = null;
-            this.isDragging.set(false);
-            this.currentDraggedFolderId = null;
-            if (targetFolderId != null) {
-                if (isFile) {
-                    void this.apiClient.moveFileToFolder(itemId, targetFolderId)
-                        .then(() => {
-                            this.toastr.success('Movido correctamente');
-                            void this.refreshContent();
-                        })
-                        .catch(() => this.toastr.error('Error al mover archivo'));
-                } else {
-                    void this.apiClient.moveFolderToFolder(itemId, targetFolderId)
-                        .then(() => {
-                            this.toastr.success('Carpeta movida correctamente');
-                            void this.refreshContent();
-                        })
-                        .catch(() => this.toastr.error('Error al mover carpeta'));
-                }
-                return;
-            }
-        }
-
-        if (this.isSelectionMode()) {
-            event.preventDefault();
-            this.toggleItemSelection(type, item);
-            // ensure no drag UI remains
-            this.removeTouchPreview();
-            this.touchDragActive = false;
-            this.touchDraggingItem = null;
-            this.isDragging.set(false);
-            this.hoveredFolderId.set(null);
-            return;
-        }
-
-        const touchEndTime = Date.now();
-        const touchDuration = touchEndTime - this.touchStartTime;
-
-        if (touchDuration < this.TOUCH_DELAY && !this.hasSignificantMovement(event)) {
-            // Prevent subsequent click events and stop propagation immediately
-            try { event.preventDefault(); } catch (e) { }
-            try { event.stopPropagation(); } catch (e) { }
-
-            if (type === 'folder') {
-                await this.navigateToFolder(item as Folder);
-            } else {
-                this.openFilePreview(item as FileItem);
-            }
-
-            // cleanup drag state after navigation/preview
-            this.removeTouchPreview();
-            this.touchDragActive = false;
-            this.touchDraggingItem = null;
-            this.isDragging.set(false);
-            this.hoveredFolderId.set(null);
-            return;
-        }
-
-        // cleanup drag state in case no short-tap occurred
-        event.preventDefault();
-        this.removeTouchPreview();
-        this.touchDragActive = false;
-        this.touchDraggingItem = null;
-        this.isDragging.set(false);
-        this.hoveredFolderId.set(null);
-    }
-
-    /**
-     * Verifica si hubo movimiento significativo durante un touch.
-     * Se usa para distinguir taps de scrolls o drags.
-     * 
-     * @llamadoPor handleItemTouchEnd
-     * @cuando Se necesita determinar si un touch fue un tap limpio
-     * @param event - El evento de touch
-     * @returns true si el movimiento excede 15px en cualquier dirección
-     */
-    private hasSignificantMovement(event: TouchEvent): boolean {
-        if (!event.changedTouches || event.changedTouches.length === 0) return false;
-
-        const touch = event.changedTouches[0];
-        const deltaX = Math.abs(touch.clientX - this.touchStartX);
-        const deltaY = Math.abs(touch.clientY - this.touchStartY);
-
-        return deltaX > 15 || deltaY > 15;
-    }
 
     /**
      * Abre la vista previa de un archivo.
@@ -1436,7 +1277,24 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
             return;
         }
 
-        if (this.isMobile()) return;
+        if (this.isMobile()) {
+            if (this.ignoreNextClick) {
+                this.ignoreNextClick = false;
+                return;
+            }
+
+            if (this.isSelectionMode()) {
+                this.toggleItemSelection(type, item);
+                return;
+            }
+
+            if (type === 'folder') {
+                this.navigateToFolder(item as Folder).catch(err => console.error('navigate error', err));
+            } else {
+                this.openPreview(item as FileItem);
+            }
+            return;
+        }
 
         const detail = (event as MouseEvent).detail || 1;
         if (detail === 2 && type === 'folder') {
@@ -1450,6 +1308,72 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
             this.clearSelection();
             this.toggleItemSelection(type, item);
         }
+    }
+
+    /**
+     * Mobile Long Press Handling
+     */
+    /**
+     * Scroll Handler
+     */
+    onScroll(event: Event): void {
+        const target = event.target as HTMLElement;
+        const currentScrollTop = target.scrollTop;
+        const maxScroll = target.scrollHeight - target.clientHeight;
+
+        // Ignore negative scroll (bounce at top) or scroll near bottom (bounce at bottom)
+        if (currentScrollTop < 0) return;
+        if (currentScrollTop > maxScroll - 100) return; // Buffer area to prevent bottom bounce toggle
+
+        if (Math.abs(currentScrollTop - this.lastScrollTop) < 10) return;
+
+        if (currentScrollTop > this.lastScrollTop && currentScrollTop > 50) {
+            // Scrolling down & past top
+            this.scrollDirection.emit('down');
+        } else if (currentScrollTop < this.lastScrollTop) {
+            // Scrolling up
+            this.scrollDirection.emit('up');
+        }
+
+        this.lastScrollTop = currentScrollTop;
+    }
+
+    handleTouchStart(item: Folder | FileItem, type: 'folder' | 'file'): void {
+        this.ignoreNextClick = false;
+        if (!this.isMobile() || this.isSelectionMode()) return;
+
+        const itemId = `${type}-${item.id}`;
+
+        // 1. Iniciar timer de 300ms antes de mostrar animación
+        this.longPressTimer = setTimeout(() => {
+            this.ignoreNextClick = true;
+            this.pressingItemId.set(itemId); // Esto activa la animación en el template
+
+            // 2. Iniciar timer de 0.85s para confirmar selección (total 1.15s pulsando)
+            this.animationTimer = setTimeout(() => {
+                this.toggleItemSelection(type, item);
+                this.cancelLongPress(); // Resetear estado visual
+                // Vibración háptica si está disponible
+                if (navigator.vibrate) navigator.vibrate(150);
+            }, 850);
+
+        }, 300);
+    }
+
+    handleTouchEnd(): void {
+        this.cancelLongPress();
+    }
+
+    private cancelLongPress(): void {
+        if (this.longPressTimer) {
+            clearTimeout(this.longPressTimer);
+            this.longPressTimer = null;
+        }
+        if (this.animationTimer) {
+            clearTimeout(this.animationTimer);
+            this.animationTimer = null;
+        }
+        this.pressingItemId.set(null);
     }
 
     /**
@@ -1812,7 +1736,7 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
     }
 
     handleFolderDragOver(event: DragEvent, folder: Folder): void {
-        if (!this.isInternalFileDrag(event)) return;
+        if (!this.isInternalFileDrag(event) && !this.isExternalDrag(event)) return;
         // If dragging a folder, don't mark the same folder as a drop target
         try {
             const folderDragData = event.dataTransfer?.getData('application/x-folder');
@@ -1830,10 +1754,13 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
         if (event.dataTransfer) {
             event.dataTransfer.dropEffect = 'move';
         }
+        // Don't modify hoveredFolderId repeatedly if already set to this folder
         if (this.hoveredFolderId() !== folder.id) {
             this.hoveredFolderId.set(folder.id);
         }
     }
+
+
 
     // Touch move - emulate drag on touch devices
     handleTouchMove(event: TouchEvent, type: 'file' | 'folder', item: any): void {
@@ -3205,3 +3132,5 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
         }
     }
 }
+// PROVISIONAL: Will be properly integrated in the class body via replace_file_content
+// Only testing commands availablity

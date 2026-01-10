@@ -1204,19 +1204,40 @@ app-user-icon .edit-modal {
 .cdk-overlay-pane {
     z-index: 100000 !important;
 }
+
 /* Utility to hide scrollbar */
 .no-scrollbar::-webkit-scrollbar {
     display: none;
 }
+
 .no-scrollbar {
-    -ms-overflow-style: none;  /* IE and Edge */
-    scrollbar-width: none;  /* Firefox */
+    -ms-overflow-style: none;
+    /* IE and Edge */
+    scrollbar-width: none;
+    /* Firefox */
 }
 
 /* Force high z-index for overlays to ensure visibility on mobile */
 .cdk-overlay-container {
     z-index: 10000 !important;
 }
+
 .cdk-global-overlay-wrapper {
     z-index: 10000 !important;
+}
+
+@keyframes fill-circle {
+    0% {
+        transform: scale(0);
+        opacity: 0.6;
+    }
+
+    100% {
+        transform: scale(3);
+        opacity: 0.3;
+    }
+}
+
+.animate-fill-circle {
+    animation: fill-circle 0.5s ease-out forwards;
 }

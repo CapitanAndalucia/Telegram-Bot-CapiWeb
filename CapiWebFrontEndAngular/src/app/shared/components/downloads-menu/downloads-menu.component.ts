@@ -298,11 +298,11 @@ import { takeUntil } from 'rxjs/operators';
     @media (max-width: 768px) {
       .download-widget {
         bottom: 80px; /* Stack above bottom nav/actions if any */
-        left: 10px;
-        right: auto;
+        left: 16px;
+        right: 16px;
         min-width: auto;
-        width: calc(100% - 20px);
-        max-width: 350px;
+        width: auto;
+        max-width: none;
       }
     }
   `]

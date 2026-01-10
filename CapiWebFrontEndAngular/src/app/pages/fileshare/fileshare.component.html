@@ -90,7 +90,12 @@
     <!-- Main Content -->
     <div class="flex-1 flex flex-col min-w-0 overflow-hidden bg-gd-bg">
         <!-- Header -->
-        <header class="flex items-center justify-between px-4 py-2 border-b border-gd-border">
+        <header
+            class="flex items-center justify-between px-4 py-2 border-b border-gd-border transition-all duration-300 md:flex overflow-hidden md:overflow-visible"
+            [class.max-h-24]="isHeaderVisible()" [class.max-h-0]="!isHeaderVisible()"
+            [class.opacity-100]="isHeaderVisible()" [class.opacity-0]="!isHeaderVisible()"
+            [class.py-2]="isHeaderVisible()" [class.py-0]="!isHeaderVisible()" [class.border-b]="isHeaderVisible()"
+            [class.border-none]="!isHeaderVisible()">
             <button class="lg:hidden p-2 rounded-full hover:bg-gd-hover transition-colors" (click)="toggleSidebar()">
                 <svg class="w-6 h-6 text-gd-text-secondary" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z" />
@@ -132,11 +137,17 @@
             <app-incoming-files [user]="user()" [refreshTrigger]="refreshTrigger()" [scope]="activeScope()"
                 [forceResetCount]="forceResetCount()" [sharedLinkToken]="sharedLinkToken()"
                 [sharedLinkData]="sharedLinkData()" (unreadCountChange)="onUnreadCountChange($event)"
-                (openUpload)="setActiveTab('upload')"></app-incoming-files>
+                (openUpload)="setActiveTab('upload')" (scrollDirection)="handleScroll($event)"></app-incoming-files>
         </div>
         } @else {
         <!-- Tabs -->
-        <div class="flex gap-1 px-4 py-2 border-b border-gd-border">
+        <!-- Tabs -->
+        <!-- Tabs -->
+        <div class="flex justify-center gap-1 px-4 py-2 border-b border-gd-border transition-all duration-300 md:flex overflow-hidden md:overflow-visible"
+            [class.max-h-24]="isHeaderVisible()" [class.max-h-0]="!isHeaderVisible()"
+            [class.opacity-100]="isHeaderVisible()" [class.opacity-0]="!isHeaderVisible()"
+            [class.py-2]="isHeaderVisible()" [class.py-0]="!isHeaderVisible()" [class.border-b]="isHeaderVisible()"
+            [class.border-none]="!isHeaderVisible()">
             <button class="px-4 py-2 text-sm font-medium rounded-full transition-colors relative"
                 [class.bg-gd-selected]="activeTab() === 'files'" [class.text-gd-blue]="activeTab() === 'files'"
                 [class.text-gd-text-secondary]="activeTab() !== 'files'"
@@ -160,7 +171,7 @@
             <app-incoming-files [user]="user()" [refreshTrigger]="refreshTrigger()" [scope]="activeScope()"
                 [forceResetCount]="forceResetCount()" [initialFolderId]="sharedFolderId()"
                 [initialPreviewFileId]="sharedPreviewFileId()" (unreadCountChange)="onUnreadCountChange($event)"
-                (openUpload)="setActiveTab('upload')"></app-incoming-files>
+                (openUpload)="setActiveTab('upload')" (scrollDirection)="handleScroll($event)"></app-incoming-files>
             }
             @if (activeTab() === 'upload') {
             <app-file-upload [user]="user()" [selectedRecipient]="selectedRecipient()"

@@ -166,6 +166,7 @@ export class ProfilePhotoEditorComponent implements AfterViewInit {
 
     // Pan/Drag handlers
     onMouseDown(event: MouseEvent): void {
+
         this.isDragging = true;
         this.dragStartX = event.clientX;
         this.dragStartY = event.clientY;
@@ -177,8 +178,13 @@ export class ProfilePhotoEditorComponent implements AfterViewInit {
     onMouseMove(event: MouseEvent): void {
         if (!this.isDragging) return;
 
-        const dx = event.clientX - this.dragStartX;
-        const dy = event.clientY - this.dragStartY;
+        const canvas = this.canvasRef.nativeElement;
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+
+        const dx = (event.clientX - this.dragStartX) * scaleX;
+        const dy = (event.clientY - this.dragStartY) * scaleY;
 
         // Adjust for rotation
         const angle = (-this.rotation() * Math.PI) / 180;
@@ -190,6 +196,7 @@ export class ProfilePhotoEditorComponent implements AfterViewInit {
 
         // Clamp to keep image within circle
         const clamped = this.clampOffset(newX, newY);
+
         this.offsetX.set(clamped.x);
         this.offsetY.set(clamped.y);
         this.render();
@@ -216,6 +223,7 @@ export class ProfilePhotoEditorComponent implements AfterViewInit {
     }
 
     onMouseUp(): void {
+
         this.isDragging = false;
     }
 
@@ -239,9 +247,14 @@ export class ProfilePhotoEditorComponent implements AfterViewInit {
     onTouchMove(event: TouchEvent): void {
         if (!this.isDragging || event.touches.length !== 1) return;
 
+        const canvas = this.canvasRef.nativeElement;
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+
         const touch = event.touches[0];
-        const dx = touch.clientX - this.dragStartX;
-        const dy = touch.clientY - this.dragStartY;
+        const dx = (touch.clientX - this.dragStartX) * scaleX;
+        const dy = (touch.clientY - this.dragStartY) * scaleY;
 
         const angle = (-this.rotation() * Math.PI) / 180;
         const rotatedDx = dx * Math.cos(angle) - dy * Math.sin(angle);

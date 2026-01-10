@@ -1,36 +1,84 @@
-<div class="photo-editor-backdrop">
-    <div class="photo-editor-container">
-        <div class="editor-header">
-            <button class="back-btn" (click)="onCancel()">←</button>
-            <h3>Editar foto de perfil</h3>
-            <button class="apply-btn" (click)="onApply()">Aplicar</button>
+<div class="fixed inset-0 bg-black/95 z-[20000] flex items-center justify-center backdrop-blur-sm">
+    <div
+        class="bg-gd-card w-[90%] max-w-[400px] rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh] border border-gd-border">
+        <!-- Header -->
+        <div
+            class="flex items-center justify-between px-5 py-4 border-b border-gd-border bg-gd-bg-elevated/50 backdrop-blur">
+            <button
+                class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gd-hover text-gd-text transition-colors"
+                (click)="onCancel()" title="Volver">
+                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+            </button>
+            <h3 class="text-lg font-medium text-gd-text m-0">Editar foto de perfil</h3>
+            <button
+                class="px-5 py-2 rounded-full bg-gd-blue text-gd-bg font-medium text-sm hover:bg-gd-blue-hover transition-colors shadow-lg shadow-black/20"
+                (click)="onApply()">
+                Aplicar
+            </button>
         </div>
 
-        <div class="canvas-area" #container>
-            <canvas #canvas (mousedown)="onMouseDown($event)" (mousemove)="onMouseMove($event)" (mouseup)="onMouseUp()"
-                (mouseleave)="onMouseLeave()" (touchstart)="onTouchStart($event)" (touchmove)="onTouchMove($event)"
+        <!-- Canvas Area -->
+        <div class="flex-1 bg-[#0a0a0a] flex items-center justify-center p-6 relative overflow-hidden" #container>
+            <!-- Grid pattern background -->
+            <div class="absolute inset-0 opacity-10 pointer-events-none"
+                style="background-image: radial-gradient(#333 1px, transparent 1px); background-size: 20px 20px;">
+            </div>
+
+            <canvas #canvas
+                class="rounded-lg cursor-move touch-none shadow-2xl ring-1 ring-white/10 max-w-full max-h-full"
+                (mousedown)="onMouseDown($event)" (window:mousemove)="onMouseMove($event)"
+                (window:mouseup)="onMouseUp()" (touchstart)="onTouchStart($event)" (touchmove)="onTouchMove($event)"
                 (touchend)="onTouchEnd()">
             </canvas>
         </div>
 
-        <div class="controls">
-            <div class="zoom-control">
-                <button class="control-btn" (click)="onZoomChange(zoom() - 0.1)">
-                    <span class="icon">🔍−</span>
+        <!-- Controls -->
+        <div class="p-5 border-t border-gd-border bg-gd-bg-elevated/30 flex flex-col gap-6">
+
+            <!-- Zoom Control -->
+            <div class="flex items-center gap-4">
+                <button
+                    class="w-10 h-10 flex items-center justify-center rounded-lg bg-gd-bg-elevated border border-gd-border text-gd-text hover:bg-gd-hover transition-colors"
+                    (click)="onZoomChange(zoom() - 0.1)">
+                    <span class="text-xl">−</span>
                 </button>
-                <input type="range" class="zoom-slider" min="0.5" max="3" step="0.05" [value]="zoom()"
-                    (input)="onZoomChange($any($event.target).valueAsNumber)" />
-                <button class="control-btn" (click)="onZoomChange(zoom() + 0.1)">
-                    <span class="icon">🔍+</span>
+
+                <div class="flex-1 relative h-6 flex items-center">
+                    <input type="range"
+                        class="w-full h-1 bg-gd-border rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-gd-blue [&::-webkit-slider-thumb]:shadow-lg hover:[&::-webkit-slider-thumb]:scale-110 [&::-webkit-slider-thumb]:transition-transform"
+                        min="0.5" max="3" step="0.05" [value]="zoom()"
+                        (input)="onZoomChange($any($event.target).valueAsNumber)" />
+                </div>
+
+                <button
+                    class="w-10 h-10 flex items-center justify-center rounded-lg bg-gd-bg-elevated border border-gd-border text-gd-text hover:bg-gd-hover transition-colors"
+                    (click)="onZoomChange(zoom() + 0.1)">
+                    <span class="text-xl">+</span>
                 </button>
             </div>
 
-            <div class="rotation-control">
-                <button class="control-btn rotate-btn" (click)="rotateLeft()">
-                    <span class="icon">↺</span>
+            <!-- Rotation Control -->
+            <div class="flex justify-center gap-6">
+                <button
+                    class="w-12 h-12 flex items-center justify-center rounded-xl bg-gd-bg-elevated border border-gd-border text-gd-text hover:bg-gd-hover hover:border-gd-text-secondary transition-all group"
+                    (click)="rotateLeft()" title="Rotar izquierda">
+                    <svg class="w-6 h-6 text-gd-text-secondary group-hover:text-gd-text transition-colors" fill="none"
+                        viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+                    </svg>
                 </button>
-                <button class="control-btn rotate-btn" (click)="rotateRight()">
-                    <span class="icon">↻</span>
+                <button
+                    class="w-12 h-12 flex items-center justify-center rounded-xl bg-gd-bg-elevated border border-gd-border text-gd-text hover:bg-gd-hover hover:border-gd-text-secondary transition-all group"
+                    (click)="rotateRight()" title="Rotar derecha">
+                    <svg class="w-6 h-6 text-gd-text-secondary group-hover:text-gd-text transition-colors" fill="none"
+                        viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M21 10H11a8 8 0 00-8 8v2m14-10l-6 6m6-6l-6-6" />
+                    </svg>
                 </button>
             </div>
         </div>

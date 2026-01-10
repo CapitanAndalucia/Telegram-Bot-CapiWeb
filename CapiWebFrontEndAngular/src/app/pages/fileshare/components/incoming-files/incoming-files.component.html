@@ -1,6 +1,8 @@
-<div class="flex flex-col h-full bg-gd-bg p-4 text-gd-text" [class.ring-2]="isDragging()"
-    [class.ring-gd-blue]="isDragging()" (dragover)="handleDragOver($event)" (dragleave)="handleDragLeave($event)"
-    (drop)="handleDrop($event)" (contextmenu)="handleContextMenu($event, 'background')">
+<div class="flex flex-col h-full bg-gd-bg p-4 text-gd-text" [class.ring-2]="isDragging() && !hoveredFolderId()"
+    [class.ring-inset]="isDragging() && !hoveredFolderId()" [class.ring-gd-blue]="isDragging() && !hoveredFolderId()"
+    [class.bg-gd-selected]="isDragging() && !hoveredFolderId()" (dragover)="handleDragOver($event)"
+    (dragleave)="handleDragLeave($event)" (drop)="handleDrop($event)"
+    (contextmenu)="handleContextMenu($event, 'background')">
 
     <!-- Header: Controls -->
     <div class="mb-4 space-y-3">
@@ -8,31 +10,55 @@
         <div class="flex items-center justify-between gap-4">
             <!-- Breadcrumbs -->
             <div class="flex items-center gap-1 text-sm flex-1 min-w-0">
+                @if (!isMobile()) {
                 <svg class="w-5 h-5 text-gd-text-secondary flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
                     <path
                         d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z" />
                 </svg>
-                <button class="px-2 py-1 rounded hover:bg-gd-hover text-gd-text font-medium transition-colors truncate"
-                    [class.text-gd-blue]="breadcrumbs().length === 1" (click)="handleBreadcrumbClick(0)"
-                    (dragover)="handleBreadcrumbDragOver($event, breadcrumbs()[0])"
-                    (drop)="handleBreadcrumbDrop($event, breadcrumbs()[0])">
-                    {{ breadcrumbs()[0]?.name }}
-                </button>
-                @for (crumb of breadcrumbs().slice(1); track crumb.id; let i = $index; let last = $last) {
+                }
+                @for (item of displayBreadcrumbs(); track $index; let last = $last) {
+                @if ($index > 0) {
                 <svg class="w-4 h-4 text-gd-text-secondary flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" />
                 </svg>
-                <button class="px-2 py-1 rounded hover:bg-gd-hover transition-colors truncate"
-                    [class.text-gd-blue]="last" [class.font-medium]="last" [class.text-gd-text]="!last"
-                    (click)="handleBreadcrumbClick(i + 1)" (dragover)="handleBreadcrumbDragOver($event, crumb)"
-                    (drop)="handleBreadcrumbDrop($event, crumb)">
-                    {{ crumb.name }}
+                }
+
+                @if (item.type === 'ellipsis') {
+                <span class="text-gd-text-secondary">...</span>
+                } @else {
+                <button class="flex items-center px-2 py-1 rounded hover:bg-gd-hover transition-colors"
+                    [class.text-gd-blue]="last" [class.text-gd-text]="!last" [class.font-medium]="last"
+                    [class.truncate]="last" [class.max-w-[150px]]="last" [class.flex-shrink-0]="!last"
+                    [class.whitespace-nowrap]="!last" (click)="handleBreadcrumbClick(item.index)"
+                    (dragover)="handleBreadcrumbDragOver($event, item.data!)"
+                    (drop)="handleBreadcrumbDrop($event, item.data!)">
+                    @if (item.type === 'root' && isMobile()) {
+                    <svg class="w-5 h-5 text-gd-text-secondary flex-shrink-0" [class.text-gd-blue]="last"
+                        viewBox="0 0 24 24" fill="currentColor">
+                        <path
+                            d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z" />
+                    </svg>
+                    }
+                    @if (!isMobile() || item.type !== 'root' || last) {
+                    <span [class.ml-1]="item.type === 'root' && isMobile()">{{ item.data!.name }}</span>
+                    }
                 </button>
+                }
                 }
             </div>
 
             <!-- Sort + View Toggle -->
             <div class="flex items-center gap-2 flex-shrink-0">
+                @if (isMobile()) {
+                <button class="p-2 mr-2 rounded-full hover:bg-gd-hover transition-colors text-gd-text"
+                    (click)="toggleSearch()" [class.text-gd-blue]="isSearchExpanded()">
+                    <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                        <path
+                            d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" />
+                    </svg>
+                </button>
+                }
+                @if (!isMobile()) {
                 <!-- Sort Button -->
                 <div class="relative" (click)="$event.stopPropagation()">
                     <button
@@ -85,6 +111,7 @@
                         </svg>
                     </button>
                 </div>
+                }
             </div>
         </div>
 
@@ -92,10 +119,14 @@
         <div class="relative h-[42px] w-full">
             @if (!bulkSelectionActive()) {
             <!-- Search Bar -->
+            @if (!isMobile() || isSearchExpanded()) {
             <div class="absolute inset-0 w-full max-w-md" (click)="$event.stopPropagation()"
                 [@searchSelectionAnimation]>
-                <div
-                    class="flex items-center bg-gd-card rounded-full px-4 py-2 border border-gd-border focus-within:border-gd-blue focus-within:ring-1 focus-within:ring-gd-blue transition-all h-full">
+                <div class="flex items-center bg-gd-card px-4 py-2 border border-gd-border focus-within:border-gd-blue focus-within:ring-1 focus-within:ring-gd-blue transition-all h-full"
+                    [class.rounded-full]="!showSearchResults() || !searchTerm()"
+                    [class.rounded-t-2xl]="showSearchResults() && searchTerm()"
+                    [class.rounded-b-none]="showSearchResults() && searchTerm()"
+                    [class.border-b-transparent]="showSearchResults() && searchTerm()">
                     <svg class="w-5 h-5 text-gd-text-secondary flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
                         <path
                             d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" />
@@ -117,24 +148,13 @@
                 <!-- Search Results Dropdown -->
                 @if (showSearchResults() && searchTerm()) {
                 <div
-                    class="absolute top-full left-0 w-full mt-1 bg-gd-card rounded-lg shadow-gd-menu border border-gd-border max-h-72 overflow-y-auto z-50">
+                    class="absolute top-full left-0 w-full mt-0 bg-gd-card rounded-b-2xl shadow-gd-menu border border-gd-border border-t-0 max-h-72 overflow-y-auto z-50 custom-scrollbar flex flex-col">
                     @if (searchFilteredFiles().length === 0 && searchFilteredFolders().length === 0) {
                     <div class="p-4 text-center text-gd-text-secondary text-sm">No se encontraron resultados</div>
                     }
-                    @for (file of searchFilteredFiles(); track file.id) {
-                    <button
-                        class="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gd-hover transition-colors text-left"
-                        (click)="handleSearchResultClick(file, 'file')">
-                        <svg class="w-5 h-5 text-gd-blue flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
-                            <path
-                                d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z" />
-                        </svg>
-                        <span class="text-sm text-gd-text truncate flex-1">{{ file.filename }}</span>
-                    </button>
-                    }
                     @for (folder of searchFilteredFolders(); track folder.id) {
                     <button
-                        class="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gd-hover transition-colors text-left"
+                        class="search-result-item w-full flex items-center gap-3 px-4 py-3 hover:bg-gd-hover transition-colors text-left"
                         (click)="handleSearchResultClick(folder, 'folder')">
                         <svg class="w-5 h-5 text-gd-text-secondary flex-shrink-0" viewBox="0 0 24 24"
                             fill="currentColor">
@@ -144,9 +164,74 @@
                         <span class="text-sm text-gd-text truncate flex-1">{{ folder.name }}</span>
                     </button>
                     }
+                    @for (file of searchFilteredFiles(); track file.id) {
+                    <button
+                        class="search-result-item w-full flex items-center gap-3 px-4 py-3 hover:bg-gd-hover transition-colors text-left"
+                        (click)="handleSearchResultClick(file, 'file')">
+                        <svg class="w-5 h-5 text-gd-blue flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                            <path
+                                d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z" />
+                        </svg>
+                        <span class="text-sm text-gd-text truncate flex-1">{{ file.filename }}</span>
+                    </button>
+                    }
                 </div>
                 }
             </div>
+            } @else {
+            <div class="absolute inset-0 w-full flex items-center justify-between px-0" [@searchSelectionAnimation]>
+                <!-- Sort Button -->
+                <div class="relative" (click)="$event.stopPropagation()">
+                    <button
+                        class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gd-text hover:text-white transition-colors group"
+                        (click)="toggleSortMenu()">
+                        <span>{{ getSortLabel() }}</span>
+                        <div class="w-3.5 h-3.5 bg-blue-600 transform transition-transform duration-200"
+                            [class.rotate-180]="sortConfig().order === 'desc'"
+                            style="-webkit-mask-image: url(assets/icons/flecha-arriba.png); mask-image: url(assets/icons/flecha-arriba.png); -webkit-mask-size: contain; mask-size: contain; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; -webkit-mask-position: center; mask-position: center;">
+                        </div>
+                    </button>
+                    @if (isSortMenuOpen()) {
+                    <div
+                        class="absolute top-full left-0 mt-1 bg-gd-card rounded-lg shadow-gd-menu border border-gd-border py-2 min-w-[160px] z-50">
+                        <button class="w-full flex items-center px-3 py-2 text-sm hover:bg-gd-hover text-gd-text"
+                            [class.text-gd-blue]="sortConfig().field === 'name'"
+                            (click)="setSortConfig({field: 'name'}); toggleSortMenu()">
+                            Nombre
+                        </button>
+                        <button class="w-full flex items-center px-3 py-2 text-sm hover:bg-gd-hover text-gd-text"
+                            [class.text-gd-blue]="sortConfig().field === 'date'"
+                            (click)="setSortConfig({field: 'date'}); toggleSortMenu()">
+                            Fecha
+                        </button>
+                        <button class="w-full flex items-center px-3 py-2 text-sm hover:bg-gd-hover text-gd-text"
+                            [class.text-gd-blue]="sortConfig().field === 'size'"
+                            (click)="setSortConfig({field: 'size'}); toggleSortMenu()">
+                            Tamaño
+                        </button>
+                    </div>
+                    }
+                </div>
+                <!-- View Toggle -->
+                <div class="flex bg-gd-card rounded-lg border border-gd-border overflow-hidden">
+                    <button class="p-2 transition-colors" [class.bg-gd-selected]="viewMode() === 'list'"
+                        [class.hover:bg-gd-hover]="viewMode() !== 'list'" (click)="viewMode.set('list')" title="Lista">
+                        <svg class="w-5 h-5 text-gd-text-secondary" viewBox="0 0 24 24" fill="currentColor">
+                            <path
+                                d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z" />
+                        </svg>
+                    </button>
+                    <button class="p-2 transition-colors" [class.bg-gd-selected]="viewMode() === 'grid'"
+                        [class.hover:bg-gd-hover]="viewMode() !== 'grid'" (click)="viewMode.set('grid')"
+                        title="Cuadrícula">
+                        <svg class="w-5 h-5 text-gd-text-secondary" viewBox="0 0 24 24" fill="currentColor">
+                            <path
+                                d="M3 3v8h8V3H3zm6 6H5V5h4v4zm-6 4v8h8v-8H3zm6 6H5v-4h4v4zm4-16v8h8V3h-8zm6 6h-4V5h4v4zm-6 4v8h8v-8h-8zm6 6h-4v-4h4v4z" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            }
             } @else {
             <!-- Selection Bar (Swapped) -->
             <div [@searchSelectionAnimation]
@@ -160,7 +245,7 @@
                         <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" />
                         </svg>
-                        Descargar
+                        @if (!isMobile()) { Descargar }
                     </button>
                     <button
                         class="flex items-center gap-2 px-3 py-1.5 text-sm bg-red-500/20 text-red-400 rounded-md hover:bg-red-500/30 transition-colors"
@@ -168,7 +253,7 @@
                         <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
                         </svg>
-                        Eliminar
+                        @if (!isMobile()) { Eliminar }
                     </button>
                     <button class="p-1.5 hover:bg-gd-hover rounded-md transition-colors" (click)="clearSelection()">
                         <svg class="w-5 h-5 text-gd-text-secondary" viewBox="0 0 24 24" fill="currentColor">
@@ -207,97 +292,103 @@
     <!-- File/Folder Grid - Responsive proportional cards with clamp() -->
     <!-- Cards: min 180px, scales with viewport (18vw), max 245px - always square -->
     <!-- Main Content Area -->
-    <div class="flex-1 overflow-y-auto pb-32" [class.pr-4]="!isMobile()"
-        [class.space-y-12]="viewMode() === 'grid' && !isMobile()" [class.space-y-4]="isMobile()"
-        [class.no-scrollbar]="isMobile()">
+    <div class="flex-1 overflow-y-auto pb-32 p-2" (scroll)="onScroll($event)" [class.pr-4]="!isMobile()"
+        [class.space-y-12]="viewMode() === 'grid' && !isMobile()"
+        [class.space-y-4]="viewMode() === 'grid' && isMobile()" [class.no-scrollbar]="isMobile()">
 
         <!-- Folders Section -->
         @if (sortedFolders().length > 0) {
-        <div class="flex flex-col gap-2">
+        <div class="flex flex-col" [class.gap-2]="viewMode() === 'grid'">
             <!-- Optional Header if needed, currently implicit by separation -->
-            <div [class.grid]="viewMode() === 'grid' || isMobile()" [class.gap-4]="viewMode() === 'grid' || isMobile()"
-                [class.space-y-0]="viewMode() === 'list' && !isMobile()"
-                [style.grid-template-columns]="isMobile() ? 'repeat(2, 1fr)' : (viewMode() === 'grid' ? 'repeat(auto-fill, minmax(200px, 1fr))' : 'none')">
+            <div [class.grid]="viewMode() === 'grid'" [class.gap-4]="viewMode() === 'grid'"
+                [class.space-y-0]="viewMode() === 'list'"
+                [style.grid-template-columns]="viewMode() === 'grid' ? (isMobile() ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(200px, 1fr))') : 'none'">
 
-                @for (folder of sortedFolders(); track folder.id; let i = $index) {
-                <div class="group cursor-pointer rounded-lg overflow-hidden w-full h-auto"
-                    [class.bg-gd-card]="viewMode() === 'grid' || isMobile()"
-                    [class.border]="viewMode() === 'grid' || isMobile()" [class.aspect-square]="isMobile()"
-                    [class.border-gd-border]="(viewMode() === 'grid' && !isFolderSelected(folder.id) && !isShared(folder)) || (viewMode() === 'list' && !isMobile()) || isMobile()"
-                    [class.border-green-500]="(viewMode() === 'grid' || isMobile()) && isShared(folder) && !isFolderSelected(folder.id)"
+                @for (folder of sortedFolders(); track folder.id; let i = $index; let last = $last) {
+                <div class="group cursor-pointer rounded-lg overflow-hidden w-full h-auto relative"
+                    [class.bg-gd-card]="viewMode() === 'grid'" [class.border]="viewMode() === 'grid'"
+                    [class.aspect-square]="viewMode() === 'grid' && isMobile()"
+                    [class.border-gd-border]="(viewMode() === 'grid' && !isFolderSelected(folder.id) && !isShared(folder)) || viewMode() === 'list'"
+                    [class.border-green-500]="viewMode() === 'grid' && isShared(folder) && !isFolderSelected(folder.id) && hoveredFolderId() !== folder.id"
                     [class.border-gd-blue]="isFolderSelected(folder.id)"
-                    [class.bg-gd-selected]="isFolderSelected(folder.id)"
-                    [class.hover:bg-gd-card-hover]="(viewMode() === 'grid' || isMobile()) && !isFolderSelected(folder.id)"
-                    [class.hover:border-gd-card-border]="(viewMode() === 'grid' || isMobile()) && !isShared(folder)"
-                    [class.flex]="true" [class.flex-col]="viewMode() === 'grid' || isMobile()"
-                    [class.flex-row]="viewMode() === 'list' && !isMobile()"
-                    [class.items-center]="viewMode() === 'list' && !isMobile()"
-                    [class.px-3]="viewMode() === 'list' && !isMobile()"
-                    [class.py-3]="viewMode() === 'list' && !isMobile()"
-                    [class.hover:bg-gd-hover]="viewMode() === 'list' && !isMobile()"
-                    [class.border-b]="viewMode() === 'list' && !isMobile()" [attr.data-folder-id]="folder.id"
+                    [class.bg-gd-selected]="isFolderSelected(folder.id) || hoveredFolderId() === folder.id"
+                    [class.ring-2]="hoveredFolderId() === folder.id"
+                    [class.ring-gd-blue]="hoveredFolderId() === folder.id"
+                    [class.hover:bg-gd-card-hover]="viewMode() === 'grid' && !isFolderSelected(folder.id)"
+                    [class.hover:border-gd-card-border]="viewMode() === 'grid' && !isShared(folder)" [class.flex]="true"
+                    [class.flex-col]="viewMode() === 'grid'" [class.flex-row]="viewMode() === 'list'"
+                    [class.items-center]="viewMode() === 'list'" [class.px-3]="viewMode() === 'list'"
+                    [class.py-3]="viewMode() === 'list'"
+                    [class.hover:bg-gd-hover]="viewMode() === 'list' && !isMobile()" [class.border-b]="false"
+                    [attr.data-folder-id]="folder.id"
                     (click)="!isContextMenuOpen() && handleItemClick($event, 'folder', folder)"
                     (dblclick)="!isContextMenuOpen() && navigateToFolder(folder)"
                     (contextmenu)="handleContextMenu($event, 'folder', folder)" [draggable]="true"
                     (dragstart)="handleFolderDragStart($event, folder)"
-                    (dragover)="handleFolderDragOver($event, folder)" (drop)="handleFileDrop($event, folder)"
+                    (dragover)="handleFolderDragOver($event, folder)"
+                    (dragleave)="handleFolderDragLeave($event, folder)" (drop)="handleFileDrop($event, folder)"
+                    (touchstart)="handleTouchStart(folder, 'folder')" (touchend)="handleTouchEnd()"
+                    (touchcancel)="handleTouchEnd()" (touchmove)="handleTouchEnd()"
                     [@itemAnimation]="{value: '', params: {delay: i * 30}}">
 
-                    @if (viewMode() === 'grid' || isMobile()) {
+                    @if (pressingItemId() === 'folder-' + folder.id) {
+                    <div
+                        class="absolute inset-0 z-50 pointer-events-none flex items-center justify-center bg-transparent overflow-hidden rounded-lg">
+                        <div class="w-20 h-20 bg-gd-blue rounded-full animate-fill-circle"></div>
+                    </div>
+                    }
+
+                    @if (viewMode() === 'grid') {
                     <!-- Grid Card - Header ONLY for folders (Compact View) -->
                     <div class="flex-shrink-0 flex items-center gap-2 px-3 py-3 transition-colors duration-200 relative z-10"
                         [class.bg-gd-card]="!isFolderSelected(folder.id)"
                         [class.bg-gd-blue]="isFolderSelected(folder.id)"
                         [class.group-hover:bg-gd-card-border]="!isShared(folder) && !isFolderSelected(folder.id)"
-                        [class.group-hover:bg-green-500]="isShared(folder) && !isFolderSelected(folder.id)"
-                        [class.group-hover:bg-gd-blue]="isFolderSelected(folder.id)">
+                        [class.group-hover:bg-green-500]="isShared(folder) && !isFolderSelected(folder.id) && hoveredFolderId() !== folder.id"
+                        [class.group-hover:bg-gd-blue]="isFolderSelected(folder.id) || hoveredFolderId() === folder.id">
                         <svg class="w-5 h-5 flex-shrink-0"
                             [class.text-gd-text-secondary]="!isShared(folder) && !isFolderSelected(folder.id)"
-                            [class.text-green-500]="isShared(folder) && !isFolderSelected(folder.id)"
-                            [class.group-hover:text-gray-800]="isShared(folder) && !isFolderSelected(folder.id)"
-                            [class.text-gray-900]="isFolderSelected(folder.id)" viewBox="0 0 24 24" fill="currentColor">
+                            [class.text-green-500]="isShared(folder) && !isFolderSelected(folder.id) && hoveredFolderId() !== folder.id"
+                            [class.group-hover:text-gray-800]="isShared(folder) && !isFolderSelected(folder.id) && hoveredFolderId() !== folder.id"
+                            [class.text-white]="isFolderSelected(folder.id) || hoveredFolderId() === folder.id"
+                            viewBox="0 0 24 24" fill="currentColor">
                             <path
                                 d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z" />
                         </svg>
                         <span class="truncate flex-1" [class.text-xs]="isMobile()" [class.text-sm]="!isMobile()"
                             [class.text-gd-text]="!isShared(folder) && !isFolderSelected(folder.id)"
-                            [class.text-green-500]="isShared(folder) && !isFolderSelected(folder.id)"
-                            [class.group-hover:text-gray-800]="isShared(folder) && !isFolderSelected(folder.id)"
-                            [class.text-gray-900]="isFolderSelected(folder.id)">{{
+                            [class.text-green-500]="isShared(folder) && !isFolderSelected(folder.id) && hoveredFolderId() !== folder.id"
+                            [class.group-hover:text-gray-800]="isShared(folder) && !isFolderSelected(folder.id) && hoveredFolderId() !== folder.id"
+                            [class.text-white]="isFolderSelected(folder.id) || hoveredFolderId() === folder.id">{{
                             folder.name }}</span>
-                        <button class="optionsBtn rounded-full transition-opacity" [class.p-0.5]="isMobile()"
-                            [class.p-1]="!isMobile()" [class.hover:bg-white/20]="!isMobile()"
-                            [class.active:bg-white/20]="isMobile()" [class.opacity-0]="!isMobile()"
-                            [class.group-hover:opacity-100]="!isMobile()" [class.opacity-100]="isMobile()"
-                            [class.text-gray-800]="isShared(folder) && !isFolderSelected(folder.id)"
-                            [class.text-gray-900]="isFolderSelected(folder.id)"
+                        <button class="optionsBtn rounded-full transition-opacity p-1 hover:bg-white/20"
+                            [class.group-hover:text-gray-800]="isShared(folder) && !isFolderSelected(folder.id)"
+                            [class.text-gd-text-secondary]="!isFolderSelected(folder.id)"
+                            [class.text-white]="isFolderSelected(folder.id)"
                             (click)="handleContextMenu($event, 'folder', folder); $event.stopPropagation()">
-                            <svg [class.w-3]="isMobile()" [class.h-3]="isMobile()" [class.w-5]="!isMobile()"
-                                [class.h-5]="!isMobile()"
-                                [class.text-gd-text-secondary]="!isFolderSelected(folder.id) && !isShared(folder)"
-                                viewBox="0 0 24 24" fill="currentColor">
+                            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
                                 <path
                                     d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" />
                             </svg>
                         </button>
                     </div>
 
-                    <!-- Folder Body (Large Icon) - Mobile Only -->
-                    @if (isMobile()) {
+                    <!-- Folder Body (Large Icon) - Mobile Only (Grid) -->
+                    @if (isMobile() && viewMode() === 'grid') {
                     <div
                         class="flex-1 min-h-0 flex items-center justify-center bg-gd-bg-elevated rounded-b-lg relative overflow-hidden z-0">
                         <svg class="w-16 h-16"
                             [class.text-gd-text-secondary]="!isShared(folder) && !isFolderSelected(folder.id)"
                             [class.text-green-500]="isShared(folder) && !isFolderSelected(folder.id)"
                             [class.group-hover:text-gray-800]="isShared(folder) && !isFolderSelected(folder.id)"
-                            [class.text-gray-900]="isFolderSelected(folder.id)" viewBox="0 0 24 24" fill="currentColor">
+                            [class.text-gd-blue]="isFolderSelected(folder.id)" viewBox="0 0 24 24" fill="currentColor">
                             <path
                                 d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z" />
                         </svg>
                     </div>
                     }
                     <!-- REMOVED: Large body div for folders -->
-                    } @else if (viewMode() === 'list' && !isMobile()) {
+                    } @else if (viewMode() === 'list') {
                     <!-- List Row (unchanged) -->
                     <svg class="w-5 h-5 mr-3 flex-shrink-0" [class.text-gd-text-secondary]="!isShared(folder)"
                         [class.text-green-500]="isShared(folder)" viewBox="0 0 24 24" fill="currentColor">
@@ -320,6 +411,9 @@
                     </button>
                     }
                 </div>
+                @if (viewMode() === 'list' && !last) {
+                <div class="h-px bg-gd-border w-full"></div>
+                }
                 }
             </div>
         </div>
@@ -327,21 +421,22 @@
 
         <!-- Files Section -->
         @if (sortedFiles().length > 0) {
-        <div class="flex flex-col gap-2">
+        <div class="flex flex-col" [class.gap-2]="viewMode() === 'grid'">
             @if (sortedFolders().length > 0) {
             <!-- <h3 class="text-xs font-semibold text-gd-text-secondary uppercase tracking-wider px-1">Archivos</h3> -->
+            <!-- Separator between folders and files in list view -->
+            <div *ngIf="viewMode() === 'list'" class="h-px bg-gd-border"></div>
             }
-            <div [class.gap-4]="viewMode() === 'grid' || isMobile()"
-                [class.space-y-0]="viewMode() === 'list' && !isMobile()"
-                [style.display]="(viewMode() === 'grid' || isMobile()) ? 'grid' : 'block'"
-                [style.grid-auto-rows]="(viewMode() === 'grid' || isMobile()) ? 'max-content' : 'auto'"
-                [style.align-items]="(viewMode() === 'grid' || isMobile()) ? 'start' : 'stretch'"
-                [style.grid-template-columns]="isMobile() ? 'repeat(2, 1fr)' : (viewMode() === 'grid' ? 'repeat(auto-fill, minmax(200px, 1fr))' : 'none')">
+            <div [class.gap-4]="viewMode() === 'grid'" [class.space-y-0]="viewMode() === 'list'"
+                [style.display]="viewMode() === 'grid' ? 'grid' : 'block'"
+                [style.grid-auto-rows]="viewMode() === 'grid' ? 'max-content' : 'auto'"
+                [style.align-items]="viewMode() === 'grid' ? 'start' : 'stretch'"
+                [style.grid-template-columns]="viewMode() === 'grid' ? (isMobile() ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(200px, 1fr))') : 'none'">
 
-                @for (file of sortedFiles(); track file.id; let i = $index) {
-                <div class="group cursor-pointer rounded-lg overflow-hidden w-full h-auto"
+                @for (file of sortedFiles(); track file.id; let i = $index; let last = $last) {
+                <div class="group cursor-pointer rounded-lg overflow-hidden w-full h-auto relative"
                     [class.bg-gd-card]="viewMode() === 'grid'" [class.border]="viewMode() === 'grid'"
-                    [class.aspect-square]="viewMode() === 'grid'" [class.aspect-square]="viewMode() === 'grid'"
+                    [class.aspect-square]="viewMode() === 'grid'"
                     [class.border-gd-border]="(viewMode() === 'grid' && !isFileSelected(file.id) && !isShared(file)) || viewMode() === 'list'"
                     [class.border-green-500]="viewMode() === 'grid' && isShared(file) && !isFileSelected(file.id)"
                     [class.border-gd-blue]="isFileSelected(file.id)" [class.bg-gd-selected]="isFileSelected(file.id)"
@@ -350,14 +445,22 @@
                     [class.flex-col]="viewMode() === 'grid'" [class.flex-row]="viewMode() === 'list'"
                     [class.items-center]="viewMode() === 'list'" [class.px-3]="viewMode() === 'list'"
                     [class.py-3]="viewMode() === 'list'" [class.hover:bg-gd-hover]="viewMode() === 'list'"
-                    [class.border-b]="viewMode() === 'list'" [attr.data-file-id]="file.id"
+                    [class.border-b]="false" [attr.data-file-id]="file.id"
                     (click)="!isContextMenuOpen() && handleItemClick($event, 'file', file)"
                     (dblclick)="!isContextMenuOpen() && handleFileClick(file)"
                     (contextmenu)="handleContextMenu($event, 'file', file)" [draggable]="true"
-                    (dragstart)="handleDragStart($event, file)"
+                    (dragstart)="handleDragStart($event, file)" (touchstart)="handleTouchStart(file, 'file')"
+                    (touchend)="handleTouchEnd()" (touchcancel)="handleTouchEnd()" (touchmove)="handleTouchEnd()"
                     [@itemAnimation]="{value: '', params: {delay: (sortedFolders().length + i) * 30}}">
 
-                    @if (viewMode() === 'grid' || isMobile()) {
+                    @if (pressingItemId() === 'file-' + file.id) {
+                    <div
+                        class="absolute inset-0 z-50 pointer-events-none flex items-center justify-center bg-transparent overflow-hidden rounded-lg">
+                        <div class="w-20 h-20 bg-gd-blue rounded-full animate-fill-circle"></div>
+                    </div>
+                    }
+
+                    @if (viewMode() === 'grid') {
                     <!-- Grid Card - Header at top -->
                     <div class="flex-shrink-0 flex items-center gap-2 px-3 py-2 transition-colors duration-200 relative z-10"
                         [class.bg-gd-card]="!isFileSelected(file.id)" [class.bg-gd-blue]="isFileSelected(file.id)"
@@ -372,25 +475,25 @@
                         }
                         @if (isImage(file.filename)) {
                         <svg class="w-5 h-5 flex-shrink-0" [class.text-red-400]="!isFileSelected(file.id)"
-                            [class.text-gray-900]="isFileSelected(file.id)" viewBox="0 0 24 24" fill="currentColor">
+                            [class.text-white]="isFileSelected(file.id)" viewBox="0 0 24 24" fill="currentColor">
                             <path
                                 d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z" />
                         </svg>
                         } @else if (isVideo(file.filename)) {
                         <svg class="w-5 h-5 flex-shrink-0" [class.text-red-400]="!isFileSelected(file.id)"
-                            [class.text-gray-900]="isFileSelected(file.id)" viewBox="0 0 24 24" fill="currentColor">
+                            [class.text-white]="isFileSelected(file.id)" viewBox="0 0 24 24" fill="currentColor">
                             <path
                                 d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z" />
                         </svg>
                         } @else if (isAudio(file.filename)) {
                         <svg class="w-5 h-5 flex-shrink-0" [class.text-purple-400]="!isFileSelected(file.id)"
-                            [class.text-gray-900]="isFileSelected(file.id)" viewBox="0 0 24 24" fill="currentColor">
+                            [class.text-white]="isFileSelected(file.id)" viewBox="0 0 24 24" fill="currentColor">
                             <path
                                 d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
                         </svg>
                         } @else {
                         <svg class="w-5 h-5 flex-shrink-0" [class.text-gd-blue]="!isFileSelected(file.id)"
-                            [class.text-gray-900]="isFileSelected(file.id)" viewBox="0 0 24 24" fill="currentColor">
+                            [class.text-white]="isFileSelected(file.id)" viewBox="0 0 24 24" fill="currentColor">
                             <path
                                 d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z" />
                         </svg>
@@ -399,19 +502,14 @@
                             [class.text-gd-text]="!isShared(file) && !isFileSelected(file.id)"
                             [class.text-green-500]="isShared(file) && !isFileSelected(file.id)"
                             [class.group-hover:text-gray-800]="isShared(file) && !isFileSelected(file.id)"
-                            [class.text-gray-900]="isFileSelected(file.id)">{{
+                            [class.text-white]="isFileSelected(file.id)">{{
                             file.filename }}</span>
-                        <button class="optionsBtn rounded-full transition-opacity" [class.p-0.5]="isMobile()"
-                            [class.p-1]="!isMobile()" [class.hover:bg-white/20]="!isMobile()"
-                            [class.active:bg-white/20]="isMobile()" [class.opacity-0]="!isMobile()"
-                            [class.group-hover:opacity-100]="!isMobile()" [class.opacity-100]="isMobile()"
-                            [class.text-gray-800]="isShared(file) && !isFileSelected(file.id)"
-                            [class.text-gray-900]="isFileSelected(file.id)"
+                        <button class="optionsBtn rounded-full transition-opacity p-1 hover:bg-white/20"
+                            [class.group-hover:text-gray-800]="isShared(file) && !isFileSelected(file.id)"
+                            [class.text-gd-text-secondary]="!isFileSelected(file.id)"
+                            [class.text-white]="isFileSelected(file.id)"
                             (click)="handleContextMenu($event, 'file', file); $event.stopPropagation()">
-                            <svg [class.w-3]="isMobile()" [class.h-3]="isMobile()" [class.w-5]="!isMobile()"
-                                [class.h-5]="!isMobile()"
-                                [class.text-gd-text-secondary]="!isFileSelected(file.id) && !isShared(file)"
-                                viewBox="0 0 24 24" fill="currentColor">
+                            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
                                 <path
                                     d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" />
                             </svg>
@@ -445,7 +543,7 @@
                         </svg>
                         }
                     </div>
-                    } @else if (viewMode() === 'list' && !isMobile()) {
+                    } @else if (viewMode() === 'list') {
                     <!-- List Row -->
                     @if (isImage(file.filename)) {
                     <svg class="w-5 h-5 text-red-400 mr-3 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
@@ -487,6 +585,9 @@
                     }
                     }
                 </div>
+                @if (viewMode() === 'list' && !last) {
+                <div class="h-px bg-gd-border w-full"></div>
+                }
                 }
             </div>
         </div>
