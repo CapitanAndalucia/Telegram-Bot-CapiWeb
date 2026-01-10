@@ -359,7 +359,7 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
             const unreadFiles = this.files().filter((f) => !f.is_viewed);
             const unreadCount = unreadFiles.length;
             if (unreadCount > 0) {
-                console.log('Unviewed files:', unreadFiles.map(f => f.filename));
+                // console.log('Unviewed files:', unreadFiles.map(f => f.filename));
             }
             this.unreadCountChange.emit(unreadCount);
         });
