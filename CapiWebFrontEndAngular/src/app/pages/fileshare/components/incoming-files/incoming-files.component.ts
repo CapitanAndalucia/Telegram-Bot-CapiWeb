@@ -55,6 +55,13 @@ import { LazyLoadImageDirective } from '../../../../shared/directives/lazy-load-
     imports: [CommonModule, FilePreviewModalComponent, ShareModalComponent, MatDialogModule, LazyLoadImageDirective],
     templateUrl: './incoming-files.component.html',
     styleUrls: ['../../fileshare.component.css'],
+    styles: [`
+        :host {
+            position: relative;
+            display: block;
+            height: 100%;
+        }
+    `],
     animations: [
         trigger('itemAnimation', [
             transition(':enter', [
@@ -69,6 +76,16 @@ import { LazyLoadImageDirective } from '../../../../shared/directives/lazy-load-
             ]),
             transition(':leave', [
                 animate('100ms ease-in', style({ opacity: 0 }))
+            ])
+        ]),
+        trigger('searchSelectionAnimation', [
+            transition(':enter', [
+                style({ opacity: 0, transform: 'translateY(-10px)' }),
+                animate('200ms ease-out', style({ opacity: 1, transform: 'translateY(0)' }))
+            ]),
+            transition(':leave', [
+                style({ position: 'absolute', top: 0, left: 0, width: '100%', zIndex: 0 }),
+                animate('150ms ease-in', style({ opacity: 0, transform: 'translateY(10px)' }))
             ])
         ])
     ]
@@ -223,7 +240,8 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
         private toastr: ToastrService,
         private dialog: MatDialog,
         private uploadService: UploadService,
-        private downloadService: DownloadService
+        private downloadService: DownloadService,
+        private elementRef: ElementRef
     ) {
         // Watch for refresh trigger changes
         effect(() => {
@@ -275,7 +293,11 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
 
         // Unread count effect
         effect(() => {
-            const unreadCount = this.files().filter((f) => !f.is_viewed).length;
+            const unreadFiles = this.files().filter((f) => !f.is_viewed);
+            const unreadCount = unreadFiles.length;
+            if (unreadCount > 0) {
+                console.log('Unviewed files:', unreadFiles.map(f => f.filename));
+            }
             this.unreadCountChange.emit(unreadCount);
         });
 
@@ -384,6 +406,7 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
      * @cuando Después de que los inputs del componente se enlazan por primera vez
      */
     ngOnInit(): void {
+        this.checkMobile();
         // Initial load handled by effects
     }
 
@@ -665,7 +688,7 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
     onDocumentClick(event: MouseEvent): void {
         const target = event.target as HTMLElement;
 
-        // Skip processing while share modal is open - let the modal handle its own events
+        // Skip processing while share modal is open
         if (this.shareModalItem()) {
             return;
         }
@@ -682,31 +705,6 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
                 event.preventDefault();
                 return;
             }
-
-            // Si el clic es en el botón FAB o menú, no hacer nada para permitir que el evento llegue al botón
-            return;
-        }
-
-        // Si hay un menú contextual abierto, manejar su cierre
-        if (this.contextMenu()) {
-            const isContextMenu = target.closest('.context-menu');
-            const isOptionsBtn = target.closest('.optionsBtn');
-
-            // Si el clic NO es en el menú ni en un botón de opciones, cerrar el menú y prevenir otras acciones
-            if (!isContextMenu && !isOptionsBtn) {
-                this.closeContextMenu();
-                event.stopPropagation();
-                event.preventDefault();
-                return;
-            }
-        }
-
-        // Lógica original para otros casos (cuando no hay menú abierto)
-        const isInsideComponent = target.closest('.incomingFiles');
-
-        // Si no está dentro del componente principal, cerrar menú
-        if (!isInsideComponent) {
-            this.closeContextMenu();
         }
     }
 
@@ -736,7 +734,6 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
             if (!isFabButton && !isFabMenu) {
                 this.mobileFabOpen.set(false);
                 event.stopPropagation();
-                event.preventDefault();
                 return;
             }
 
@@ -746,13 +743,12 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
 
         if (this.contextMenu()) {
             const touchedElement = event.target as HTMLElement;
-            const isContextMenu = touchedElement.closest('.context-menu');
+            const isContextMenu = touchedElement.closest('.context-menu-wrapper');
             const isOptionsBtn = touchedElement.closest('.optionsBtn');
 
             if (!isContextMenu && !isOptionsBtn) {
                 this.closeContextMenu();
                 event.stopPropagation();
-                event.preventDefault();
                 return;
             }
         }
@@ -814,6 +810,12 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
      * @cuando El usuario hace click derecho en un item o hace click en el botón de tres puntos
      * @param event - El evento de mouse que dispara el menú contextual
      * @param type - Tipo de item: 'file', 'folder', o 'background'
+    /**
+     * Maneja el evento de click derecho (context menu) en archivos, carpetas o fondo.
+     * Calcula la posición óptima del menú para que aparezca cerca del cursor pero dentro del viewport.
+     * 
+     * @param event - Evento del ratón
+     * @param type - Tipo de elemento presionado
      * @param item - El item de archivo o carpeta (undefined para background)
      */
     handleContextMenu(event: MouseEvent, type: 'file' | 'folder' | 'background', item?: FileItem | Folder): void {
@@ -831,9 +833,9 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
             return;
         }
 
-        // Obtener coordenadas del click/touch
-        let x = event.pageX || event.clientX + (document.documentElement.scrollLeft || document.body.scrollLeft);
-        let y = event.pageY || event.clientY + (document.documentElement.scrollTop || document.body.scrollTop);
+        // 1. Calculate ideal viewport position (Screen Space)
+        let screenX = event.clientX;
+        let screenY = event.clientY;
 
         // Si es un click en botón de opciones, usar la posición del botón
         if (type !== 'background' && item && event.target) {
@@ -841,29 +843,38 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
             const optionsBtn = targetElement.closest('.optionsBtn');
             if (optionsBtn) {
                 const rect = optionsBtn.getBoundingClientRect();
-                // Coordenadas absolutas consistentes para position: fixed
-                x = rect.left;
-                y = rect.bottom;
+                screenX = rect.left;
+                screenY = rect.bottom;
             }
         }
 
         const menuWidth = 220;
-        const menuHeight = 300;
+        // Background menu has 2 items (~100px), file/folder menu has 5+ items (~300px)
+        const menuHeight = type === 'background' ? 100 : 300;
         const margin = 10;
 
         if (typeof window !== 'undefined') {
-            // Para position: fixed, usamos coordenadas del viewport directamente
-            const maxX = window.innerWidth - menuWidth - margin;
-            const maxY = window.innerHeight - menuHeight - margin;
-            const minX = margin;
-            const minY = margin;
+            const viewportWidth = window.innerWidth;
+            const viewportHeight = window.innerHeight;
 
-            // Ajustar horizontalmente
-            x = Math.max(minX, Math.min(x, maxX));
+            // Adjust X to fit in viewport
+            if (screenX + menuWidth > viewportWidth - margin) {
+                screenX = viewportWidth - menuWidth - margin;
+            }
+            screenX = Math.max(margin, screenX);
 
-            // Ajustar verticalmente
-            y = Math.max(minY, Math.min(y, maxY));
+            // Adjust Y to fit in viewport
+            if (screenY + menuHeight > viewportHeight - margin) {
+                // Shift up to fit in viewport (bottom-aligned to cursor/button)
+                screenY = viewportHeight - menuHeight - margin;
+            }
+            screenY = Math.max(margin, screenY);
         }
+
+        // For position: fixed, use viewport coordinates directly
+        // No need to convert to local coordinates
+        let x = screenX;
+        let y = screenY;
 
         // Cleanup any touch drag state before opening menu
         this.removeTouchPreview();
@@ -872,7 +883,6 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
         this.isDragging.set(false);
         this.hoveredFolderId.set(null);
         this.currentDraggedFolderId = null;
-
 
         this.contextMenu.set({ x, y, type, item });
         // mark the clicked options button as active so mobile CSS can show the circle
@@ -888,16 +898,34 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
      * @cuando El usuario selecciona "Renombrar" desde el menú contextual
      * @returns Promise que se resuelve cuando el renombrado completa o el diálogo se cancela
      */
-    async renameItem(): Promise<void> {
-        const menu = this.contextMenu();
-        if (!menu || !menu.item || menu.type === 'background') {
-            return;
+    async renameItem(targetItem?: FileItem | Folder): Promise<void> {
+        let itemToRename = targetItem;
+        let isFolder = false;
+
+        // Si no se pasó item, intentar obtenerlo del menú contextual activo
+        if (!itemToRename) {
+            const menu = this.contextMenu();
+            if (menu && menu.item && menu.type !== 'background') {
+                itemToRename = menu.item;
+                isFolder = menu.type === 'folder';
+            }
+        } else {
+            // Si se pasó explícitamente, deducir tipo
+            // Folder tiene 'name', FileItem tiene 'filename'
+            isFolder = 'name' in itemToRename && !('filename' in itemToRename);
         }
 
-        const isFolder = menu.type === 'folder';
+        // Si aún no tenemos item, salir
+        if (!itemToRename) return;
+
+        // Capturar datos necesarios antes de cerrar el menú
         const currentName = isFolder
-            ? (menu.item as Folder).name
-            : (menu.item as FileItem).filename;
+            ? (itemToRename as Folder).name
+            : (itemToRename as FileItem).filename;
+        const itemId = Number(itemToRename.id);
+
+        // Cerrar menú contextual inmediatamente para evitar problemas de UI
+        this.closeContextMenu();
 
         const dialogRef = this.dialog.open<InputDialogComponent, InputDialogData, string>(InputDialogComponent, {
             width: '400px',
@@ -914,9 +942,6 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
 
         const result = await firstValueFrom(dialogRef.afterClosed());
 
-        // AHORA sí cerramos el contexto después de que el diálogo se cerró
-        this.closeContextMenu();
-
         const newName = result?.trim();
         if (!newName || newName === currentName) {
             return;
@@ -928,10 +953,10 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
 
         try {
             if (isFolder) {
-                await this.apiClient.renameFolder((menu.item as Folder).id, newName);
+                await this.apiClient.renameFolder(itemId, newName);
                 await this.fetchFolders();
             } else {
-                await this.apiClient.renameFile((menu.item as FileItem).id, newName);
+                await this.apiClient.renameFile(itemId, newName);
                 await this.fetchFiles();
             }
 
@@ -953,19 +978,29 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
      * @cuando El usuario selecciona "Eliminar" desde el menú contextual
      * @returns Promise que se resuelve cuando la eliminación completa o se cancela
      */
-    async deleteItem(): Promise<void> {
-        // console.log(`[Fileshare] deleteItem called`);
-        const menu = this.contextMenu();
-        if (!menu || !menu.item) {
-            // console.log(`[Fileshare] deleteItem - no menu or item, returning`);
-            return;
+    async deleteItem(targetItem?: FileItem | Folder): Promise<void> {
+        let itemToDelete = targetItem;
+        let isFolder = false;
+
+        // Si no se pasó item, intentar obtenerlo del menú contextual activo
+        if (!itemToDelete) {
+            const menu = this.contextMenu();
+            if (menu && menu.item) {
+                itemToDelete = menu.item;
+                isFolder = menu.type === 'folder';
+            }
+        } else {
+            // Si se pasó explícitamente, deducir tipo
+            isFolder = 'name' in itemToDelete && !('filename' in itemToDelete);
         }
 
-        const isFolder = menu.type === 'folder';
-        const itemId = Number(menu.item.id);
-        const itemName = isFolder ? (menu.item as Folder).name : (menu.item as FileItem).filename;
+        if (!itemToDelete) return;
 
-        // console.log(`[Fileshare] deleteItem - isFolder: ${isFolder}, itemId: ${itemId}, itemName: ${itemName}`);
+        const itemId = Number(itemToDelete.id);
+        const itemName = isFolder ? (itemToDelete as Folder).name : (itemToDelete as FileItem).filename;
+
+        // Cerrar menú contextual inmediatamente
+        this.closeContextMenu();
 
         const dialogRef = this.dialog.open<ConfirmDialogComponent, ConfirmDialogData, boolean>(ConfirmDialogComponent, {
             data: {
@@ -983,17 +1018,10 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
 
         const confirmed = (await firstValueFrom(dialogRef.afterClosed())) ?? false;
 
-        // console.log(`[Fileshare] deleteItem - dialog confirmed: ${confirmed}`);
-
-        // AHORA sí cerramos el contexto después de que el diálogo se cerró
-        this.closeContextMenu();
-
         if (!confirmed) {
-            // console.log(`[Fileshare] deleteItem - user cancelled, returning`);
             return;
         }
 
-        // console.log(`[Fileshare] deleteItem - proceeding with deletion`);
         if (isFolder) {
             await this.performFolderDelete(itemId);
         } else {
@@ -1126,9 +1154,18 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
      * @cuando Se necesita comportamiento diferenciado móvil/escritorio
      * @returns true si el ancho de ventana es <= 768px
      */
-    isMobile(): boolean {
-        if (typeof window === 'undefined') return false;
-        return window.innerWidth <= 768;
+    // Mobile detection signal
+    isMobile = signal(false);
+
+    private checkMobile() {
+        if (typeof window !== 'undefined') {
+            this.isMobile.set(window.innerWidth <= 768);
+        }
+    }
+
+    @HostListener('window:resize')
+    onResize() {
+        this.checkMobile();
     }
 
     /**
@@ -1424,22 +1461,8 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
      */
     @HostListener('document:mousedown', ['$event'])
     onDocumentMouseDown(event: MouseEvent): void {
-        // Skip processing while share modal is open
-        if (this.shareModalItem()) {
-            return;
-        }
-
-        const target = event.target as HTMLElement;
-
-        // Cerrar menú si se hace click fuera del componente o en áreas ng-star-inserted que no sean el menú
-        const isInsideComponent = target.closest('.incomingFiles');
-        const isContextMenu = target.closest('.context-menu');
-        const isOptionsBtn = target.closest('.optionsBtn');
-
-        // Si no está dentro del componente principal O está dentro pero no es el menú/botón
-        if (!isInsideComponent || (!isContextMenu && !isOptionsBtn && isInsideComponent)) {
-            this.closeContextMenu();
-        }
+        // La lógica de cierre del menú contextual ahora se maneja mediante el backdrop en el HTML
+        // Esto evita problemas de propagación y detección de clics
     }
 
     /**
@@ -2503,14 +2526,18 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
 
         const preview = document.createElement('div');
         preview.className = 'dragPreview folderPreview';
-        // Use inline-flex + constrained max-width to avoid full-width previews
+        // Position off-screen so it doesn't appear in the visible area
+        preview.style.position = 'absolute';
+        preview.style.left = '-9999px';
+        preview.style.top = '-9999px';
         preview.style.display = 'inline-flex';
         preview.style.alignItems = 'center';
         preview.style.gap = '0.75rem';
         preview.style.padding = '0.55rem 0.85rem';
-        preview.style.background = 'rgba(0, 0, 0, 0.6)';
+        preview.style.background = 'rgba(48, 49, 52, 0.95)';
         preview.style.borderRadius = '9px';
-        preview.style.color = '#fff';
+        preview.style.border = '1px solid rgba(138, 180, 248, 0.25)';
+        preview.style.color = '#e8eaed';
         preview.style.boxSizing = 'border-box';
         preview.style.maxWidth = '380px';
         preview.style.width = 'auto';
@@ -2920,37 +2947,47 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
 
         const preview = document.createElement('div');
         preview.className = 'dragPreview';
+        // Position off-screen so it doesn't appear in the visible area
+        preview.style.position = 'absolute';
+        preview.style.left = '-9999px';
+        preview.style.top = '-9999px';
         preview.style.display = 'flex';
         preview.style.alignItems = 'center';
         preview.style.gap = '0.75rem';
         preview.style.padding = '0.55rem 0.85rem';
-        preview.style.background = 'rgba(0, 0, 0, 0.6)';
+        preview.style.background = 'rgba(48, 49, 52, 0.95)';
         preview.style.borderRadius = '9px';
-        preview.style.border = '1px solid rgba(0, 242, 255, 0.25)';
+        preview.style.border = '1px solid rgba(138, 180, 248, 0.25)';
         preview.style.boxShadow = '0 6px 16px rgba(0, 0, 0, 0.35)';
         preview.style.pointerEvents = 'none';
-        preview.style.backdropFilter = 'blur(4px)';
-        preview.style.color = '#fff';
-        preview.style.fontSize = '0.9rem';
+        preview.style.color = '#e8eaed';
+        preview.style.fontSize = '0.85rem';
         preview.style.maxWidth = '260px';
         preview.style.overflow = 'hidden';
-        preview.style.opacity = '0.85';
 
-        if (this.isImage(file.filename)) {
+        // Show thumbnail for images and videos
+        if (this.isImage(file.filename) || this.isVideo(file.filename)) {
             const img = document.createElement('img');
-            img.src = this.getFileUrl(file.id);
+            img.src = this.getThumbnailUrl(file.id, file.filename);
             img.alt = file.filename;
-            img.style.width = '100px';
-            img.style.height = '100px';
+            img.style.width = '48px';
+            img.style.height = '48px';
             img.style.objectFit = 'cover';
-            img.style.borderRadius = '8px';
-            img.style.border = '1px solid rgba(255, 255, 255, 0.2)';
+            img.style.borderRadius = '6px';
+            img.style.border = '1px solid rgba(255, 255, 255, 0.1)';
+            img.style.background = '#1e1e1e';
             preview.appendChild(img);
+        } else if (this.isAudio(file.filename)) {
+            const icon = document.createElement('div');
+            icon.className = 'dragPreviewIcon';
+            icon.textContent = '🎵';
+            icon.style.fontSize = '1.5rem';
+            preview.appendChild(icon);
         } else {
             const icon = document.createElement('div');
             icon.className = 'dragPreviewIcon';
             icon.textContent = '📄';
-            icon.style.fontSize = '2.2rem';
+            icon.style.fontSize = '1.5rem';
             preview.appendChild(icon);
         }
 
@@ -2971,6 +3008,7 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
         dataTransfer.setDragImage(preview, offsetX, offsetY);
 
         this.dragPreviewElement = preview;
+        // Note: Preview element will be removed by handleDragEnd when drag completes
     }
 
     private async isDescendantFolder(targetFolderId: number | null, ancestorFolderId: number): Promise<boolean> {
@@ -3002,8 +3040,22 @@ export class IncomingFilesComponent implements OnInit, OnDestroy {
     }
 
     setSortConfig(config: Partial<SortConfig>): void {
-        this.sortConfig.update(current => ({ ...current, ...config }));
-        this.showSortMenu.set(false);
+        this.sortConfig.update(current => {
+            if (config.field) {
+                // If clicking the same field, toggle order
+                if (config.field === current.field) {
+                    return {
+                        ...current,
+                        order: current.order === 'asc' ? 'desc' : 'asc'
+                    };
+                }
+                // New field, set it and default to asc (or custom defaults per type if desired)
+                return { ...current, field: config.field, order: 'asc' };
+            }
+            // Fallback for direct updates
+            return { ...current, ...config };
+        });
+        this.isSortMenuOpen.set(false);
     }
 
     getSortLabel(): string {

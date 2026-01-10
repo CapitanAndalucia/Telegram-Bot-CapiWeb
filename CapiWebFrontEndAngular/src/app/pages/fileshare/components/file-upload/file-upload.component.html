@@ -1,40 +1,116 @@
-<div class="uploadContainer">
-    <h2>Enviar Archivo</h2>
-    <form (submit)="handleSubmit($event)" class="uploadForm">
-        <div class="formGroup">
-            <div class="recipientHeader">
-                <label>Destinatario</label>
-                <label class="checkboxLabel">
-                    <input type="checkbox" [checked]="sendToSelf()" (change)="handleSelfToggle($event)" />
-                    Enviarme a mí mismo
-                </label>
-            </div>
-            <input type="text" [value]="recipient()" (input)="handleRecipientChange($any($event.target).value)"
-                class="input" placeholder="Escribe el nombre de usuario..." required [disabled]="sendToSelf()" />
-        </div>
+<div class="flex flex-col h-full bg-gd-bg p-6 overflow-y-auto">
+    <div class="max-w-2xl mx-auto w-full">
+        <h2 class="text-2xl font-semibold mb-8 text-gd-text text-center">Enviar Archivo</h2>
 
-        <div class="formGroup">
-            <label>Archivo</label>
-            <div class="fileInputWrapper">
-                <input type="file" (change)="handleFileChange($event)" class="fileInput" required />
-                <div class="fileDropZone">
-                    {{ file() ? file()!.name : 'Arrastra un archivo o haz clic aquí' }}
+        <form (submit)="handleSubmit($event)"
+            class="space-y-6 bg-gd-card p-6 rounded-xl border border-gd-border shadow-sm">
+            <!-- Recipient Section -->
+            <div class="space-y-2">
+                <div class="flex items-center justify-between mb-1">
+                    <label class="block text-sm font-medium text-gd-text-secondary">Destinatario</label>
+                    <label class="flex items-center gap-2 cursor-pointer group">
+                        <div class="relative flex items-center">
+                            <input type="checkbox" [checked]="sendToSelf()" (change)="handleSelfToggle($event)"
+                                class="peer h-4 w-4 rounded border-gd-border bg-gd-input text-gd-blue focus:ring-gd-blue/20 focus:ring-offset-0" />
+                        </div>
+                        <span
+                            class="text-xs text-gd-text-secondary group-hover:text-gd-blue transition-colors select-none">Enviarme
+                            a mí mismo</span>
+                    </label>
+                </div>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <svg class="h-5 w-5 text-gd-text-secondary" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
+                                clip-rule="evenodd" />
+                        </svg>
+                    </div>
+                    <input type="text" [value]="recipient()" (input)="handleRecipientChange($any($event.target).value)"
+                        class="w-full pl-10 pr-4 py-2.5 bg-gd-input border border-gd-border rounded-lg text-gd-text placeholder-gd-text-secondary/50 focus:border-gd-blue focus:ring-1 focus:ring-gd-blue outline-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        placeholder="Escribe el nombre de usuario..." required [disabled]="sendToSelf()" />
                 </div>
             </div>
-        </div>
 
-        <div class="formGroup">
-            <label>Descripción (Opcional)</label>
-            <textarea [value]="description()" (input)="description.set($any($event.target).value)" class="textarea"
-                rows="3"></textarea>
-        </div>
+            <!-- File Input Section -->
+            <div class="space-y-2">
+                <label class="block text-sm font-medium text-gd-text-secondary">Archivo</label>
+                <div class="relative group">
+                    <input type="file" (change)="handleFileChange($event)"
+                        class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" required />
 
-        @if (error()) {
-        <p class="errorText">{{ error() }}</p>
-        }
+                    <div
+                        class="border-2 border-dashed border-gd-border rounded-lg p-8 text-center bg-gd-input/30 group-hover:border-gd-blue group-hover:bg-gd-blue/5 transition-all duration-200">
+                        @if (file()) {
+                        <div class="flex flex-col items-center gap-2">
+                            <div class="p-3 bg-gd-blue/10 rounded-full text-gd-blue">
+                                <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                            </div>
+                            <span class="text-sm font-medium text-gd-text truncate max-w-xs block">{{ file()!.name
+                                }}</span>
+                            <span class="text-xs text-gd-text-secondary">{{ (file()!.size / 1024 / 1024) |
+                                number:'1.2-2' }} MB</span>
+                        </div>
+                        } @else {
+                        <div
+                            class="flex flex-col items-center gap-2 text-gd-text-secondary group-hover:text-gd-blue transition-colors">
+                            <svg class="w-10 h-10 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                    d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                            </svg>
+                            <p class="text-sm font-medium">Click para seleccionar o arrastra un archivo aquí</p>
+                            <p class="text-xs opacity-70">Soporta cualquier tipo de archivo</p>
+                        </div>
+                        }
+                    </div>
+                </div>
+            </div>
 
-        <button type="submit" class="submitButton" [disabled]="uploading()">
-            {{ uploading() ? 'Enviando...' : 'Enviar Archivo' }}
-        </button>
-    </form>
+            <!-- Description Section -->
+            <div class="space-y-2">
+                <label class="block text-sm font-medium text-gd-text-secondary">Descripción <span
+                        class="text-xs opacity-50 ml-1">(Opcional)</span></label>
+                <textarea [value]="description()" (input)="description.set($any($event.target).value)"
+                    class="w-full px-4 py-3 bg-gd-input border border-gd-border rounded-lg text-gd-text placeholder-gd-text-secondary/50 focus:border-gd-blue focus:ring-1 focus:ring-gd-blue outline-none transition-colors resize-none"
+                    rows="3" placeholder="Añade una nota para el destinatario..."></textarea>
+            </div>
+
+            @if (error()) {
+            <div class="p-3 bg-red-500/10 border border-red-500/20 rounded-lg flex items-start gap-3">
+                <svg class="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd"
+                        d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                        clip-rule="evenodd" />
+                </svg>
+                <p class="text-sm text-red-400">{{ error() }}</p>
+            </div>
+            }
+
+            <div class="pt-2">
+                <button type="submit"
+                    class="w-full py-3 px-4 bg-gd-blue hover:bg-gd-blue-hover text-white rounded-lg font-medium shadow-lg shadow-gd-blue/20 hover:shadow-gd-blue/30 transition-all duration-200 transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none flex items-center justify-center gap-2"
+                    [disabled]="uploading()">
+                    @if (uploading()) {
+                    <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none"
+                        viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
+                        </circle>
+                        <path class="opacity-75" fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                        </path>
+                    </svg>
+                    <span>Enviando...</span>
+                    } @else {
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                    </svg>
+                    <span>Enviar Archivo</span>
+                    }
+                </button>
+            </div>
+        </form>
+    </div>
 </div>

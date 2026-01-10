@@ -1,39 +1,103 @@
-<div class="dashboardContainer">
+<div class="flex h-[100dvh] bg-gd-bg font-google text-gd-text">
     <!-- Mobile Sidebar Overlay -->
     @if (isSidebarOpen()) {
-    <div class="sidebarOverlay" (click)="closeSidebar()"></div>
+    <div class="fixed inset-0 bg-black/60 z-40 lg:hidden" (click)="closeSidebar()"></div>
     }
 
-    <div class="sidebar" [class.open]="isSidebarOpen()">
-        <div class="header">
-            <h1>Centro de Archivos</h1>
-            <button class="closeSidebarBtn icon-only" (click)="closeSidebar()">
-                <img src="assets/icons/boton-x.png" alt="Cerrar" class="icon-close" />
-                <span class="visually-hidden">Cerrar</span>
+    <!-- Sidebar -->
+    <aside
+        class="fixed lg:relative z-50 lg:z-auto w-64 h-full bg-gd-sidebar border-r border-gd-border flex flex-col transition-transform duration-300 ease-in-out"
+        [class.-translate-x-full]="!isSidebarOpen()" [class.translate-x-0]="isSidebarOpen()"
+        [class.lg:translate-x-0]="true">
+
+        <!-- Sidebar Header -->
+        <div class="flex items-center gap-2 px-4 py-4">
+            <h1 class="text-lg font-normal text-gd-text">Centro de Archivos</h1>
+            <button class="lg:hidden ml-auto p-2 rounded-full hover:bg-gd-hover transition-colors"
+                (click)="closeSidebar()">
+                <svg class="w-5 h-5 text-gd-text-secondary" viewBox="0 0 24 24" fill="currentColor">
+                    <path
+                        d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
+                </svg>
             </button>
         </div>
-        <nav class="scopeNav">
-            <button class="scopeBtn" [class.active]="activeScope() === 'mine'" (click)="setActiveScope('mine')">
-                Mi unidad
+
+        <!-- New Button -->
+        <div class="px-3 py-2">
+            <button
+                class="flex items-center gap-3 w-auto px-5 py-3 rounded-gd-full shadow-gd-btn bg-gd-bg-elevated hover:bg-gd-card-hover border border-gd-border transition-all duration-200"
+                (click)="setActiveTab('upload'); closeSidebar()">
+                <svg class="w-6 h-6 text-gd-text" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
+                </svg>
+                <span class="text-sm font-medium text-gd-text">Nuevo</span>
             </button>
-            <button class="scopeBtn" [class.active]="activeScope() === 'shared'" (click)="setActiveScope('shared')">
-                Compartidos
-            </button>
-            <button class="scopeBtn" [class.active]="activeScope() === 'sent'" (click)="setActiveScope('sent')">
-                Enviados
-            </button>
+        </div>
+
+        <!-- Navigation -->
+        <nav class="flex-1 px-2 py-2 overflow-y-auto">
+            <div class="space-y-0.5">
+                <button
+                    class="flex items-center gap-3 w-full px-3 py-2 rounded-gd-full text-sm font-medium transition-colors"
+                    [class.bg-gd-selected]="activeScope() === 'mine'" [class.text-gd-blue]="activeScope() === 'mine'"
+                    [class.text-gd-text]="activeScope() !== 'mine'" [class.hover:bg-gd-hover]="activeScope() !== 'mine'"
+                    (click)="setActiveScope('mine')">
+                    <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                        <path
+                            d="M19 11H5v-1c0-2.38-.83-4.61.54-6.27C7.07 2.26 8.87 2 11 2h2c2.13 0 3.93.26 5.46 1.73 1.37 1.66.54 3.89.54 6.27v1zM5 22c-1.1 0-2-.9-2-2v-7h18v7c0 1.1-.9 2-2 2H5z" />
+                    </svg>
+                    <span>Mi unidad</span>
+                </button>
+
+                <button
+                    class="flex items-center gap-3 w-full px-3 py-2 rounded-gd-full text-sm font-medium transition-colors"
+                    [class.bg-gd-selected]="activeScope() === 'shared'"
+                    [class.text-gd-blue]="activeScope() === 'shared'" [class.text-gd-text]="activeScope() !== 'shared'"
+                    [class.hover:bg-gd-hover]="activeScope() !== 'shared'" (click)="setActiveScope('shared')">
+                    <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                        <path
+                            d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z" />
+                    </svg>
+                    <span>Compartidos</span>
+                </button>
+
+                <button
+                    class="flex items-center gap-3 w-full px-3 py-2 rounded-gd-full text-sm font-medium transition-colors"
+                    [class.bg-gd-selected]="activeScope() === 'sent'" [class.text-gd-blue]="activeScope() === 'sent'"
+                    [class.text-gd-text]="activeScope() !== 'sent'" [class.hover:bg-gd-hover]="activeScope() !== 'sent'"
+                    (click)="setActiveScope('sent')">
+                    <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+                    </svg>
+                    <span>Enviados</span>
+                </button>
+            </div>
+
+            <!-- Divider -->
+            <div class="my-3 border-t border-gd-border"></div>
+
+            <!-- Friend List -->
+            @if (user()) {
+            <div class="text-xs font-medium text-gd-text-secondary uppercase tracking-wide px-3 py-2">
+                Amigos
+            </div>
+            <app-friend-list [refreshTrigger]="friendRefreshTrigger()"
+                (selectFriend)="handleSelectFriend($event)"></app-friend-list>
+            }
         </nav>
-        @if (user()) {
-        <app-friend-list [refreshTrigger]="friendRefreshTrigger()"
-            (selectFriend)="handleSelectFriend($event)"></app-friend-list>
-        }
-    </div>
+    </aside>
 
-    <div class="mainContent">
-        <header class="header" style="justify-content: space-between">
-            <button class="menuBtn" (click)="toggleSidebar()">☰</button>
+    <!-- Main Content -->
+    <div class="flex-1 flex flex-col min-w-0 overflow-hidden bg-gd-bg">
+        <!-- Header -->
+        <header class="flex items-center justify-between px-4 py-2 border-b border-gd-border">
+            <button class="lg:hidden p-2 rounded-full hover:bg-gd-hover transition-colors" (click)="toggleSidebar()">
+                <svg class="w-6 h-6 text-gd-text-secondary" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z" />
+                </svg>
+            </button>
 
-            <div style="display: flex; align-items: center; gap: 1rem; margin-left: auto">
+            <div class="flex items-center gap-3 ml-auto">
                 @if (user()) {
                 <app-notification-center (accepted)="handleFriendAccepted()"></app-notification-center>
                 }
@@ -43,62 +107,70 @@
         </header>
 
         @if (loading()) {
-        <div class="dashboardContainer" style="display: flex; justify-content: center; align-items: center">
-            <div class="spinner">Cargando...</div>
+        <div class="flex-1 flex items-center justify-center">
+            <div class="animate-spin w-8 h-8 border-2 border-gd-blue border-t-transparent rounded-full"></div>
         </div>
         } @else if (!user() && !sharedLinkData()) {
-        <div class="loginPrompt">
-            <h2>Inicia sesión para compartir archivos</h2>
-            <p>Necesitas una cuenta para enviar y recibir archivos con tus amigos.</p>
-            <button class="primaryBtn" style="margin-top: 1.5rem"
+        <!-- Login Prompt -->
+        <div class="flex-1 flex flex-col items-center justify-center px-4 text-center">
+            <svg class="w-32 h-32 text-gd-text-secondary opacity-30 mb-6" viewBox="0 0 24 24" fill="currentColor">
+                <path
+                    d="M19 11H5v-1c0-2.38-.83-4.61.54-6.27C7.07 2.26 8.87 2 11 2h2c2.13 0 3.93.26 5.46 1.73 1.37 1.66.54 3.89.54 6.27v1zM5 22c-1.1 0-2-.9-2-2v-7h18v7c0 1.1-.9 2-2 2H5z" />
+            </svg>
+            <h2 class="text-xl font-normal text-gd-text mb-2">Inicia sesión para compartir archivos</h2>
+            <p class="text-gd-text-secondary mb-6">Necesitas una cuenta para enviar y recibir archivos con tus amigos.
+            </p>
+            <button
+                class="px-6 py-2.5 bg-gd-blue text-gd-bg rounded-md font-medium hover:bg-gd-blue-hover transition-colors"
                 onclick="window.location.href='/login?redirect=/fileshare&title=Centro de Archivos'">
                 Iniciar Sesión
             </button>
         </div>
         } @else if (sharedLinkData()) {
-        <!-- Shared Link View - Show files directly -->
-        <div class="contentArea" style="padding-top: 1rem;">
-            <div class="tabContent">
-                <app-incoming-files [user]="user()" [refreshTrigger]="refreshTrigger()" [scope]="activeScope()"
-                    [forceResetCount]="forceResetCount()" [sharedLinkToken]="sharedLinkToken()"
-                    [sharedLinkData]="sharedLinkData()" (unreadCountChange)="onUnreadCountChange($event)"
-                    (openUpload)="setActiveTab('upload')"></app-incoming-files>
-            </div>
+        <!-- Shared Link View -->
+        <div class="flex-1 overflow-hidden">
+            <app-incoming-files [user]="user()" [refreshTrigger]="refreshTrigger()" [scope]="activeScope()"
+                [forceResetCount]="forceResetCount()" [sharedLinkToken]="sharedLinkToken()"
+                [sharedLinkData]="sharedLinkData()" (unreadCountChange)="onUnreadCountChange($event)"
+                (openUpload)="setActiveTab('upload')"></app-incoming-files>
         </div>
         } @else {
-        <div class="tabs">
-            <button class="tab" [class.active]="activeTab() === 'files'" (click)="setActiveTab('files')">
-                <span class="tab-label">
-                    Mis Archivos
-                    @if (unreadCount() > 0) {
-                    <span class="tabNotificationDot"></span>
-                    }
-                </span>
+        <!-- Tabs -->
+        <div class="flex gap-1 px-4 py-2 border-b border-gd-border">
+            <button class="px-4 py-2 text-sm font-medium rounded-full transition-colors relative"
+                [class.bg-gd-selected]="activeTab() === 'files'" [class.text-gd-blue]="activeTab() === 'files'"
+                [class.text-gd-text-secondary]="activeTab() !== 'files'"
+                [class.hover:bg-gd-hover]="activeTab() !== 'files'" (click)="setActiveTab('files')">
+                Mis Archivos
+                @if (unreadCount() > 0) {
+                <span class="absolute -top-0.5 -right-0.5 w-2 h-2 bg-gd-blue rounded-full"></span>
+                }
             </button>
-            <button class="tab" [class.active]="activeTab() === 'upload'" (click)="setActiveTab('upload')">
+            <button class="px-4 py-2 text-sm font-medium rounded-full transition-colors"
+                [class.bg-gd-selected]="activeTab() === 'upload'" [class.text-gd-blue]="activeTab() === 'upload'"
+                [class.text-gd-text-secondary]="activeTab() !== 'upload'"
+                [class.hover:bg-gd-hover]="activeTab() !== 'upload'" (click)="setActiveTab('upload')">
                 Enviar Archivo
             </button>
         </div>
 
-        <div class="contentArea">
-            <div class="tabContent">
-                @if (activeTab() === 'files') {
-                <app-incoming-files [user]="user()" [refreshTrigger]="refreshTrigger()" [scope]="activeScope()"
-                    [forceResetCount]="forceResetCount()" [initialFolderId]="sharedFolderId()"
-                    [initialPreviewFileId]="sharedPreviewFileId()" (unreadCountChange)="onUnreadCountChange($event)"
-                    (openUpload)="setActiveTab('upload')"></app-incoming-files>
-                }
-                @if (activeTab() === 'upload') {
-                <app-file-upload [user]="user()" [selectedRecipient]="selectedRecipient()"
-                    (uploadSuccess)="handleUploadSuccess()"
-                    (recipientChange)="onRecipientChange($event)"></app-file-upload>
-                }
-            </div>
+        <!-- Content Area -->
+        <div class="flex-1 overflow-hidden">
+            @if (activeTab() === 'files') {
+            <app-incoming-files [user]="user()" [refreshTrigger]="refreshTrigger()" [scope]="activeScope()"
+                [forceResetCount]="forceResetCount()" [initialFolderId]="sharedFolderId()"
+                [initialPreviewFileId]="sharedPreviewFileId()" (unreadCountChange)="onUnreadCountChange($event)"
+                (openUpload)="setActiveTab('upload')"></app-incoming-files>
+            }
+            @if (activeTab() === 'upload') {
+            <app-file-upload [user]="user()" [selectedRecipient]="selectedRecipient()"
+                (uploadSuccess)="handleUploadSuccess()" (recipientChange)="onRecipientChange($event)"></app-file-upload>
+            }
         </div>
         }
     </div>
 
-    <!-- Widget de descargas flotante -->
+    <!-- Downloads Widget -->
     @if (user()) {
     <app-downloads-menu></app-downloads-menu>
     }

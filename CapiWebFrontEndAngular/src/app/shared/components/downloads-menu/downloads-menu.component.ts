@@ -98,8 +98,9 @@ import { takeUntil } from 'rxjs/operators';
   styles: [`
     .download-widget {
       position: fixed;
-      bottom: 20px; /* Same as upload widget, might overlap if both active. Maybe move to left or stack? */
-      left: 20px;   /* Let's put downloads on the LEFT to avoid collision with uploads on RIGHT */
+      bottom: 20px; 
+      right: 20px;   /* User requested RIGHT position */
+      left: auto;
       background: rgba(20, 20, 25, 0.95);
       backdrop-filter: blur(20px);
       border-radius: 12px;
@@ -153,7 +154,7 @@ import { takeUntil } from 'rxjs/operators';
 
     .progress-text {
       position: absolute;
-      top: 41%;
+      top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
       font-size: 10px;

@@ -52,28 +52,26 @@ export interface InputDialogData {
     styles: [
         `:host {
             display: block;
-            
         }
         :host ::ng-deep .mat-mdc-dialog-surface {
-            background: rgba(20, 20, 25, 0.95);
-            backdrop-filter: blur(20px);
-            border-radius: 16px;
-            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: #1e1e1e; /* gd-bg */
+            border-radius: 8px; /* Google Drive uses typically less rounded, but 8px-12px is fine */
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.2);
+            border: none;
         }
         .dialog-root {
             display: flex;
             flex-direction: column;
             gap: 1.5rem;
-            color: #fff;
+            color: #e3e3e3; /* gd-text */
             padding: 0.5rem;
         }
         h2[mat-dialog-title] {
             margin: 0;
-            font-size: 1.25rem;
-            font-weight: 600;
-            letter-spacing: 0.3px;
-            color: #fff;
+            font-size: 1.375rem;
+            font-weight: 400; /* Google Sans typically 400 for titles */
+            color: #e3e3e3;
+            font-family: "Google Sans", Roboto, Arial, sans-serif;
         }
         .dialog-form {
             margin: 0;
@@ -84,43 +82,47 @@ export interface InputDialogData {
         }
         /* Material form field dark theme overrides */
         :host ::ng-deep .mat-mdc-form-field {
-            --mdc-filled-text-field-container-color: rgba(255, 255, 255, 0.05);
-            --mdc-outlined-text-field-outline-color: rgba(255, 255, 255, 0.2);
-            --mdc-outlined-text-field-focus-outline-color: #00f2ff;
-            --mdc-outlined-text-field-hover-outline-color: rgba(0, 242, 255, 0.5);
-            --mdc-outlined-text-field-label-text-color: rgba(255, 255, 255, 0.6);
-            --mdc-outlined-text-field-focus-label-text-color: #00f2ff;
-            --mdc-outlined-text-field-input-text-color: #fff;
-            --mdc-outlined-text-field-caret-color: #00f2ff;
+            --mdc-filled-text-field-container-color: transparent;
+            --mdc-outlined-text-field-outline-color: #8e918f; /* gd-text-secondary-ish */
+            --mdc-outlined-text-field-focus-outline-color: #8ab4f8; /* gd-blue */
+            --mdc-outlined-text-field-hover-outline-color: #e3e3e3;
+            --mdc-outlined-text-field-label-text-color: #c4c7c5;
+            --mdc-outlined-text-field-focus-label-text-color: #8ab4f8;
+            --mdc-outlined-text-field-input-text-color: #e3e3e3;
+            --mdc-outlined-text-field-caret-color: #8ab4f8;
+        }
+        :host ::ng-deep .mat-mdc-form-field-infix {
+            padding-left: 12px !important;
         }
         :host ::ng-deep .mat-mdc-form-field-flex {
-            border-radius: 10px;
+            border-radius: 4px; /* Standard Material/Google radius */
         }
         :host ::ng-deep .mdc-text-field--outlined .mdc-notched-outline .mdc-notched-outline__leading,
         :host ::ng-deep .mdc-text-field--outlined .mdc-notched-outline .mdc-notched-outline__notch,
         :host ::ng-deep .mdc-text-field--outlined .mdc-notched-outline .mdc-notched-outline__trailing {
-            border-color: rgba(255, 255, 255, 0.2) !important;
+            border-color: #8e918f !important;
         }
         :host ::ng-deep .mdc-text-field--outlined:not(.mdc-text-field--disabled).mdc-text-field--focused .mdc-notched-outline__leading,
         :host ::ng-deep .mdc-text-field--outlined:not(.mdc-text-field--disabled).mdc-text-field--focused .mdc-notched-outline__notch,
         :host ::ng-deep .mdc-text-field--outlined:not(.mdc-text-field--disabled).mdc-text-field--focused .mdc-notched-outline__trailing {
-            border-color: #00f2ff !important;
+            border-color: #8ab4f8 !important;
+            border-width: 2px;
         }
         :host ::ng-deep .mat-mdc-form-field-focus-overlay {
-            background: rgba(0, 242, 255, 0.05);
+            background: transparent;
         }
         :host ::ng-deep .mat-mdc-form-field-subscript-wrapper {
             margin-top: 0.4rem;
         }
         :host ::ng-deep .mat-mdc-input-element {
-            color: #fff !important;
+            color: #e3e3e3 !important;
         }
         :host ::ng-deep .mat-mdc-form-field-label,
         :host ::ng-deep .mdc-floating-label {
-            color: rgba(255, 255, 255, 0.6) !important;
+            color: #c4c7c5 !important;
         }
         :host ::ng-deep .mat-mdc-form-field.mat-focused .mdc-floating-label {
-            color: #00f2ff !important;
+            color: #8ab4f8 !important;
         }
         .dialog-actions {
             display: flex;
@@ -130,102 +132,91 @@ export interface InputDialogData {
         }
         button[mat-button] {
             text-transform: none;
-            color: rgba(255, 255, 255, 0.7);
-            border-radius: 8px;
-            padding: 0.5rem 1rem;
+            color: #8ab4f8; /* Secondary button blue */
+            border-radius: 20px; /* Google pill shape */
+            padding: 0 24px;
+            height: 40px;
+            font-weight: 500;
             transition: all 0.2s ease;
         }
         button[mat-button]:hover {
-            background: rgba(255, 255, 255, 0.08);
-            color: #fff;
+            background: rgba(138, 180, 248, 0.08);
+            color: #8ab4f8;
         }
         .action-button {
             text-transform: none;
-            font-weight: 600;
-            letter-spacing: 0.2px;
-            padding: 0.5rem 1.5rem;
-            border-radius: 8px;
-            background: linear-gradient(135deg, rgba(0, 242, 255, 0.2), rgba(139, 92, 246, 0.15));
-            color: #00f2ff;
-            border: 1px solid rgba(0, 242, 255, 0.3);
-            transition: all 0.2s ease;
+            font-weight: 500;
+            padding: 0 24px;
+            border-radius: 20px;
+            background: #8ab4f8 !important; /* Primary Blue */
+            color: #062e6f !important; /* Dark Blue Text */
+            border: none;
+            transition: box-shadow 0.2s ease, background 0.2s ease;
         }
         .action-button:hover:not(:disabled) {
-            background: linear-gradient(135deg, rgba(0, 242, 255, 0.3), rgba(139, 92, 246, 0.25));
-            box-shadow: 0 4px 15px rgba(0, 242, 255, 0.2);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+            background: #a8c7fa !important; /* Slightly lighter on hover */
         }
         .action-button:disabled {
-            background: rgba(255, 255, 255, 0.05);
-            color: rgba(255, 255, 255, 0.3);
-            border-color: rgba(255, 255, 255, 0.1);
+            background: rgba(227, 227, 227, 0.12) !important;
+            color: rgba(227, 227, 227, 0.38) !important;
             cursor: not-allowed;
         }
 
         @media (max-width: 768px) {
             .mobile-dialog .mat-mdc-dialog-container {
-    max-width: 90vw !important;
-    width: 90vw !important;
-    margin: 0 auto;
-}
-
-.mobile-dialog .mat-mdc-dialog-surface {
-    border-radius: 12px;
-    padding: 1rem;
-}
-
-.mobile-dialog .mat-mdc-dialog-title {
-    font-size: 1.1rem !important;
-    padding: 0.5rem 0 !important;
-    margin: 0 !important;
-}
-
-.mobile-dialog .mat-mdc-dialog-content {
-    padding: 1rem 0 !important;
-    margin: 0 !important;
-    max-height: 60vh !important;
-}
-
-.mobile-dialog .mat-mdc-form-field {
-    width: 100% !important;
-}
-
-.mobile-dialog .mat-mdc-input-element {
-    font-size: 1rem !important;
-    padding: 0.5rem !important;
-}
-
-.mobile-dialog .mat-mdc-dialog-actions {
-    padding: 1rem 0 0 0 !important;
-    margin: 0 !important;
-    gap: 0.5rem !important;
-}
-
-.mobile-dialog .mat-mdc-button {
-    flex: 1 !important;
-    min-height: 44px !important;
-    font-size: 1rem !important;
-}
-
-/* Specific styles for rename dialog */
-.mobile-dialog.rename-dialog-panel .mat-mdc-form-field {
-    margin-bottom: 0.5rem;
-}
-
-.mobile-dialog.rename-dialog-panel .mat-mdc-form-field-appearance-outline .mat-mdc-form-field-flex {
-    padding: 0.5rem 0.75rem !important;
-}
-
-.mobile-dialog.rename-dialog-panel .mat-mdc-form-field-infix {
-    padding: 0.25rem 0 !important;
-}
-
-/* Loading spinner positioning in mobile */
-.mobile-dialog .mat-spinner {
-    position: absolute !important;
-    top: 50% !important;
-    left: 50% !important;
-    transform: translate(-50%, -50%) !important;
-}
+                max-width: 90vw !important;
+                width: 90vw !important;
+                margin: 0 auto;
+            }
+            .mobile-dialog .mat-mdc-dialog-surface {
+                border-radius: 12px;
+                padding: 1rem;
+            }
+            .mobile-dialog .mat-mdc-dialog-title {
+                font-size: 1.1rem !important;
+                padding: 0.5rem 0 !important;
+                margin: 0 !important;
+            }
+            .mobile-dialog .mat-mdc-dialog-content {
+                padding: 1rem 0 !important;
+                margin: 0 !important;
+                max-height: 60vh !important;
+            }
+            .mobile-dialog .mat-mdc-form-field {
+                width: 100% !important;
+            }
+            .mobile-dialog .mat-mdc-input-element {
+                font-size: 1rem !important;
+                padding: 0.5rem !important;
+            }
+            .mobile-dialog .mat-mdc-dialog-actions {
+                padding: 1rem 0 0 0 !important;
+                margin: 0 !important;
+                gap: 0.5rem !important;
+            }
+            .mobile-dialog .mat-mdc-button {
+                flex: 1 !important;
+                min-height: 44px !important;
+                font-size: 1rem !important;
+            }
+            /* Specific styles for rename dialog */
+            .mobile-dialog.rename-dialog-panel .mat-mdc-form-field {
+                margin-bottom: 0.5rem;
+            }
+            .mobile-dialog.rename-dialog-panel .mat-mdc-form-field-appearance-outline .mat-mdc-form-field-flex {
+                padding: 0.5rem 0.75rem !important;
+            }
+            .mobile-dialog.rename-dialog-panel .mat-mdc-form-field-infix {
+                padding: 0.25rem 0 !important;
+            }
+            /* Loading spinner positioning in mobile */
+            .mobile-dialog .mat-spinner {
+                position: absolute !important;
+                top: 50% !important;
+                left: 50% !important;
+                transform: translate(-50%, -50%) !important;
+            }
         }
     `,
     ],

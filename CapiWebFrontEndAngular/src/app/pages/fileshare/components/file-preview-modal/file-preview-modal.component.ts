@@ -1,4 +1,4 @@
-import { Component, input, output, HostBinding } from '@angular/core';
+import { Component, input, output, HostBinding, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 interface FileItem {
@@ -11,11 +11,12 @@ interface FileItem {
 
 @Component({
     selector: 'app-file-preview-modal',
+    standalone: true,
     imports: [CommonModule],
     templateUrl: './file-preview-modal.component.html',
-    styleUrls: ['../../fileshare.component.css'],
+    // Removed styleUrls as we are using Tailwind classes directly
 })
-export class FilePreviewModalComponent {
+export class FilePreviewModalComponent implements OnInit {
     file = input.required<FileItem>();
 
     // Optional custom URLs for shared/public access
@@ -25,8 +26,20 @@ export class FilePreviewModalComponent {
     close = output<void>();
     download = output<{ id: number; filename: string }>();
     delete = output<number>();
+    share = output<FileItem>();
 
     @HostBinding('class.closing') isClosing = false;
+    isOpening = true;
+
+    // UI State
+    showMoreMenu = false;
+    zoomLevel = 1;
+
+    ngOnInit() {
+        setTimeout(() => {
+            this.isOpening = false;
+        }, 50);
+    }
 
     get isImage(): boolean {
         return /\.(jpg|jpeg|png|gif|webp|svg|bmp|ico)$/i.test(this.file().filename);
@@ -50,7 +63,7 @@ export class FilePreviewModalComponent {
         this.isClosing = true;
         setTimeout(() => {
             this.close.emit();
-        }, 250);
+        }, 200);
     }
 
     onDownload(): void {
@@ -61,9 +74,17 @@ export class FilePreviewModalComponent {
         this.delete.emit(this.file().id);
     }
 
-    onOverlayClick(event: MouseEvent): void {
-        if (event.target === event.currentTarget) {
-            this.onClose();
-        }
+    onShare(): void {
+        this.share.emit(this.file());
     }
+
+    zoomIn(): void {
+        this.zoomLevel = Math.min(this.zoomLevel + 0.25, 3);
+    }
+
+    zoomOut(): void {
+        this.zoomLevel = Math.max(this.zoomLevel - 0.25, 0.25);
+    }
+
+    // Close on escape key could be added here
 }

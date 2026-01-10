@@ -1,465 +1,686 @@
-<div class="incomingFiles" [class.dragging]="isDragging()" (dragover)="handleDragOver($event)"
-    (dragleave)="handleDragLeave($event)" (drop)="handleDrop($event)"
-    (contextmenu)="handleContextMenu($event, 'background')">
-    <div class="filesHeader">
-        <div class="headerControls">
-            <div class="sortContainer" (click)="$event.stopPropagation()">
-                <button class="sortBtn" (click)="toggleSortMenu()">
-                    {{ getSortLabel() }}
-                    <span class="sortIcon">{{ sortConfig().order === 'asc' ? '↑' : '↓' }}</span>
+<div class="flex flex-col h-full bg-gd-bg p-4 text-gd-text" [class.ring-2]="isDragging()"
+    [class.ring-gd-blue]="isDragging()" (dragover)="handleDragOver($event)" (dragleave)="handleDragLeave($event)"
+    (drop)="handleDrop($event)" (contextmenu)="handleContextMenu($event, 'background')">
+
+    <!-- Header: Controls -->
+    <div class="mb-4 space-y-3">
+        <!-- Controls Row -->
+        <div class="flex items-center justify-between gap-4">
+            <!-- Breadcrumbs -->
+            <div class="flex items-center gap-1 text-sm flex-1 min-w-0">
+                <svg class="w-5 h-5 text-gd-text-secondary flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                    <path
+                        d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z" />
+                </svg>
+                <button class="px-2 py-1 rounded hover:bg-gd-hover text-gd-text font-medium transition-colors truncate"
+                    [class.text-gd-blue]="breadcrumbs().length === 1" (click)="handleBreadcrumbClick(0)"
+                    (dragover)="handleBreadcrumbDragOver($event, breadcrumbs()[0])"
+                    (drop)="handleBreadcrumbDrop($event, breadcrumbs()[0])">
+                    {{ breadcrumbs()[0]?.name }}
                 </button>
-
-                <div *ngIf="isSortMenuOpen()" class="sortMenu">
-                    <div class="sortGroup">
-                        <div class="sortHeader">Ordenar por</div>
-                        <div class="sortItem" (click)="setSortConfig({field: 'name'}); toggleSortMenu()"
-                            [class.active]="sortConfig().field === 'name'">
-                            <span *ngIf="sortConfig().field === 'name'">✓</span> Nombre
-                        </div>
-                        <div class="sortItem" (click)="setSortConfig({field: 'date'}); toggleSortMenu()"
-                            [class.active]="sortConfig().field === 'date'">
-                            <span *ngIf="sortConfig().field === 'date'">✓</span> Fecha de modificación
-                        </div>
-                        <div class="sortItem" (click)="setSortConfig({field: 'size'}); toggleSortMenu()"
-                            [class.active]="sortConfig().field === 'size'">
-                            <span *ngIf="sortConfig().field === 'size'">✓</span> Tamaño
-                        </div>
-                    </div>
-
-                    <div class="sortDivider"></div>
-
-                    <div class="sortGroup">
-                        <div class="sortHeader">Orden</div>
-                        <div class="sortItem" (click)="setSortConfig({order: 'asc'}); toggleSortMenu()"
-                            [class.active]="sortConfig().order === 'asc'">
-                            <span *ngIf="sortConfig().order === 'asc'">✓</span> Ascendente
-                        </div>
-                        <div class="sortItem" (click)="setSortConfig({order: 'desc'}); toggleSortMenu()"
-                            [class.active]="sortConfig().order === 'desc'">
-                            <span *ngIf="sortConfig().order === 'desc'">✓</span> Descendente
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="viewToggle">
-                <button class="toggleBtn" [class.active]="viewMode() === 'list'" (click)="viewMode.set('list')"
-                    title="Lista">☰</button>
-                <button class="toggleBtn" [class.active]="viewMode() === 'grid'" (click)="viewMode.set('grid')"
-                    title="Cuadrícula">
-                    <img src="assets/icons/cuadricula.png" alt="Cuadrícula" class="toggle-icon">
-                </button>
-            </div>
-        </div>
-        <div class="breadcrumbs">
-            <span class="breadcrumb-root-icon"><img src="assets/icons/carpeta.png" alt="Folder"
-                    style="width: 1.4rem; height: 1.4rem;"></span>
-            <span class="crumb" (click)="handleBreadcrumbClick(0)" [class.active]="breadcrumbs().length === 1"
-                (dragover)="handleBreadcrumbDragOver($event, breadcrumbs()[0])"
-                (dragenter)="handleBreadcrumbDragEnter($event, breadcrumbs()[0])"
-                (dragleave)="handleBreadcrumbDragLeave($event, breadcrumbs()[0])"
-                (drop)="handleBreadcrumbDrop($event, breadcrumbs()[0])"
-                [class.dropTarget]="hoveredBreadcrumbKey() === breadcrumbKey(breadcrumbs()[0])">
-                {{ breadcrumbs()[0]?.name }}
-            </span>
-            <span *ngIf="breadcrumbs().length > 1" class="separator">›</span>
-
-            <ng-container *ngFor="let crumb of breadcrumbs().slice(1); let i = index; let last = last">
-                <span class="crumb" (click)="handleBreadcrumbClick(i + 1)" [class.active]="last"
-                    (dragover)="handleBreadcrumbDragOver($event, crumb)"
-                    (dragenter)="handleBreadcrumbDragEnter($event, crumb)"
-                    (dragleave)="handleBreadcrumbDragLeave($event, crumb)" (drop)="handleBreadcrumbDrop($event, crumb)"
-                    [class.dropTarget]="hoveredBreadcrumbKey() === breadcrumbKey(crumb)">
+                @for (crumb of breadcrumbs().slice(1); track crumb.id; let i = $index; let last = $last) {
+                <svg class="w-4 h-4 text-gd-text-secondary flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" />
+                </svg>
+                <button class="px-2 py-1 rounded hover:bg-gd-hover transition-colors truncate"
+                    [class.text-gd-blue]="last" [class.font-medium]="last" [class.text-gd-text]="!last"
+                    (click)="handleBreadcrumbClick(i + 1)" (dragover)="handleBreadcrumbDragOver($event, crumb)"
+                    (drop)="handleBreadcrumbDrop($event, crumb)">
                     {{ crumb.name }}
-                </span>
-                <span *ngIf="!last" class="separator">›</span>
-            </ng-container>
-        </div>
-
-        <!-- Search Bar -->
-        <div class="search-bar-container" (click)="$event.stopPropagation()">
-            <div class="search-input-wrapper">
-                <span class="search-icon">🔍</span>
-                <input type="text" class="search-input" placeholder="Buscar archivos y carpetas..."
-                    [value]="searchTerm()" (input)="onSearchInput($any($event.target).value)"
-                    (focus)="showSearchResults.set(true)" />
-                @if (searchTerm()) {
-                <button class="clear-search-btn" (click)="clearSearch()">✕</button>
+                </button>
                 }
             </div>
 
-            @if (showSearchResults() && searchTerm()) {
-            <div class="search-dropdown">
-                @if (searchFilteredFolders().length === 0 && searchFilteredFiles().length === 0) {
-                <div class="search-no-results">No se encontraron resultados</div>
-                }
+            <!-- Sort + View Toggle -->
+            <div class="flex items-center gap-2 flex-shrink-0">
+                <!-- Sort Button -->
+                <div class="relative" (click)="$event.stopPropagation()">
+                    <button
+                        class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gd-text hover:text-white transition-colors group"
+                        (click)="toggleSortMenu()">
+                        <span>{{ getSortLabel() }}</span>
+                        <div class="w-3.5 h-3.5 bg-blue-600 transform transition-transform duration-200"
+                            [class.rotate-180]="sortConfig().order === 'desc'"
+                            style="-webkit-mask-image: url(assets/icons/flecha-arriba.png); mask-image: url(assets/icons/flecha-arriba.png); -webkit-mask-size: contain; mask-size: contain; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; -webkit-mask-position: center; mask-position: center;">
+                        </div>
+                    </button>
 
-                @if (searchFilteredFiles().length > 0) {
-
-                @for (file of searchFilteredFiles(); track file.id) {
-                <div class="search-result-item" (click)="handleSearchResultClick(file, 'file')">
-                    <span class="result-icon">
-                        @if (isImage(file.filename)) {
-                        <img src="assets/icons/image-file-icon.png" alt="Image" class="icon-img">
-                        } @else if (isVideo(file.filename)) {
-                        <img src="assets/icons/camara-de-video.png" alt="Video" class="icon-img">
-                        } @else if (isAudio(file.filename)) {
-                        <img src="assets/icons/altavoz.png" alt="Audio" class="icon-img">
-                        } @else {
-                        📄
-                        }
-                    </span>
-                    <div class="result-info">
-                        <div class="result-name">{{ file.filename }}</div>
-                        <div class="result-date">{{ (file.size / 1024).toFixed(1) }} KB</div>
+                    @if (isSortMenuOpen()) {
+                    <div
+                        class="absolute top-full right-0 mt-1 bg-gd-card rounded-lg shadow-gd-menu border border-gd-border py-2 min-w-[160px] z-50">
+                        <button class="w-full flex items-center px-3 py-2 text-sm hover:bg-gd-hover text-gd-text"
+                            [class.text-gd-blue]="sortConfig().field === 'name'"
+                            (click)="setSortConfig({field: 'name'}); toggleSortMenu()">
+                            Nombre
+                        </button>
+                        <button class="w-full flex items-center px-3 py-2 text-sm hover:bg-gd-hover text-gd-text"
+                            [class.text-gd-blue]="sortConfig().field === 'date'"
+                            (click)="setSortConfig({field: 'date'}); toggleSortMenu()">
+                            Fecha
+                        </button>
+                        <button class="w-full flex items-center px-3 py-2 text-sm hover:bg-gd-hover text-gd-text"
+                            [class.text-gd-blue]="sortConfig().field === 'size'"
+                            (click)="setSortConfig({field: 'size'}); toggleSortMenu()">
+                            Tamaño
+                        </button>
                     </div>
+                    }
+                </div>
+
+                <!-- View Toggle -->
+                <div class="flex bg-gd-card rounded-lg border border-gd-border overflow-hidden">
+                    <button class="p-2 transition-colors" [class.bg-gd-selected]="viewMode() === 'list'"
+                        [class.hover:bg-gd-hover]="viewMode() !== 'list'" (click)="viewMode.set('list')" title="Lista">
+                        <svg class="w-5 h-5 text-gd-text-secondary" viewBox="0 0 24 24" fill="currentColor">
+                            <path
+                                d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z" />
+                        </svg>
+                    </button>
+                    <button class="p-2 transition-colors" [class.bg-gd-selected]="viewMode() === 'grid'"
+                        [class.hover:bg-gd-hover]="viewMode() !== 'grid'" (click)="viewMode.set('grid')"
+                        title="Cuadrícula">
+                        <svg class="w-5 h-5 text-gd-text-secondary" viewBox="0 0 24 24" fill="currentColor">
+                            <path
+                                d="M3 3v8h8V3H3zm6 6H5V5h4v4zm-6 4v8h8v-8H3zm6 6H5v-4h4v4zm4-16v8h8V3h-8zm6 6h-4V5h4v4zm-6 4v8h8v-8h-8zm6 6h-4v-4h4v4z" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Search/Selection Bar Container -->
+        <div class="relative h-[42px] w-full">
+            @if (!bulkSelectionActive()) {
+            <!-- Search Bar -->
+            <div class="absolute inset-0 w-full max-w-md" (click)="$event.stopPropagation()"
+                [@searchSelectionAnimation]>
+                <div
+                    class="flex items-center bg-gd-card rounded-full px-4 py-2 border border-gd-border focus-within:border-gd-blue focus-within:ring-1 focus-within:ring-gd-blue transition-all h-full">
+                    <svg class="w-5 h-5 text-gd-text-secondary flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                        <path
+                            d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" />
+                    </svg>
+                    <input type="text" placeholder="Buscar archivos y carpetas..."
+                        class="flex-1 bg-transparent border-none outline-none ml-3 text-sm text-gd-text placeholder:text-gd-text-secondary h-full"
+                        [value]="searchTerm()" (input)="onSearchInput($any($event.target).value)"
+                        (focus)="showSearchResults.set(true)" />
+                    @if (searchTerm()) {
+                    <button class="p-1 hover:bg-gd-hover rounded-full transition-colors" (click)="clearSearch()">
+                        <svg class="w-4 h-4 text-gd-text-secondary" viewBox="0 0 24 24" fill="currentColor">
+                            <path
+                                d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
+                        </svg>
+                    </button>
+                    }
+                </div>
+
+                <!-- Search Results Dropdown -->
+                @if (showSearchResults() && searchTerm()) {
+                <div
+                    class="absolute top-full left-0 w-full mt-1 bg-gd-card rounded-lg shadow-gd-menu border border-gd-border max-h-72 overflow-y-auto z-50">
+                    @if (searchFilteredFiles().length === 0 && searchFilteredFolders().length === 0) {
+                    <div class="p-4 text-center text-gd-text-secondary text-sm">No se encontraron resultados</div>
+                    }
+                    @for (file of searchFilteredFiles(); track file.id) {
+                    <button
+                        class="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gd-hover transition-colors text-left"
+                        (click)="handleSearchResultClick(file, 'file')">
+                        <svg class="w-5 h-5 text-gd-blue flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                            <path
+                                d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z" />
+                        </svg>
+                        <span class="text-sm text-gd-text truncate flex-1">{{ file.filename }}</span>
+                    </button>
+                    }
+                    @for (folder of searchFilteredFolders(); track folder.id) {
+                    <button
+                        class="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gd-hover transition-colors text-left"
+                        (click)="handleSearchResultClick(folder, 'folder')">
+                        <svg class="w-5 h-5 text-gd-text-secondary flex-shrink-0" viewBox="0 0 24 24"
+                            fill="currentColor">
+                            <path
+                                d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z" />
+                        </svg>
+                        <span class="text-sm text-gd-text truncate flex-1">{{ folder.name }}</span>
+                    </button>
+                    }
                 </div>
                 }
-                }
-
-                @if (searchFilteredFolders().length > 0) {
-
-                @for (folder of searchFilteredFolders(); track folder.id) {
-                <div class="search-result-item" (click)="handleSearchResultClick(folder, 'folder')">
-                    <span class="result-icon"><img src="assets/icons/carpeta.png" alt="Folder" class="icon-img"></span>
-                    <div class="result-info">
-                        <div class="result-name">{{ folder.name }}</div>
-                    </div>
+            </div>
+            } @else {
+            <!-- Selection Bar (Swapped) -->
+            <div [@searchSelectionAnimation]
+                class="absolute inset-0 w-full flex items-center gap-4 px-4 py-2 bg-gd-selected rounded-lg border border-gd-blue/30 h-full">
+                <span class="text-sm font-medium text-gd-text">{{ selectedFileIds().size + selectedFolderIds().size }}
+                    seleccionados</span>
+                <div class="flex gap-2 ml-auto">
+                    <button
+                        class="flex items-center gap-2 px-3 py-1.5 text-sm bg-gd-card rounded-md hover:bg-gd-card-hover transition-colors border border-gd-border text-gd-text"
+                        [disabled]="selectedFileIds().size === 0" (click)="downloadSelected()">
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" />
+                        </svg>
+                        Descargar
+                    </button>
+                    <button
+                        class="flex items-center gap-2 px-3 py-1.5 text-sm bg-red-500/20 text-red-400 rounded-md hover:bg-red-500/30 transition-colors"
+                        (click)="deleteSelected()">
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
+                        </svg>
+                        Eliminar
+                    </button>
+                    <button class="p-1.5 hover:bg-gd-hover rounded-md transition-colors" (click)="clearSelection()">
+                        <svg class="w-5 h-5 text-gd-text-secondary" viewBox="0 0 24 24" fill="currentColor">
+                            <path
+                                d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
+                        </svg>
+                    </button>
                 </div>
-                }
-                }
             </div>
             }
         </div>
-
     </div>
 
-    <!-- Loading state - initial load -->
-    <div *ngIf="loading() && !isNavigating()" class="navigation-spinner-container" style="flex: 1;">
-        <div class="navigation-spinner"></div>
+    <!-- Loading State -->
+    @if (loading() && !isNavigating()) {
+    <div class="flex-1 flex items-center justify-center">
+        <div class="animate-spin w-8 h-8 border-2 border-gd-blue border-t-transparent rounded-full"></div>
     </div>
-
-    <!-- Navigation spinner - shown when navigating between folders -->
-    <div *ngIf="isNavigating()" class="navigation-spinner-container" style="flex: 1;">
-        <div class="navigation-spinner"></div>
-        <p class="navigation-text">Cargando carpeta...</p>
+    } @else if (isNavigating()) {
+    <div class="flex-1 flex flex-col items-center justify-center gap-3">
+        <div class="animate-spin w-8 h-8 border-2 border-gd-blue border-t-transparent rounded-full"></div>
+        <span class="text-sm text-gd-text-secondary">Cargando carpeta...</span>
     </div>
-
-    <div *ngIf="!loading() && !isNavigating() && files().length === 0 && folders().length === 0" class="emptyState"
-        style="flex: 1;">
-        <p>Carpeta vacía</p>
-        <p class="dragHint">Arrastra archivos aquí o click derecho para crear carpeta</p>
+    } @else if (files().length === 0 && folders().length === 0) {
+    <!-- Empty State -->
+    <div class="flex-1 flex flex-col items-center justify-center text-center p-8">
+        <svg class="w-24 h-24 text-gd-text-secondary opacity-30 mb-4" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z" />
+        </svg>
+        <p class="text-gd-text font-medium mb-1">Carpeta vacía</p>
+        <p class="text-sm text-gd-text-secondary">Arrastra archivos aquí o click derecho para crear carpeta</p>
     </div>
+    } @else {
 
-    <div *ngIf="!loading() && !isNavigating() && (files().length > 0 || folders().length > 0)"
-        style="flex: 1; display: flex; flex-direction: column; width: 100%; overflow-x: hidden;">
 
-        <!-- Menú de selección - Sticky en PC, Fixed en móvil -->
-        <div *ngIf="bulkSelectionActive()" class="floatingSelectionMenu" [class.showing]="bulkSelectionActive()">
-            <div class="selectionInfo">
-                <div class="selectionCount">
-                    <span class="countNumber">{{ selectedFileIds().size + selectedFolderIds().size }}</span>
-                    <span class="countText">seleccionados</span>
-                </div>
-            </div>
+    <!-- File/Folder Grid - Responsive proportional cards with clamp() -->
+    <!-- Cards: min 180px, scales with viewport (18vw), max 245px - always square -->
+    <!-- Main Content Area -->
+    <div class="flex-1 overflow-y-auto pb-32" [class.pr-4]="!isMobile()"
+        [class.space-y-12]="viewMode() === 'grid' && !isMobile()" [class.space-y-4]="isMobile()"
+        [class.no-scrollbar]="isMobile()">
 
-            <div class="selectionActions">
-                <button class="actionBtn downloadBtn" (click)="downloadSelected()"
-                    [disabled]="selectedFileIds().size === 0">
-                    <span class="btnIcon">⬇</span>
-                    <span class="btnText">Descargar</span>
-                </button>
+        <!-- Folders Section -->
+        @if (sortedFolders().length > 0) {
+        <div class="flex flex-col gap-2">
+            <!-- Optional Header if needed, currently implicit by separation -->
+            <div [class.grid]="viewMode() === 'grid' || isMobile()" [class.gap-4]="viewMode() === 'grid' || isMobile()"
+                [class.space-y-0]="viewMode() === 'list' && !isMobile()"
+                [style.grid-template-columns]="isMobile() ? 'repeat(2, 1fr)' : (viewMode() === 'grid' ? 'repeat(auto-fill, minmax(200px, 1fr))' : 'none')">
 
-                <button class="actionBtn deleteBtn" (click)="deleteSelected()">
-                    <span class="btnIcon">🗑</span>
-                    <span class="btnText">Eliminar</span>
-                </button>
-
-                <button class="actionBtn cancelBtn" (click)="clearSelection()">
-                    <span class="btnIcon">✕</span>
-                    <span class="btnText">Cancelar</span>
-                </button>
-            </div>
-        </div>
-
-        <div class="incomingContent" [class.listMode]="viewMode() === 'list'" [class.selectionMode]="isSelectionMode()">
-            <!-- Header Row removed as per user request -->
-
-            <!-- Folders -->
-            <ng-container *ngFor="let folder of sortedFolders(); let i = index">
-                <div class="folderCard" [class.listMode]="viewMode() === 'list'" [attr.data-folder-id]="folder.id"
-                    [class.selected]="isFolderSelected(folder.id)" [class.dropTarget]="hoveredFolderId() === folder.id"
-                    [class.shared]="isShared(folder)" [class.context-menu-open]="isContextMenuOpen()"
-                    [style.width]="viewMode() === 'grid' ? '200px' : '100%'"
-                    [style.height]="viewMode() === 'grid' ? '200px' : '60px'"
-                    [style.min-height]="viewMode() === 'grid' ? '200px' : '60px'"
-                    [style.max-height]="viewMode() === 'grid' ? '200px' : '60px'"
-                    (touchstart)="!isContextMenuOpen() && handleItemTouchStart($event, 'folder', folder)"
-                    (touchmove)="!isContextMenuOpen() && handleTouchMove($event, 'folder', folder)"
-                    (touchcancel)="handleTouchCancel($event)"
-                    (touchend)="!isContextMenuOpen() && handleItemTouchEnd($event, 'folder', folder)"
+                @for (folder of sortedFolders(); track folder.id; let i = $index) {
+                <div class="group cursor-pointer rounded-lg overflow-hidden w-full h-auto"
+                    [class.bg-gd-card]="viewMode() === 'grid' || isMobile()"
+                    [class.border]="viewMode() === 'grid' || isMobile()" [class.aspect-square]="isMobile()"
+                    [class.border-gd-border]="(viewMode() === 'grid' && !isFolderSelected(folder.id) && !isShared(folder)) || (viewMode() === 'list' && !isMobile()) || isMobile()"
+                    [class.border-green-500]="(viewMode() === 'grid' || isMobile()) && isShared(folder) && !isFolderSelected(folder.id)"
+                    [class.border-gd-blue]="isFolderSelected(folder.id)"
+                    [class.bg-gd-selected]="isFolderSelected(folder.id)"
+                    [class.hover:bg-gd-card-hover]="(viewMode() === 'grid' || isMobile()) && !isFolderSelected(folder.id)"
+                    [class.hover:border-gd-card-border]="(viewMode() === 'grid' || isMobile()) && !isShared(folder)"
+                    [class.flex]="true" [class.flex-col]="viewMode() === 'grid' || isMobile()"
+                    [class.flex-row]="viewMode() === 'list' && !isMobile()"
+                    [class.items-center]="viewMode() === 'list' && !isMobile()"
+                    [class.px-3]="viewMode() === 'list' && !isMobile()"
+                    [class.py-3]="viewMode() === 'list' && !isMobile()"
+                    [class.hover:bg-gd-hover]="viewMode() === 'list' && !isMobile()"
+                    [class.border-b]="viewMode() === 'list' && !isMobile()" [attr.data-folder-id]="folder.id"
                     (click)="!isContextMenuOpen() && handleItemClick($event, 'folder', folder)"
-                    (contextmenu)="handleContextMenu($event, 'folder', folder)"
                     (dblclick)="!isContextMenuOpen() && navigateToFolder(folder)"
-                    (dragover)="handleFolderDragOver($event, folder)"
-                    (dragenter)="handleFolderDragEnter($event, folder)"
-                    (dragleave)="handleFolderDragLeave($event, folder)" (drop)="handleFileDrop($event, folder)"
-                    [draggable]="true" (dragstart)="handleFolderDragStart($event, folder)" (dragend)="handleDragEnd()"
+                    (contextmenu)="handleContextMenu($event, 'folder', folder)" [draggable]="true"
+                    (dragstart)="handleFolderDragStart($event, folder)"
+                    (dragover)="handleFolderDragOver($event, folder)" (drop)="handleFileDrop($event, folder)"
                     [@itemAnimation]="{value: '', params: {delay: i * 30}}">
 
-                    <!-- Visual feedback for long press selection -->
-                    <div class="selection-progress-overlay"
-                        *ngIf="pressingItemId() === folder.id && !isSelectionMode()">
-                        <div class="selection-progress-circle"></div>
+                    @if (viewMode() === 'grid' || isMobile()) {
+                    <!-- Grid Card - Header ONLY for folders (Compact View) -->
+                    <div class="flex-shrink-0 flex items-center gap-2 px-3 py-3 transition-colors duration-200 relative z-10"
+                        [class.bg-gd-card]="!isFolderSelected(folder.id)"
+                        [class.bg-gd-blue]="isFolderSelected(folder.id)"
+                        [class.group-hover:bg-gd-card-border]="!isShared(folder) && !isFolderSelected(folder.id)"
+                        [class.group-hover:bg-green-500]="isShared(folder) && !isFolderSelected(folder.id)"
+                        [class.group-hover:bg-gd-blue]="isFolderSelected(folder.id)">
+                        <svg class="w-5 h-5 flex-shrink-0"
+                            [class.text-gd-text-secondary]="!isShared(folder) && !isFolderSelected(folder.id)"
+                            [class.text-green-500]="isShared(folder) && !isFolderSelected(folder.id)"
+                            [class.group-hover:text-gray-800]="isShared(folder) && !isFolderSelected(folder.id)"
+                            [class.text-gray-900]="isFolderSelected(folder.id)" viewBox="0 0 24 24" fill="currentColor">
+                            <path
+                                d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z" />
+                        </svg>
+                        <span class="truncate flex-1" [class.text-xs]="isMobile()" [class.text-sm]="!isMobile()"
+                            [class.text-gd-text]="!isShared(folder) && !isFolderSelected(folder.id)"
+                            [class.text-green-500]="isShared(folder) && !isFolderSelected(folder.id)"
+                            [class.group-hover:text-gray-800]="isShared(folder) && !isFolderSelected(folder.id)"
+                            [class.text-gray-900]="isFolderSelected(folder.id)">{{
+                            folder.name }}</span>
+                        <button class="optionsBtn rounded-full transition-opacity" [class.p-0.5]="isMobile()"
+                            [class.p-1]="!isMobile()" [class.hover:bg-white/20]="!isMobile()"
+                            [class.active:bg-white/20]="isMobile()" [class.opacity-0]="!isMobile()"
+                            [class.group-hover:opacity-100]="!isMobile()" [class.opacity-100]="isMobile()"
+                            [class.text-gray-800]="isShared(folder) && !isFolderSelected(folder.id)"
+                            [class.text-gray-900]="isFolderSelected(folder.id)"
+                            (click)="handleContextMenu($event, 'folder', folder); $event.stopPropagation()">
+                            <svg [class.w-3]="isMobile()" [class.h-3]="isMobile()" [class.w-5]="!isMobile()"
+                                [class.h-5]="!isMobile()"
+                                [class.text-gd-text-secondary]="!isFolderSelected(folder.id) && !isShared(folder)"
+                                viewBox="0 0 24 24" fill="currentColor">
+                                <path
+                                    d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" />
+                            </svg>
+                        </button>
                     </div>
 
-                    <div class="new-indicator" *ngIf="folder.has_new_content"></div>
-
-
-                    <div class="selectionCheckbox" [class.checked]="isFolderSelected(folder.id)"
-                        (click)="toggleItemSelection('folder', folder, true); $event.stopPropagation()">
-                        <span *ngIf="isFolderSelected(folder.id)">✓</span>
+                    <!-- Folder Body (Large Icon) - Mobile Only -->
+                    @if (isMobile()) {
+                    <div
+                        class="flex-1 min-h-0 flex items-center justify-center bg-gd-bg-elevated rounded-b-lg relative overflow-hidden z-0">
+                        <svg class="w-16 h-16"
+                            [class.text-gd-text-secondary]="!isShared(folder) && !isFolderSelected(folder.id)"
+                            [class.text-green-500]="isShared(folder) && !isFolderSelected(folder.id)"
+                            [class.group-hover:text-gray-800]="isShared(folder) && !isFolderSelected(folder.id)"
+                            [class.text-gray-900]="isFolderSelected(folder.id)" viewBox="0 0 24 24" fill="currentColor">
+                            <path
+                                d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z" />
+                        </svg>
                     </div>
-
-                    <ng-container *ngIf="viewMode() === 'grid'">
-                        <div class="cardHeader">
-                            <div class="cardIconSmall"><img src="assets/icons/carpeta.png" alt="Folder"
-                                    class="fileTypeIcon"></div>
-                            <div class="cardName">{{ folder.name }}</div>
-                            <!-- <span (click)="handleContextMenu($event, 'folder', folder); $event.stopPropagation()"
-                                class="optionsBtn" [class.active]="isOptionsActive('folder', folder)" title="Opciones">
-                                ⋮
-                            </span> -->
-                            <img src="assets/icons/menu.png" alt="Opciones"
-                                (click)="handleContextMenu($event, 'folder', folder); $event.stopPropagation()"
-                                class="optionsBtn" [class.active]="isOptionsActive('folder', folder)"
-                                title="Opciones" />
-                        </div>
-                    </ng-container>
-
-                    <div class="previewContainer" *ngIf="viewMode() === 'grid'">
-                        <div class="folderIcon" style="margin: 0;"><img src="assets/icons/carpeta.png" alt="Folder"
-                                style="width: 3rem; height: 3rem;"></div>
-                    </div>
-
-                    <ng-container *ngIf="viewMode() === 'list'">
-                        <div class="fileInfoList list-grid">
-                            <div class="list-icon-container">
-                                <img src="assets/icons/carpeta.png" alt="Folder" class="list-icon">
-                            </div>
-
-                            <span class="cardName">{{ folder.name }}</span>
-                            <span class="list-cell date-cell">{{ folder.created_at | date:'d MMM yyyy' }}</span>
-                        </div>
-                        <img src="assets/icons/menu.png" alt="Opciones"
-                            (click)="handleContextMenu($event, 'folder', folder); $event.stopPropagation()"
-                            class="optionsBtn" [class.active]="isOptionsActive('folder', folder)" title="Opciones" />
-                    </ng-container>
+                    }
+                    <!-- REMOVED: Large body div for folders -->
+                    } @else if (viewMode() === 'list' && !isMobile()) {
+                    <!-- List Row (unchanged) -->
+                    <svg class="w-5 h-5 mr-3 flex-shrink-0" [class.text-gd-text-secondary]="!isShared(folder)"
+                        [class.text-green-500]="isShared(folder)" viewBox="0 0 24 24" fill="currentColor">
+                        <path
+                            d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z" />
+                    </svg>
+                    <span class="flex-1 text-sm truncate" [class.text-gd-text]="!isShared(folder)"
+                        [class.text-green-500]="isShared(folder)">{{ folder.name }}</span>
+                    <span class="text-xs text-gd-text-secondary w-28 text-right">{{ folder.created_at | date:'d MMM
+                        yyyy'
+                        }}</span>
+                    <button class="optionsBtn p-1 rounded-full hover:bg-gd-hover ml-2 transition-opacity"
+                        [class.opacity-0]="viewMode() === 'grid'"
+                        [class.group-hover:opacity-100]="viewMode() === 'grid'"
+                        (click)="handleContextMenu($event, 'folder', folder); $event.stopPropagation()">
+                        <svg class="w-5 h-5 text-gd-text-secondary" viewBox="0 0 24 24" fill="currentColor">
+                            <path
+                                d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" />
+                        </svg>
+                    </button>
+                    }
                 </div>
-            </ng-container>
+                }
+            </div>
+        </div>
+        }
 
-            <!-- Files -->
-            <ng-container *ngFor="let file of sortedFiles(); let i = index">
-                <div class="fileCard" [class.listMode]="viewMode() === 'list'" [attr.data-file-id]="file.id"
-                    [class.selected]="isFileSelected(file.id)" [class.shared]="isShared(file)" [draggable]="true"
-                    [class.context-menu-open]="isContextMenuOpen()" (dragstart)="handleDragStart($event, file)"
-                    [style.width]="viewMode() === 'grid' ? '200px' : '100%'"
-                    [style.height]="viewMode() === 'grid' ? '200px' : '60px'"
-                    [style.min-height]="viewMode() === 'grid' ? '200px' : '60px'"
-                    [style.max-height]="viewMode() === 'grid' ? '200px' : '60px'" (dragend)="handleDragEnd()"
-                    (touchstart)="!isContextMenuOpen() && handleItemTouchStart($event, 'file', file)"
-                    (touchmove)="!isContextMenuOpen() && handleTouchMove($event, 'file', file)"
-                    (touchcancel)="handleTouchCancel($event)"
-                    (touchend)="!isContextMenuOpen() && handleItemTouchEnd($event, 'file', file)"
+        <!-- Files Section -->
+        @if (sortedFiles().length > 0) {
+        <div class="flex flex-col gap-2">
+            @if (sortedFolders().length > 0) {
+            <!-- <h3 class="text-xs font-semibold text-gd-text-secondary uppercase tracking-wider px-1">Archivos</h3> -->
+            }
+            <div [class.gap-4]="viewMode() === 'grid' || isMobile()"
+                [class.space-y-0]="viewMode() === 'list' && !isMobile()"
+                [style.display]="(viewMode() === 'grid' || isMobile()) ? 'grid' : 'block'"
+                [style.grid-auto-rows]="(viewMode() === 'grid' || isMobile()) ? 'max-content' : 'auto'"
+                [style.align-items]="(viewMode() === 'grid' || isMobile()) ? 'start' : 'stretch'"
+                [style.grid-template-columns]="isMobile() ? 'repeat(2, 1fr)' : (viewMode() === 'grid' ? 'repeat(auto-fill, minmax(200px, 1fr))' : 'none')">
+
+                @for (file of sortedFiles(); track file.id; let i = $index) {
+                <div class="group cursor-pointer rounded-lg overflow-hidden w-full h-auto"
+                    [class.bg-gd-card]="viewMode() === 'grid'" [class.border]="viewMode() === 'grid'"
+                    [class.aspect-square]="viewMode() === 'grid'" [class.aspect-square]="viewMode() === 'grid'"
+                    [class.border-gd-border]="(viewMode() === 'grid' && !isFileSelected(file.id) && !isShared(file)) || viewMode() === 'list'"
+                    [class.border-green-500]="viewMode() === 'grid' && isShared(file) && !isFileSelected(file.id)"
+                    [class.border-gd-blue]="isFileSelected(file.id)" [class.bg-gd-selected]="isFileSelected(file.id)"
+                    [class.hover:bg-gd-card-hover]="viewMode() === 'grid' && !isFileSelected(file.id)"
+                    [class.hover:border-gd-card-border]="viewMode() === 'grid' && !isShared(file)" [class.flex]="true"
+                    [class.flex-col]="viewMode() === 'grid'" [class.flex-row]="viewMode() === 'list'"
+                    [class.items-center]="viewMode() === 'list'" [class.px-3]="viewMode() === 'list'"
+                    [class.py-3]="viewMode() === 'list'" [class.hover:bg-gd-hover]="viewMode() === 'list'"
+                    [class.border-b]="viewMode() === 'list'" [attr.data-file-id]="file.id"
                     (click)="!isContextMenuOpen() && handleItemClick($event, 'file', file)"
                     (dblclick)="!isContextMenuOpen() && handleFileClick(file)"
-                    (contextmenu)="handleContextMenu($event, 'file', file)" style="cursor: pointer"
+                    (contextmenu)="handleContextMenu($event, 'file', file)" [draggable]="true"
+                    (dragstart)="handleDragStart($event, file)"
                     [@itemAnimation]="{value: '', params: {delay: (sortedFolders().length + i) * 30}}">
 
-                    <!-- Visual feedback for long press selection -->
-                    <div class="selection-progress-overlay" *ngIf="pressingItemId() === file.id && !isSelectionMode()">
-                        <div class="selection-progress-circle"></div>
-                    </div>
-
-                    <div class="new-indicator" *ngIf="!file.is_viewed"></div>
-
-                    <div class="selectionCheckbox" [class.checked]="isFileSelected(file.id)"
-                        (click)="toggleItemSelection('file', file, true); $event.stopPropagation()">
-                        <span *ngIf="isFileSelected(file.id)">✓</span>
-                    </div>
-
-                    <ng-container *ngIf="viewMode() === 'grid'">
-                        <div class="cardHeader">
-                            <div class="cardIconSmall">
-                                <img *ngIf="isImage(file.filename)" src="assets/icons/image-file-icon.png" alt="Image"
-                                    class="fileTypeIcon" />
-                                <img *ngIf="isVideo(file.filename)" src="assets/icons/camara-de-video.png" alt="Video"
-                                    class="fileTypeIcon" />
-                                <img *ngIf="isAudio(file.filename)" src="assets/icons/altavoz.png" alt="Audio"
-                                    class="fileTypeIcon" />
-                                <span
-                                    *ngIf="!isImage(file.filename) && !isVideo(file.filename) && !isAudio(file.filename)">📄</span>
-                            </div>
-                            <div class="cardName">{{ file.filename }}</div>
-                            <!-- <span (click)="handleContextMenu($event, 'file', file); $event.stopPropagation()"
-                                class="optionsBtn" [class.active]="isOptionsActive('file', file)" title="Opciones">
-                                ⋮
-                            </span> -->
-                            <img src="assets/icons/menu.png" alt="Opciones"
-                                (click)="handleContextMenu($event, 'file', file); $event.stopPropagation()"
-                                class="optionsBtn" [class.active]="isOptionsActive('file', file)" title="Opciones" />
-
-                        </div>
-                    </ng-container>
-
-                    <!-- New Phase: Preview Body - ONLY IN GRID MODE -->
-                    <div class="previewContainer" *ngIf="viewMode() === 'grid'">
-                        @if (hasThumbnail(file.filename)) {
-                        <div class="imageWrapper">
-                            <img [appLazyLoad]="getThumbnailUrl(file.id, file.filename)" [alt]="file.filename"
-                                class="fileImage" (lazyLoading)="onImageLoadingChange(file.id, $event)"
-                                [class.loading]="isImageLoading(file.id)" />
-                            @if (isImageLoading(file.id)) {
-                            <div class="imageLoadingSpinner">
-                                <div class="spinner"></div>
-                                <span class="loadingText">Cargando...</span>
-                            </div>
-                            }
-                        </div>
+                    @if (viewMode() === 'grid' || isMobile()) {
+                    <!-- Grid Card - Header at top -->
+                    <div class="flex-shrink-0 flex items-center gap-2 px-3 py-2 transition-colors duration-200 relative z-10"
+                        [class.bg-gd-card]="!isFileSelected(file.id)" [class.bg-gd-blue]="isFileSelected(file.id)"
+                        [class.group-hover:bg-gd-card-border]="!isShared(file) && !isFileSelected(file.id)"
+                        [class.group-hover:bg-green-500]="isShared(file) && !isFileSelected(file.id)"
+                        [class.group-hover:bg-green-500]="isShared(file) && !isFileSelected(file.id)"
+                        [class.group-hover:bg-gd-blue]="isFileSelected(file.id)">
+                        <!-- Unviewed Indicator -->
+                        @if (!file.is_viewed) {
+                        <div class="absolute top-2 right-2 w-2.5 h-2.5 bg-blue-500 rounded-full z-20"
+                            title="Nuevo / No leído"></div>
+                        }
+                        @if (isImage(file.filename)) {
+                        <svg class="w-5 h-5 flex-shrink-0" [class.text-red-400]="!isFileSelected(file.id)"
+                            [class.text-gray-900]="isFileSelected(file.id)" viewBox="0 0 24 24" fill="currentColor">
+                            <path
+                                d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z" />
+                        </svg>
+                        } @else if (isVideo(file.filename)) {
+                        <svg class="w-5 h-5 flex-shrink-0" [class.text-red-400]="!isFileSelected(file.id)"
+                            [class.text-gray-900]="isFileSelected(file.id)" viewBox="0 0 24 24" fill="currentColor">
+                            <path
+                                d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z" />
+                        </svg>
+                        } @else if (isAudio(file.filename)) {
+                        <svg class="w-5 h-5 flex-shrink-0" [class.text-purple-400]="!isFileSelected(file.id)"
+                            [class.text-gray-900]="isFileSelected(file.id)" viewBox="0 0 24 24" fill="currentColor">
+                            <path
+                                d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
+                        </svg>
                         } @else {
-                        <div class="fileIconPlaceholder">{{ isVideo(file.filename) ? '🎬' : '📄' }}</div>
+                        <svg class="w-5 h-5 flex-shrink-0" [class.text-gd-blue]="!isFileSelected(file.id)"
+                            [class.text-gray-900]="isFileSelected(file.id)" viewBox="0 0 24 24" fill="currentColor">
+                            <path
+                                d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z" />
+                        </svg>
+                        }
+                        <span class="truncate flex-1" [class.text-xs]="isMobile()" [class.text-sm]="!isMobile()"
+                            [class.text-gd-text]="!isShared(file) && !isFileSelected(file.id)"
+                            [class.text-green-500]="isShared(file) && !isFileSelected(file.id)"
+                            [class.group-hover:text-gray-800]="isShared(file) && !isFileSelected(file.id)"
+                            [class.text-gray-900]="isFileSelected(file.id)">{{
+                            file.filename }}</span>
+                        <button class="optionsBtn rounded-full transition-opacity" [class.p-0.5]="isMobile()"
+                            [class.p-1]="!isMobile()" [class.hover:bg-white/20]="!isMobile()"
+                            [class.active:bg-white/20]="isMobile()" [class.opacity-0]="!isMobile()"
+                            [class.group-hover:opacity-100]="!isMobile()" [class.opacity-100]="isMobile()"
+                            [class.text-gray-800]="isShared(file) && !isFileSelected(file.id)"
+                            [class.text-gray-900]="isFileSelected(file.id)"
+                            (click)="handleContextMenu($event, 'file', file); $event.stopPropagation()">
+                            <svg [class.w-3]="isMobile()" [class.h-3]="isMobile()" [class.w-5]="!isMobile()"
+                                [class.h-5]="!isMobile()"
+                                [class.text-gd-text-secondary]="!isFileSelected(file.id) && !isShared(file)"
+                                viewBox="0 0 24 24" fill="currentColor">
+                                <path
+                                    d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" />
+                            </svg>
+                        </button>
+                    </div>
+                    <div
+                        class="flex-1 min-h-0 flex items-center justify-center bg-gd-bg-elevated rounded-b-lg relative overflow-hidden z-0">
+                        @if (hasThumbnail(file.filename)) {
+                        <img [appLazyLoad]="getThumbnailUrl(file.id, file.filename)" [alt]="file.filename"
+                            class="w-full h-full object-cover" (lazyLoading)="onImageLoadingChange(file.id, $event)" />
+                        @if (isImageLoading(file.id)) {
+                        <div class="absolute inset-0 flex items-center justify-center bg-gd-bg-elevated">
+                            <div class="animate-spin w-6 h-6 border-2 border-gd-blue border-t-transparent rounded-full">
+                            </div>
+                        </div>
+                        }
+                        } @else if (isVideo(file.filename)) {
+                        <svg class="w-14 h-14 text-red-400" viewBox="0 0 24 24" fill="currentColor">
+                            <path
+                                d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z" />
+                        </svg>
+                        } @else if (isAudio(file.filename)) {
+                        <svg class="w-14 h-14 text-purple-400" viewBox="0 0 24 24" fill="currentColor">
+                            <path
+                                d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
+                        </svg>
+                        } @else {
+                        <svg class="w-14 h-14 text-gd-blue" viewBox="0 0 24 24" fill="currentColor">
+                            <path
+                                d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z" />
+                        </svg>
                         }
                     </div>
-
-                    <!-- List View Fallback (keep existing logic for list mode) -->
-                    <!-- List View Grid Layout -->
-                    <ng-container *ngIf="viewMode() === 'list'">
-                        <div class="fileInfoList list-grid">
-                            <!-- Small Icon for List View -->
-                            <div class="list-icon-container">
-                                <img *ngIf="isImage(file.filename)" src="assets/icons/image-file-icon.png" alt="Image"
-                                    class="list-icon" />
-                                <img *ngIf="isVideo(file.filename)" src="assets/icons/camara-de-video.png" alt="Video"
-                                    class="list-icon" />
-                                <img *ngIf="isAudio(file.filename)" src="assets/icons/altavoz.png" alt="Audio"
-                                    class="list-icon" />
-                                <span
-                                    *ngIf="!isImage(file.filename) && !isVideo(file.filename) && !isAudio(file.filename)"
-                                    class="list-icon text-icon">📄</span>
-                            </div>
-
-                            <span class="fileNameList">{{ file.filename }}</span>
-                            <span class="list-cell date-cell">{{ file.created_at | date:'d MMM yyyy' }}</span>
-                        </div>
-                        <img src="assets/icons/menu.png" alt="Opciones"
-                            (click)="handleContextMenu($event, 'file', file); $event.stopPropagation()"
-                            class="optionsBtn listModeBtn" [class.active]="isOptionsActive('file', file)"
-                            title="Opciones" />
-                    </ng-container>
-                </div>
-            </ng-container>
-        </div>
-        <!-- Filler area to capture clicks/drags in empty space below the grid -->
-        <div class="content-filler" (contextmenu)="handleContextMenu($event, 'background')"
-            (dragover)="handleDragOver($event)" (dragleave)="handleDragLeave($event)" (drop)="handleDrop($event)">
-        </div>
-    </div>
-
-    <!-- Context Menu: floating on desktop, bottom-sheet modal on mobile -->
-    <ng-container *ngIf="contextMenu() as menu">
-        <div class="context-menu" [style.top.px]="menu.y" [style.left.px]="menu.x" (click)="$event.stopPropagation()"
-            [@menuAnimation]>
-            <ng-container *ngIf="menu.type === 'file' || menu.type === 'folder'">
-                <button
-                    (click)="openShareModal(menu.item!, menu.type === 'file' ? 'file' : 'folder'); closeContextMenu()">
-                    <span class="icon">🔗</span> Compartir
-                </button>
-                <button
-                    (click)="menu.type === 'file' ? handleDownload(menu.item!.id, $any(menu.item!).filename) : handleFolderDownload($any(menu.item!)); closeContextMenu()">
-                    <span class="icon">⬇</span> Descargar
-                </button>
-                <ng-container *ngIf="menu.type === 'file'">
-                    <button (click)="openPreview(menu.item!); closeContextMenu()">
-                        <span class="icon">👁</span> Previsualizar
+                    } @else if (viewMode() === 'list' && !isMobile()) {
+                    <!-- List Row -->
+                    @if (isImage(file.filename)) {
+                    <svg class="w-5 h-5 text-red-400 mr-3 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                        <path
+                            d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z" />
+                    </svg>
+                    } @else if (isVideo(file.filename)) {
+                    <svg class="w-5 h-5 text-red-400 mr-3 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                        <path
+                            d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z" />
+                    </svg>
+                    } @else if (isAudio(file.filename)) {
+                    <svg class="w-5 h-5 text-purple-400 mr-3 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                        <path
+                            d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
+                    </svg>
+                    } @else {
+                    <svg class="w-5 h-5 text-gd-blue mr-3 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                        <path
+                            d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z" />
+                    </svg>
+                    }
+                    <span class="flex-1 text-sm truncate" [class.text-gd-text]="!isShared(file)"
+                        [class.text-green-500]="isShared(file)">{{ file.filename }}</span>
+                    <span class="text-xs text-gd-text-secondary w-28 text-right">{{ file.created_at | date:'d MMM yyyy'
+                        }}</span>
+                    <button class="optionsBtn p-1 rounded-full hover:bg-gd-hover ml-2 transition-opacity"
+                        [class.opacity-0]="viewMode() === 'grid'"
+                        [class.group-hover:opacity-100]="viewMode() === 'grid'"
+                        (click)="handleContextMenu($event, 'file', file); $event.stopPropagation()">
+                        <svg class="w-5 h-5 text-gd-text-secondary" viewBox="0 0 24 24" fill="currentColor">
+                            <path
+                                d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" />
+                        </svg>
                     </button>
-                </ng-container>
-                <button (click)="openMoveDialog(menu.item!); closeContextMenu()">
-                    <span class="icon">➡️</span> Mover a...
-                </button>
-                <button (click)="renameItem(); closeContextMenu()">
-                    <span class="icon">✏</span> Renombrar
-                </button>
-                <div class="divider"></div>
-                <button class="delete" (click)="deleteItem(); closeContextMenu()">
-                    <span class="icon">🗑</span> Eliminar
-                </button>
-            </ng-container>
-            <ng-container *ngIf="menu.type !== 'file' && menu.type !== 'folder'">
-                <button (click)="triggerFileUpload(); closeContextMenu()">
-                    <span class="icon">📄</span> Subir archivo
-                </button>
-                <button (click)="createFolder(); closeContextMenu()">
-                    <span class="icon"><img src="assets/icons/carpeta.png" alt="Folder"
-                            style="width: 1rem; height: 1rem; opacity: 0.8;"></span> Nueva carpeta
-                </button>
-            </ng-container>
+                    <!-- Unviewed Indicator (List) -->
+                    @if (!file.is_viewed) {
+                    <div class="w-2 h-2 bg-blue-500 rounded-full ml-3 flex-shrink-0" title="Nuevo / No leído"></div>
+                    }
+                    }
+                </div>
+                }
+            </div>
         </div>
-    </ng-container>
+        }
+    </div>
+    }
 
-    <app-share-modal *ngIf="shareModalItem()" [item]="shareModalItem()!" [type]="shareModalType()"
-        (close)="closeShareModal()" (shared)="refreshContent()">
-    </app-share-modal>
+    <!-- Context Menu Backdrop -->
+    @if (contextMenu()) {
+    <div class="fixed inset-0 z-[3050]" (mousedown)="closeContextMenu()"
+        (contextmenu)="closeContextMenu(); $event.preventDefault()"></div>
+    }
 
-    <!-- Mobile floating action button -->
-    <div *ngIf="isMobile()" class="mobile-fab-container" [class.context-menu-open]="mobileFabOpen()">
-        <button class="mobile-fab" (click)="mobileFabOpen.set(!mobileFabOpen()); $event.stopPropagation()"
-            title="Acciones">
-            <img src="assets/icons/agregar-icono.png" alt="Cerrar" class="icon-close" />
+    <!-- Context Menu -->
+    @if (contextMenu(); as menu) {
+    <div class="context-menu-wrapper fixed bg-gd-card rounded-lg shadow-gd-menu border border-gd-border py-2 min-w-[180px] z-[3100]"
+        [style.top.px]="menu.y" [style.left.px]="menu.x" (click)="$event.stopPropagation()" [@menuAnimation]>
+        @if (menu.type === 'file' || menu.type === 'folder') {
+        <button
+            class="w-full flex items-center gap-3 px-4 py-2 text-sm text-gd-text hover:bg-gd-hover transition-colors"
+            (click)="openShareModal(menu.item!, menu.type === 'file' ? 'file' : 'folder')">
+            <svg class="w-5 h-5 text-gd-text-secondary" viewBox="0 0 24 24" fill="currentColor">
+                <path
+                    d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z" />
+            </svg>
+            Compartir
         </button>
+        <button
+            class="w-full flex items-center gap-3 px-4 py-2 text-sm text-gd-text hover:bg-gd-hover transition-colors"
+            (click)="menu.type === 'file' ? handleDownload(menu.item!.id, $any(menu.item!).filename) : handleFolderDownload($any(menu.item!)); closeContextMenu()">
+            <svg class="w-5 h-5 text-gd-text-secondary" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" />
+            </svg>
+            Descargar
+        </button>
+        @if (menu.type === 'file') {
+        <button
+            class="w-full flex items-center gap-3 px-4 py-2 text-sm text-gd-text hover:bg-gd-hover transition-colors"
+            (click)="openPreview(menu.item!); closeContextMenu()">
+            <svg class="w-5 h-5 text-gd-text-secondary" viewBox="0 0 24 24" fill="currentColor">
+                <path
+                    d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z" />
+            </svg>
+            Ver
+        </button>
+        }
+        <button
+            class="w-full flex items-center gap-3 px-4 py-2 text-sm text-gd-text hover:bg-gd-hover transition-colors"
+            (click)="openMoveDialog(menu.item!); closeContextMenu()">
+            <svg class="w-5 h-5 text-gd-text-secondary" viewBox="0 0 24 24" fill="currentColor">
+                <path
+                    d="M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-6 12l-4-4h3V10h2v4h3l-4 4z" />
+            </svg>
+            Mover
+        </button>
+        <button
+            class="w-full flex items-center gap-3 px-4 py-2 text-sm text-gd-text hover:bg-gd-hover transition-colors"
+            (click)="renameItem(menu.item!)">
+            <svg class="w-5 h-5 text-gd-text-secondary" viewBox="0 0 24 24" fill="currentColor">
+                <path
+                    d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" />
+            </svg>
+            Renombrar
+        </button>
+        <div class="my-1 border-t border-gd-border"></div>
+        <button
+            class="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-400 hover:bg-red-500/10 transition-colors"
+            (click)="deleteItem(menu.item!)">
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
+            </svg>
+            Eliminar
+        </button>
+        } @else {
+        <button
+            class="w-full flex items-center gap-3 px-4 py-2 text-sm text-gd-text hover:bg-gd-hover transition-colors"
+            (click)="triggerFileUpload(); closeContextMenu()">
+            <svg class="w-5 h-5 text-gd-text-secondary" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z" />
+            </svg>
+            Subir archivo
+        </button>
+        <button
+            class="w-full flex items-center gap-3 px-4 py-2 text-sm text-gd-text hover:bg-gd-hover transition-colors"
+            (click)="createFolder(); closeContextMenu()">
+            <svg class="w-5 h-5 text-gd-text-secondary" viewBox="0 0 24 24" fill="currentColor">
+                <path
+                    d="M20 6h-8l-2-2H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2zm-1 8h-3v3h-2v-3h-3v-2h3V9h2v3h3v2z" />
+            </svg>
+            Nueva carpeta
+        </button>
+        }
+    </div>
+    }
 
-        <div *ngIf="mobileFabOpen()" class="mobile-fab-menu" (click)="$event.stopPropagation()" [@menuAnimation]>
-            <label for="file-upload" class="mobile-fab-item" (click)="mobileFabOpen.set(false)"
-                style="cursor: pointer; margin: 0;">Subir
-                archivo</label>
-            <button class="mobile-fab-item" (click)="openUpload.emit(); mobileFabOpen.set(false)">Enviar
-                archivo</button>
-            <button class="mobile-fab-item" (click)="createFolder(); mobileFabOpen.set(false)">Crear
-                carpeta</button>
+
+
+    <!-- Mobile FAB -->
+    @if (isMobile()) {
+    <div class="fixed right-4 bottom-6 z-50">
+        <button
+            class="mobile-fab w-14 h-14 rounded-full bg-gd-card shadow-gd-btn border border-gd-border flex items-center justify-center hover:bg-gd-card-hover transition-all"
+            (click)="mobileFabOpen.set(!mobileFabOpen()); $event.stopPropagation()">
+            <svg class="w-6 h-6 text-gd-text" viewBox="0 0 24 24" fill="currentColor"
+                [class.rotate-45]="mobileFabOpen()" style="transition: transform 0.2s">
+                <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
+            </svg>
+        </button>
+        @if (mobileFabOpen()) {
+        <div class="mobile-fab-menu absolute bottom-16 right-0 bg-gd-card rounded-lg shadow-gd-menu border border-gd-border py-2 min-w-[160px]"
+            [@menuAnimation]>
+            <label for="file-upload"
+                class="flex items-center gap-3 px-4 py-2 text-sm text-gd-text hover:bg-gd-hover cursor-pointer"
+                (click)="mobileFabOpen.set(false)">
+                <svg class="w-5 h-5 text-gd-text-secondary" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z" />
+                </svg>
+                Subir archivo
+            </label>
+            <button class="w-full flex items-center gap-3 px-4 py-2 text-sm text-gd-text hover:bg-gd-hover"
+                (click)="openUpload.emit(); mobileFabOpen.set(false)">
+                <svg class="w-5 h-5 text-gd-text-secondary" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+                </svg>
+                Enviar
+            </button>
+            <button class="w-full flex items-center gap-3 px-4 py-2 text-sm text-gd-text hover:bg-gd-hover"
+                (click)="createFolder(); mobileFabOpen.set(false)">
+                <svg class="w-5 h-5 text-gd-text-secondary" viewBox="0 0 24 24" fill="currentColor">
+                    <path
+                        d="M20 6h-8l-2-2H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2zm-1 8h-3v3h-2v-3h-3v-2h3V9h2v3h3v2z" />
+                </svg>
+                Carpeta
+            </button>
+        </div>
+        }
+    </div>
+    }
+</div>
+
+<!-- Hidden file input -->
+<input type="file" #fileInput id="file-upload" style="display: none" (change)="onFileSelected($event)" multiple>
+
+<!-- File Preview Modal -->
+<app-file-preview-modal *ngIf="selectedFile()" [file]="selectedFile()!" (close)="closeModal()"
+    (download)="handleDownload($event.id, $event.filename)" (delete)="handleDelete($event)"
+    (share)="openShareModal($event, 'file')"></app-file-preview-modal>
+
+<!-- Share Modal -->
+<app-share-modal *ngIf="shareModalItem()" [item]="shareModalItem()!" [type]="shareModalType()"
+    (close)="closeShareModal()" (shared)="refreshContent()"></app-share-modal>
+
+<!-- Move Dialog -->
+@if (moveDialogOpen()) {
+<div class="fixed inset-0 bg-black/60 flex items-center justify-center z-50" (click)="closeMoveDialog()">
+    <div class="bg-gd-card rounded-lg shadow-gd-menu border border-gd-border w-full max-w-md mx-4"
+        (click)="$event.stopPropagation()">
+        <div class="flex items-center justify-between px-5 py-4 border-b border-gd-border">
+            <h3 class="text-base font-medium text-gd-text">Mover "{{ moveTargetDisplayName() }}"</h3>
+            <button class="p-1 rounded-full hover:bg-gd-hover" (click)="closeMoveDialog()"
+                [disabled]="moveDialogBusy()">
+                <svg class="w-5 h-5 text-gd-text-secondary" viewBox="0 0 24 24" fill="currentColor">
+                    <path
+                        d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
+                </svg>
+            </button>
+        </div>
+        <div class="max-h-72 overflow-y-auto p-2">
+            @if (moveDialogLoading()) {
+            <div class="flex items-center justify-center py-8">
+                <div class="animate-spin w-6 h-6 border-2 border-gd-blue border-t-transparent rounded-full"></div>
+            </div>
+            } @else {
+            @for (option of moveOptions(); track option.id) {
+            <button
+                class="w-full flex items-center gap-2 px-3 py-2 rounded text-sm text-left hover:bg-gd-hover transition-colors text-gd-text"
+                [class.bg-gd-selected]="isMoveOptionActive(option.id)" [disabled]="moveDialogBusy()"
+                (click)="confirmMove(option.id)">
+                <span [style.width.rem]="option.depth * 0.8"></span>
+                <svg class="w-5 h-5 text-gd-text-secondary" viewBox="0 0 24 24" fill="currentColor">
+                    <path
+                        d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z" />
+                </svg>
+                <span>{{ option.name }}</span>
+            </button>
+            }
+            }
+        </div>
+        <div class="flex justify-end gap-2 px-5 py-4 border-t border-gd-border">
+            <button class="px-4 py-2 text-sm text-gd-text-secondary hover:bg-gd-hover rounded transition-colors"
+                (click)="closeMoveDialog()" [disabled]="moveDialogBusy()">
+                Cancelar
+            </button>
         </div>
     </div>
 </div>
-
-<!-- Input de archivo oculto para la carga de archivos -->
-<input type="file" #fileInput id="file-upload" style="display: none" (change)="onFileSelected($event)" multiple>
-
-<app-file-preview-modal *ngIf="selectedFile()" [file]="selectedFile()!" (close)="closeModal()"
-    (download)="handleDownload($event.id, $event.filename)" (delete)="handleDelete($event)"></app-file-preview-modal>
-
-<ng-container *ngIf="moveDialogOpen()">
-    <div class="moveDialogOverlay" (click)="closeMoveDialog()">
-        <div class="moveDialog" (click)="$event.stopPropagation()">
-            <header class="moveDialogHeader">
-                <h3>Mover "{{ moveTargetDisplayName() }}"</h3>
-                <button class="moveDialogClose icon-only" (click)="closeMoveDialog()" [disabled]="moveDialogBusy()">
-                    <img src="assets/icons/boton-x.png" alt="Cerrar" class="icon-close" />
-                    <span class="visually-hidden">Cerrar</span>
-                </button>
-            </header>
-            <div class="moveDialogBody">
-                <div *ngIf="moveDialogLoading()" class="moveDialogLoading">Cargando carpetas...</div>
-                <div *ngIf="!moveDialogLoading()" class="moveDialogList">
-                    <ng-container *ngFor="let option of moveOptions()">
-                        <button class="moveOptionButton" [disabled]="moveDialogBusy()"
-                            [class.active]="isMoveOptionActive(option.id)" (click)="confirmMove(option.id)">
-                            <span class="moveOptionIndent" [style.width.rem]="option.depth * 0.8"></span>
-                            <span>{{ option.name }}</span>
-                        </button>
-                    </ng-container>
-                </div>
-            </div>
-            <footer class="moveDialogFooter">
-                <button class="secondaryBtn" (click)="closeMoveDialog()" [disabled]="moveDialogBusy()">Cancelar</button>
-            </footer>
-        </div>
-    </div>
-</ng-container>
+}

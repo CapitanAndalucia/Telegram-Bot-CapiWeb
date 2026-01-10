@@ -1,4 +1,4 @@
-<div class="comp-overlay" (click)="closeDropdown()">
+<div class="comp-overlay" style="z-index: 9999 !important;" (click)="closeDropdown()">
     <div class="comp-modal" [class.closing]="isClosing()" (click)="closeDropdown(); $event.stopPropagation()">
         <div class="dialog-header">
             <h3>Compartir "{{ type === 'file' ? $any(item).filename : $any(item).name }}"</h3>
