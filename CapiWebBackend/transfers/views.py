@@ -60,7 +60,9 @@ import os
 import zipfile
 import tempfile
 from io import BytesIO
+import logging
 
+logger = logging.getLogger(__name__)
 # Load security configuration
 SECURITY_CONFIG = load_security_config()
 
@@ -185,6 +187,7 @@ class FolderViewSet(viewsets.ModelViewSet):
         Handle folder creation with inheritance of ownership and access
         """
         folder_data = serializer.validated_data
+        logger.info(f"Creating folder '{folder_data.get('name')}' by user {self.request.user.username}")
         parent_folder = folder_data.get('parent')
         
         # Determine the owner based on parent folder
@@ -206,6 +209,7 @@ class FolderViewSet(viewsets.ModelViewSet):
 
     def _get_folder_permission(self, user, folder: Folder) -> str:
         """Get the permission level for a user on a folder"""
+        logger.debug(f"Checking folder permission for user {user.username} on folder {folder.id}")
         if user.is_anonymous:
             return 'none'
         
@@ -384,6 +388,7 @@ class FolderViewSet(viewsets.ModelViewSet):
     def delete_folder(self, request, pk=None):
         """Delete folder and all its contents recursively"""
         folder = self.get_object()
+        logger.info(f"Request to delete folder {folder.id} ({folder.name}) by {request.user.username}")
         
         # Check if user has edit permission
         permission = self._get_folder_permission(request.user, folder)
@@ -403,6 +408,7 @@ class FolderViewSet(viewsets.ModelViewSet):
             return Response({'status': 'deleted', 'message': f'Carpeta "{folder.name}" y todo su contenido eliminados correctamente'})
         except Exception as e:
             print(f"Error deleting folder {folder.id}: {e}")
+            logger.error(f"Error deleting folder {folder.id}: {e}", exc_info=True)
             return Response({'error': 'Error al eliminar la carpeta'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
     def _delete_folder_contents(self, folder, user):
@@ -443,6 +449,7 @@ class FolderViewSet(viewsets.ModelViewSet):
 
         # POST method - grant access
         username = request.data.get('username')
+        logger.info(f"Granting access to folder {folder.id} for user '{username}' by {request.user.username}")
         permission = request.data.get('permission', FolderAccess.Permission.READ)
         propagate_value = request.data.get('propagate', True)
         if isinstance(propagate_value, str):
@@ -748,6 +755,7 @@ class FileTransferViewSet(viewsets.ModelViewSet):
         """
         Custom rate limiting based on file size
         """
+        logger.debug(f"Checking rate limit for user {user.username}, file size: {file_size}")
         cache_key = f'upload_limit_{user.id}'
         last_upload = cache.get(cache_key)
         
@@ -790,6 +798,7 @@ class FileTransferViewSet(viewsets.ModelViewSet):
         # Get file size from request
         file_obj = self.request.FILES.get('file')
         if file_obj:
+            logger.info(f"Starting file upload: {file_obj.name} ({file_obj.size} bytes) by {self.request.user.username}")
             # Check rate limit before saving
             self.check_rate_limit(self.request.user, file_obj.size)
         

@@ -10,6 +10,7 @@ from .views import (
     UserDetailView,
     TelegramProfileListView,
     ProyectoViewSet,
+    ProyectoViewSet,
     TecnologiaViewSet
 )
 from .auth_views import (

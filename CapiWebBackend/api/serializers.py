@@ -4,6 +4,9 @@ from .models import Ticket
 from .models import PortfolioPhoto
 from .models import Dibujos
 from tickets.models import TelegramProfile
+import logging
+
+logger = logging.getLogger(__name__)
 
 class DibujosSerializer(serializers.ModelSerializer):
     class Meta:
@@ -89,9 +92,11 @@ class UserTelegramSerializer(serializers.ModelSerializer):
         # Si se quiere cambiar la contraseña, la antigua es obligatoria
         if password:
             if not old_password:
+                logger.debug(f"Password update failed for user {self.instance.username}: missing old password")
                 raise serializers.ValidationError("Debes indicar tu contraseña actual.")
             user = self.instance
             if user and not user.check_password(old_password):
+                logger.debug(f"Password update failed for user {self.instance.username}: incorrect old password")
                 raise serializers.ValidationError("La contraseña actual no es correcta.")
 
         return super().validate(attrs)
@@ -108,6 +113,7 @@ class UserTelegramSerializer(serializers.ModelSerializer):
         
         # Cambiar contraseña si se proporcionó
         if password:
+            logger.info(f"Updating password for user {instance.username}")
             instance.set_password(password)
         
         instance.save()
@@ -118,6 +124,7 @@ class UserTelegramSerializer(serializers.ModelSerializer):
             profile, created = TelegramProfile.objects.get_or_create(user=instance)
             profile.telegram_id = telegram_id
             profile.save()
+            logger.info(f"Updated Telegram ID for user {instance.username}: {telegram_id}")
         
         return instance
 

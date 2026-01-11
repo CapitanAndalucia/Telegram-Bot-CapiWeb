@@ -53,6 +53,9 @@ from rest_framework.decorators import api_view, permission_classes
 from .models import Dibujos
 from .serializers import DibujosSerializer, TecnologiaSerializer, ProyectoSerializer
 from .permissions import IsAdminOrReadOnly
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class TicketViewSet(viewsets.ModelViewSet):
@@ -132,6 +135,8 @@ class TicketViewSet(viewsets.ModelViewSet):
         else:
             # Usuario normal solo puede crear tickets para sí mismo
             serializer.save(usuario=self.request.user)
+        
+        logger.info(f"Ticket created by {self.request.user.username}: {serializer.data.get('titulo', 'No title')}")
 
     @action(detail=False, methods=["get"])
     def total_entre_fechas(self, request):
@@ -249,6 +254,7 @@ class PortfolioPhotoViewSet(viewsets.ModelViewSet):
             )
         else:
             # Si no existe, creamos la primera
+            logger.info(f"Creating new Portfolio Photo by {request.user.username}")
             return super().create(request, *args, **kwargs)
 
     def list(self, request, *args, **kwargs):
@@ -380,6 +386,8 @@ def api_login_page(request):
             return render(request, 'api/login.html', {
                 'error': 'Usuario y contraseña son obligatorios'
             })
+        
+        logger.info(f"Login attempt for user: {username}")
 
         user = authenticate(request=request, username=username, password=password)
 
@@ -387,6 +395,8 @@ def api_login_page(request):
             return render(request, 'api/login.html', {
                 'error': 'Credenciales inválidas'
             })
+        
+        logger.info(f"Login successful for user: {username}")
 
         # Generar tokens JWT
         refresh = RefreshToken.for_user(user)

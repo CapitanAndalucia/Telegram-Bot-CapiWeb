@@ -68,10 +68,10 @@ def validate_file(value):
     ext = os.path.splitext(value.name)[1].lower()
     
     # DEBUG: Log validation info
-    logger.warning(f"[FILE_UPLOAD] Validating file: {value.name}")
-    logger.warning(f"[FILE_UPLOAD] Extracted extension: '{ext}'")
-    logger.warning(f"[FILE_UPLOAD] Allowed extensions count: {len(ALLOWED_EXTENSIONS)}")
-    logger.warning(f"[FILE_UPLOAD] Extension in allowed list: {ext in ALLOWED_EXTENSIONS}")
+    logger.debug(f"[FILE_UPLOAD] Validating file: {value.name}")
+    logger.debug(f"[FILE_UPLOAD] Extracted extension: '{ext}'")
+    logger.debug(f"[FILE_UPLOAD] Allowed extensions count: {len(ALLOWED_EXTENSIONS)}")
+    logger.debug(f"[FILE_UPLOAD] Extension in allowed list: {ext in ALLOWED_EXTENSIONS}")
     
     # Check if extension is blocked
     if ext in BLOCKED_EXTENSIONS:
@@ -102,6 +102,8 @@ def validate_file(value):
     # Validate filename
     validate_filename(value.name)
     
+    # Log success
+    logger.info(f"File validation successful: {value.name} ({value.size} bytes)")
     return value
 
 class FolderAccessSerializer(serializers.ModelSerializer):
@@ -244,7 +246,9 @@ class FileTransferSerializer(serializers.ModelSerializer):
             validated_data['filename'] = file_obj.name
             validated_data['size'] = file_obj.size
 
-        return super().create(validated_data)
+        instance = super().create(validated_data)
+        logger.info(f"FileTransfer created: {instance.filename} (ID: {instance.id}) Owner: {instance.owner.username}")
+        return instance
 
 
 class ShareLinkSerializer(serializers.ModelSerializer):
@@ -308,4 +312,6 @@ class ShareLinkSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         validated_data['created_by'] = self.context['request'].user
-        return super().create(validated_data)
+        instance = super().create(validated_data)
+        logger.info(f"ShareLink created: {instance.token} for item '{instance.item_name}' (Type: {instance.item_type})")
+        return instance

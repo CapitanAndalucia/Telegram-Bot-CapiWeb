@@ -24,6 +24,9 @@ DATABASES = {
 # PRODUCTION-SPECIFIC SETTINGS
 # =============================================================================
 # Logging mejorado para producción
+# Logging mejorado para producción
+LOG_LEVEL = 'DEBUG' if DEBUG else 'INFO'
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -35,7 +38,7 @@ LOGGING = {
     },
     'handlers': {
         'file': {
-            'level': 'WARNING',
+            'level': 'DEBUG', # File catches everything down to DEBUG if app sends it
             'class': 'logging.FileHandler',
             'filename': PROJECT_ROOT_DIR / 'logs' / 'django.log',
             'formatter': 'verbose',
@@ -47,12 +50,17 @@ LOGGING = {
     },
     'root': {
         'handlers': ['console', 'file'],
-        'level': 'INFO',
+        'level': 'INFO', # Root level usually INFO
     },
     'loggers': {
         'django': {
             'handlers': ['console', 'file'],
             'level': 'WARNING',
+            'propagate': False,
+        },
+        'transfers': {  # App-specific logger
+            'handlers': ['console', 'file'],
+            'level': LOG_LEVEL, # Dynamic level based on DEBUG setting
             'propagate': False,
         },
     },
