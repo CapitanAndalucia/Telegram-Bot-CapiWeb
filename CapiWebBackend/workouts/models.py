@@ -63,6 +63,7 @@ class RoutineDay(models.Model):
     routine = models.ForeignKey(Routine, on_delete=models.CASCADE, related_name="days")
     day_of_week = models.PositiveSmallIntegerField(choices=DAY_CHOICES)
     title = models.CharField(max_length=60, blank=True)
+    image = models.ImageField(upload_to="workouts/days/", blank=True, null=True)
     order = models.PositiveSmallIntegerField(default=0)
     is_completed = models.BooleanField(default=False)
 

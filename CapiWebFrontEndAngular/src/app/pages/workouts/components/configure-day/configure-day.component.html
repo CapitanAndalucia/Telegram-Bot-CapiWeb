@@ -1,0 +1,145 @@
+<div class="fixed inset-0 w-full flex flex-col overflow-hidden bg-[#102217] text-white font-workout antialiased">
+    <!-- Header -->
+    <header class="flex items-center px-4 py-4 justify-between shrink-0 z-10 bg-[#102217]">
+        <button (click)="goBack()"
+            class="flex size-10 items-center justify-center rounded-full hover:bg-white/10 transition-colors">
+            <span class="material-symbols-outlined text-white" style="font-size: 24px;">arrow_back_ios_new</span>
+        </button>
+        <h2 class="text-lg font-bold leading-tight tracking-tight flex-1 text-center pr-10">Configurar Día</h2>
+    </header>
+
+    <!-- Main Scrollable Content -->
+    <main class="flex-1 overflow-y-auto no-scrollbar pb-32 px-4">
+        <!-- Day Headline -->
+        <div class="pt-2 pb-6">
+            <h1 class="text-4xl font-extrabold tracking-tight text-white">{{ dayName() }}</h1>
+        </div>
+
+        <!-- Session Focus Input -->
+        <div class="mb-6">
+            <label class="flex flex-col gap-2">
+                <span class="text-sm font-medium text-[#9cacba] uppercase tracking-wider ml-1">Enfoque de la
+                    Sesión</span>
+                <div class="relative group">
+                    <input type="text" [value]="sessionFocus()" (input)="updateFocus($event)"
+                        placeholder="ej: Hipertrofia de Piernas"
+                        class="w-full bg-[#1d3627] border-0 border-b-2 border-[#3d5a4c] text-xl font-medium text-white placeholder:text-[#9cacba]/50 focus:border-[#13ec6a] focus:ring-0 rounded-t-lg px-4 py-4 transition-all duration-300" />
+                    <span
+                        class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-[#13ec6a] opacity-0 group-focus-within:opacity-100 transition-opacity">edit</span>
+                </div>
+            </label>
+        </div>
+
+        <!-- Day Image Section -->
+        <div class="mb-8">
+            <span class="text-sm font-medium text-[#9cacba] uppercase tracking-wider ml-1 mb-3 block">Imagen del
+                Día</span>
+
+            <!-- Hidden file input -->
+            <input type="file" #dayImageInput accept="image/*" (change)="onImageSelected($event)" class="hidden" />
+
+            @if (dayImagePreview()) {
+            <!-- Image Preview -->
+            <div class="relative rounded-2xl overflow-hidden aspect-video bg-[#1d3627]">
+                <img [src]="dayImagePreview()" alt="Preview" class="w-full h-full object-cover" />
+                <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+
+                <!-- Remove button -->
+                <button (click)="removeImage()"
+                    class="absolute top-3 right-3 flex size-10 items-center justify-center rounded-full bg-black/50 text-white hover:bg-red-500 transition-colors">
+                    <span class="material-symbols-outlined" style="font-size: 20px;">close</span>
+                </button>
+
+                <!-- Change image button -->
+                <button (click)="openImagePicker()"
+                    class="absolute bottom-3 right-3 flex items-center gap-2 px-4 py-2 rounded-full bg-white/20 backdrop-blur-sm text-white text-sm font-medium hover:bg-white/30 transition-colors">
+                    <span class="material-symbols-outlined" style="font-size: 18px;">photo_camera</span>
+                    Cambiar
+                </button>
+            </div>
+            } @else {
+            <!-- Upload Button -->
+            <button (click)="openImagePicker()"
+                class="w-full flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-[#3d5a4c] p-8 text-[#9cacba] hover:border-[#13ec6a] hover:text-[#13ec6a] hover:bg-[#13ec6a]/5 transition-all group aspect-video">
+                <div
+                    class="flex size-14 items-center justify-center rounded-full bg-[#1d3627] group-hover:bg-[#13ec6a]/20 transition-colors">
+                    <span class="material-symbols-outlined text-[#13ec6a]"
+                        style="font-size: 28px;">add_photo_alternate</span>
+                </div>
+                <div class="text-center">
+                    <p class="font-bold text-sm">Añadir imagen</p>
+                    <p class="text-xs text-[#9cacba]/70 mt-1">Se optimizará automáticamente</p>
+                </div>
+            </button>
+            }
+        </div>
+
+        <!-- Exercises Section -->
+        <div class="flex flex-col gap-4">
+            <div class="flex items-center justify-between px-1">
+                <h3 class="text-lg font-bold text-white">Ejercicios</h3>
+                <span class="text-sm font-medium text-[#9cacba]">{{ exercises().length }} ejercicios</span>
+            </div>
+
+            <!-- Exercise List Items -->
+            @for (exercise of exercises(); track $index) {
+            <div
+                class="group flex items-center gap-4 bg-[#1d3627] p-4 rounded-xl border border-transparent hover:border-[#13ec6a]/30 transition-all shadow-sm">
+                <!-- Drag Handle -->
+                <div
+                    class="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#102217] text-[#9cacba] cursor-move">
+                    <span class="material-symbols-outlined" style="font-size: 20px;">drag_indicator</span>
+                </div>
+                <!-- Exercise Info -->
+                <div class="flex flex-col flex-1 min-w-0">
+                    <p class="text-base font-bold text-white truncate">{{ exercise.name }}</p>
+                    <p class="text-sm text-[#13ec6a] font-medium mt-0.5">
+                        {{ exercise.sets }} Series <span class="text-[#9cacba] mx-1">•</span> {{ exercise.reps }} Reps
+                    </p>
+                </div>
+                <!-- Delete Button -->
+                <button (click)="removeExercise(exercise)"
+                    class="flex size-10 shrink-0 items-center justify-center rounded-full text-[#9cacba] hover:text-red-500 hover:bg-red-500/10 transition-colors">
+                    <span class="material-symbols-outlined" style="font-size: 24px;">delete</span>
+                </button>
+            </div>
+            }
+
+            <!-- Add Button -->
+            <button (click)="addExercise()"
+                class="mt-2 flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-[#3d5a4c] p-4 text-[#9cacba] hover:border-[#13ec6a] hover:text-[#13ec6a] hover:bg-[#13ec6a]/5 transition-all group">
+                <div
+                    class="flex size-8 items-center justify-center rounded-full bg-[#3d5a4c] group-hover:bg-[#13ec6a] group-hover:text-[#102217] transition-colors">
+                    <span class="material-symbols-outlined" style="font-size: 20px;">add</span>
+                </div>
+                <span class="font-bold text-sm uppercase tracking-wide">Añadir Ejercicio</span>
+            </button>
+
+            <!-- Empty State -->
+            @if (exercises().length === 0) {
+            <div class="flex flex-col items-center justify-center py-12 gap-4 opacity-50">
+                <span class="material-symbols-outlined text-slate-400" style="font-size: 48px;">fitness_center</span>
+                <p class="text-[#9cacba] text-sm">Añade ejercicios a este día</p>
+            </div>
+            }
+        </div>
+    </main>
+
+    <!-- Sticky Footer -->
+    <div
+        class="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-[#102217] via-[#102217] to-transparent z-20 pb-8 pt-12 pointer-events-none">
+        <button (click)="saveDay()" [disabled]="saving()"
+            class="pointer-events-auto w-full flex h-14 items-center justify-center gap-2 rounded-full bg-[#13ec6a] text-[#102217] text-base font-bold tracking-wide shadow-[0_4px_20px_rgba(19,236,106,0.3)] active:scale-[0.98] transition-transform disabled:opacity-50">
+            @if (saving()) {
+            <div class="w-6 h-6 border-2 border-[#102217] border-t-transparent rounded-full animate-spin"></div>
+            <span>Guardando...</span>
+            } @else if (isLastDay()) {
+            <span>Finalizar y Crear Rutina</span>
+            <span class="material-symbols-outlined" style="font-size: 20px;">check</span>
+            } @else {
+            <span>Guardar y Siguiente Día</span>
+            <span class="material-symbols-outlined" style="font-size: 20px;">arrow_forward</span>
+            }
+        </button>
+    </div>
+</div>

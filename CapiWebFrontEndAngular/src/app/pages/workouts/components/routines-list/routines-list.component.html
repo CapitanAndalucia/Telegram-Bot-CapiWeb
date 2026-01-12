@@ -1,0 +1,130 @@
+<div class="fixed inset-0 w-full flex flex-col overflow-hidden bg-[#102217] font-workout text-white antialiased">
+    <!-- Fixed Header -->
+    <header class="shrink-0 z-40 bg-[#102217] border-b border-white/5">
+        <div class="flex items-center justify-between px-6 py-4">
+            <div class="flex flex-col">
+                <span class="text-xs font-medium text-gray-400 uppercase tracking-wider">Bienvenido</span>
+                <h1 class="text-2xl font-bold leading-tight tracking-tight">Mis Rutinas</h1>
+            </div>
+            <button
+                class="flex items-center justify-center w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 transition-colors">
+                <span class="material-symbols-outlined text-white" style="font-size: 24px;">settings</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Scrollable Main Content -->
+    <main class="flex-1 overflow-y-auto px-4 py-6 space-y-6 pb-40">
+        <!-- Filter Pills -->
+        <div class="flex gap-3 overflow-x-auto no-scrollbar pb-2">
+            @for (filter of filters; track filter.id) {
+            <button (click)="selectFilter(filter.id)"
+                [class]="selectedFilter() === filter.id 
+                        ? 'px-5 py-2 bg-white text-[#102217] text-sm font-bold rounded-full whitespace-nowrap'
+                        : 'px-5 py-2 bg-white/10 text-white text-sm font-medium rounded-full whitespace-nowrap border border-transparent hover:border-[#13ec6a]/50 transition-colors'">
+                {{ filter.label }}
+            </button>
+            }
+        </div>
+
+        <!-- Loading State -->
+        @if (loading()) {
+        <div class="flex justify-center py-12">
+            <div class="w-8 h-8 border-2 border-[#13ec6a] border-t-transparent rounded-full animate-spin"></div>
+        </div>
+        }
+
+        <!-- Routine Cards -->
+        @for (routine of filteredRoutines(); track routine.id; let i = $index) {
+        <article
+            class="group relative w-full h-64 rounded-2xl overflow-hidden shadow-lg transform transition-transform duration-300 hover:scale-[1.02] cursor-pointer"
+            (click)="openRoutine(routine)">
+            <!-- Background Image -->
+            <div class="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110"
+                [style.background-image]="'url(' + getRoutineImage(i) + ')'">
+            </div>
+            <!-- Gradient Overlay -->
+            <div class="absolute inset-0 bg-gradient-to-t from-[#102217] via-[#102217]/40 to-transparent opacity-90">
+            </div>
+            <!-- Content -->
+            <div class="absolute inset-0 p-6 flex flex-col justify-end">
+                <div class="flex items-start justify-between">
+                    <div class="flex flex-col gap-2">
+                        <!-- Category Badge -->
+                        <span
+                            class="inline-flex items-center px-3 py-1 rounded-full bg-white/10 backdrop-blur-sm border border-white/10 text-xs font-bold w-fit"
+                            [class]="getRoutineCategory(routine).color">
+                            <span class="material-symbols-outlined mr-1" style="font-size: 16px;">{{
+                                getRoutineCategory(routine).icon }}</span>
+                            {{ getRoutineCategory(routine).name }}
+                        </span>
+                        <!-- Title -->
+                        <h2 class="text-3xl font-bold text-white leading-none tracking-tight">{{ routine.title }}</h2>
+                        <!-- Days Info -->
+                        <p class="text-gray-300 font-medium text-sm flex items-center gap-1">
+                            <span class="material-symbols-outlined" style="font-size: 18px;">calendar_today</span>
+                            {{ getDaysPerWeek(routine) }}
+                        </p>
+                    </div>
+                    <!-- Play Button -->
+                    <button
+                        class="flex items-center justify-center w-12 h-12 rounded-full shadow-[0_0_15px_rgba(19,236,106,0.4)] hover:shadow-[0_0_25px_rgba(19,236,106,0.6)] transition-all active:scale-95"
+                        [class]="i === 0 ? 'bg-[#13ec6a] text-[#102217]' : 'bg-white text-[#102217] hover:bg-[#13ec6a]'"
+                        (click)="openRoutine(routine); $event.stopPropagation()">
+                        <span class="material-symbols-outlined"
+                            style="font-size: 28px; font-weight: bold;">play_arrow</span>
+                    </button>
+                </div>
+            </div>
+        </article>
+        }
+
+        <!-- Empty State -->
+        @if (!loading() && routines().length === 0) {
+        <div class="flex flex-col items-center justify-center py-16 gap-4">
+            <span class="material-symbols-outlined text-gray-500" style="font-size: 64px;">fitness_center</span>
+            <p class="text-gray-400 text-lg">Sin rutinas todavía</p>
+            <button (click)="createNewRoutine()" class="px-6 py-3 bg-[#13ec6a] text-[#102217] font-bold rounded-full">
+                Crear Tu Primera Rutina
+            </button>
+        </div>
+        }
+    </main>
+
+    <!-- Floating Action Button -->
+    <div class="fixed bottom-24 right-5 z-40">
+        <button (click)="createNewRoutine()"
+            class="flex items-center gap-3 bg-[#13ec6a] text-[#102217] hover:bg-[#0fb650] h-14 pl-5 pr-6 rounded-full shadow-[0_4px_20px_rgba(19,236,106,0.3)] transition-all active:scale-95 active:shadow-none group">
+            <span class="material-symbols-outlined group-hover:rotate-90 transition-transform"
+                style="font-size: 24px;">add</span>
+            <span class="font-bold text-base tracking-wide">Nueva Rutina</span>
+        </button>
+    </div>
+
+    <!-- Bottom Navigation -->
+    <nav class="fixed bottom-0 w-full z-50 bg-[#102217]/90 backdrop-blur-lg border-t border-white/5">
+        <div class="flex justify-around items-center h-16 sm:h-20 max-w-lg mx-auto px-2">
+            <button (click)="navigateTo('/')"
+                class="flex flex-col items-center justify-center w-16 h-full gap-1 text-gray-500 hover:text-gray-300">
+                <span class="material-symbols-outlined" style="font-size: 26px;">home</span>
+                <span class="text-[10px] font-medium">Inicio</span>
+            </button>
+            <button class="flex flex-col items-center justify-center w-16 h-full gap-1 text-[#13ec6a]">
+                <span class="material-symbols-outlined" style="font-size: 26px;">fitness_center</span>
+                <span class="text-[10px] font-bold">Rutinas</span>
+            </button>
+            <button
+                class="flex flex-col items-center justify-center w-16 h-full gap-1 text-gray-500 hover:text-gray-300">
+                <span class="material-symbols-outlined" style="font-size: 26px;">monitoring</span>
+                <span class="text-[10px] font-medium">Progreso</span>
+            </button>
+            <button
+                class="flex flex-col items-center justify-center w-16 h-full gap-1 text-gray-500 hover:text-gray-300">
+                <span class="material-symbols-outlined" style="font-size: 26px;">person</span>
+                <span class="text-[10px] font-medium">Perfil</span>
+            </button>
+        </div>
+        <!-- Safe area spacer for notched phones -->
+        <div class="h-[env(safe-area-inset-bottom)]"></div>
+    </nav>
+</div>

@@ -45,6 +45,7 @@ class RoutineExerciseSerializer(serializers.ModelSerializer):
 class RoutineDaySerializer(serializers.ModelSerializer):
     routine_exercises = RoutineExerciseSerializer(many=True)
     day_label = serializers.CharField(source="get_day_of_week_display", read_only=True)
+    image_url = serializers.SerializerMethodField()
 
     class Meta:
         model = RoutineDay
@@ -53,10 +54,23 @@ class RoutineDaySerializer(serializers.ModelSerializer):
             "day_of_week",
             "day_label",
             "title",
+            "image",
+            "image_url",
             "order",
             "is_completed",
             "routine_exercises",
         ]
+        extra_kwargs = {
+            'image': {'write_only': True, 'required': False}
+        }
+
+    def get_image_url(self, obj):
+        if obj.image:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.image.url)
+            return obj.image.url
+        return None
 
     def create(self, validated_data):
         exercises_data = validated_data.pop("routine_exercises", [])

@@ -1,12 +1,13 @@
+/* External CSS imports - must come first */
+@import '@angular/material/prebuilt-themes/indigo-pink.css';
+@import '@fontsource/syne';
+@import '@fontsource/manrope';
+
 /* Tailwind CSS v3 */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-
-@import '@angular/material/prebuilt-themes/indigo-pink.css';
-@import '@fontsource/syne';
-@import '@fontsource/manrope';
 /* External Google Fonts moved to index.html to avoid inlining */
 
 /* Mobile dialog styles */

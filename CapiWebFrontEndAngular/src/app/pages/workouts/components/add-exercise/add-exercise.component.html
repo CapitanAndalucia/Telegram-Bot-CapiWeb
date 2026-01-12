@@ -1,0 +1,245 @@
+<div class="fixed inset-0 bg-[#102217] font-workout flex flex-col antialiased text-white overflow-hidden">
+    <!-- Header -->
+    <div class="sticky top-0 z-50 bg-[#102217]/95 backdrop-blur-md px-4 pt-12 pb-2">
+        <div class="flex items-center justify-between">
+            <button (click)="close()"
+                class="flex h-10 w-10 items-center justify-center rounded-full bg-transparent text-white hover:bg-white/10 transition-colors">
+                <span class="material-symbols-outlined" style="font-size: 28px;">close</span>
+            </button>
+            <h2 class="flex-1 text-center text-lg font-bold tracking-tight text-white">Añadir Ejercicio</h2>
+            <button (click)="save()" [disabled]="!canSave()"
+                class="flex h-10 px-4 items-center justify-center rounded-full font-semibold transition-colors"
+                [class]="canSave() ? 'text-[#13ec6a] hover:text-[#0fb650]' : 'text-[#9cacba] cursor-not-allowed'">
+                Guardar
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col gap-6 px-4 pb-24">
+        <!-- Exercise Name Input -->
+        <div class="mt-4">
+            <label class="block text-sm font-medium text-[#9cacba] uppercase tracking-wider mb-2 ml-1">Nombre del
+                Ejercicio</label>
+            <div
+                class="relative flex items-center h-14 w-full rounded-full bg-[#1d3627] shadow-sm ring-1 ring-white/5 group focus-within:ring-2 focus-within:ring-[#13ec6a] transition-all">
+                <div
+                    class="flex h-full w-12 items-center justify-center pl-2 text-gray-400 group-focus-within:text-[#13ec6a]">
+                    <span class="material-symbols-outlined">fitness_center</span>
+                </div>
+                <input type="text" [value]="exerciseName()" (input)="updateExerciseName($event)"
+                    placeholder="ej: Sentadilla, Flexiones..."
+                    class="h-full w-full border-none bg-transparent px-2 text-base text-white placeholder-gray-400 focus:outline-none focus:ring-0" />
+                @if (exerciseName()) {
+                <button (click)="clearName()"
+                    class="flex h-full w-12 items-center justify-center pr-2 text-gray-400 hover:text-[#13ec6a]">
+                    <span class="material-symbols-outlined" style="font-size: 20px;">cancel</span>
+                </button>
+                }
+            </div>
+
+            <!-- Quick Suggestions (clickable) -->
+            <div class="mt-3 flex gap-2 overflow-x-auto no-scrollbar pb-1">
+                @for (suggestion of filteredSuggestions(); track suggestion.id) {
+                <button (click)="selectSuggestion(suggestion)"
+                    class="flex-shrink-0 cursor-pointer rounded-full px-4 py-2 text-sm font-medium transition-colors bg-[#1d3627] border border-[#3d5a4c] text-white hover:border-[#13ec6a]/50">
+                    {{ suggestion.name }}
+                </button>
+                }
+            </div>
+        </div>
+
+        <!-- Form appears when exercise name is entered -->
+        @if (exerciseName().trim().length > 0) {
+        <!-- Exercise Preview Card -->
+        <div class="rounded-2xl bg-[#1d3627] p-4 shadow-sm ring-1 ring-white/5">
+            <div class="flex gap-4 items-center">
+                <!-- Icon Button -->
+                <button (click)="openIconPicker()"
+                    class="h-16 w-16 flex-shrink-0 overflow-hidden rounded-xl bg-[#234832] relative flex items-center justify-center border-2 border-dashed border-[#3d5a4c] hover:border-[#13ec6a] transition-colors">
+                    <span class="material-symbols-outlined text-[#13ec6a]" style="font-size: 32px;">{{ selectedIcon()
+                        }}</span>
+                </button>
+                <div class="flex flex-col justify-center flex-1">
+                    <h3 class="text-lg font-bold text-white">{{ exerciseName() }}</h3>
+                    <p class="text-sm text-gray-400">{{ selectedCategory() }} • {{ selectedEquipment() }}</p>
+                </div>
+                <button (click)="openCategoryPicker()" class="text-[#13ec6a] text-sm font-medium">Editar</button>
+            </div>
+        </div>
+
+        <!-- Exercise Images Section -->
+        <div>
+            <label class="block text-sm font-medium text-[#9cacba] uppercase tracking-wider mb-3 ml-1">
+                Imágenes del Ejercicio
+            </label>
+
+            <!-- Hidden file input -->
+            <input type="file" #exerciseImagesInput accept="image/*" multiple (change)="onImagesSelected($event)"
+                class="hidden" />
+
+            <!-- Image Grid -->
+            <div class="flex gap-3 overflow-x-auto no-scrollbar pb-2">
+                <!-- Existing images -->
+                @for (image of exerciseImages(); track $index) {
+                <div class="relative shrink-0 w-24 h-24 rounded-xl overflow-hidden bg-[#1d3627]">
+                    <img [src]="image.preview" alt="Preview" class="w-full h-full object-cover" />
+                    <button (click)="removeImage($index)"
+                        class="absolute top-1 right-1 flex size-6 items-center justify-center rounded-full bg-black/60 text-white hover:bg-red-500 transition-colors">
+                        <span class="material-symbols-outlined" style="font-size: 14px;">close</span>
+                    </button>
+                </div>
+                }
+
+                <!-- Add image button -->
+                <button (click)="openImagePicker()"
+                    class="shrink-0 w-24 h-24 flex flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-[#3d5a4c] text-[#9cacba] hover:border-[#13ec6a] hover:text-[#13ec6a] hover:bg-[#13ec6a]/5 transition-all">
+                    <span class="material-symbols-outlined" style="font-size: 24px;">add_photo_alternate</span>
+                    <span class="text-xs font-medium">Añadir</span>
+                </button>
+            </div>
+            <p class="text-xs text-[#9cacba]/70 mt-2 ml-1">Las imágenes se optimizarán automáticamente</p>
+        </div>
+
+        <div class="h-px w-full bg-[#3d5a4c]"></div>
+
+        <!-- Sets Counter -->
+        <div>
+            <div class="mb-3 flex items-center justify-between">
+                <label class="text-base font-semibold text-white">Series</label>
+                <span class="text-xs font-medium uppercase tracking-wider text-[#13ec6a]">Objetivo</span>
+            </div>
+            <div
+                class="flex h-16 w-full items-center justify-between rounded-full bg-[#1d3627] p-2 shadow-sm ring-1 ring-white/5">
+                <button (click)="decrementSets()"
+                    class="flex h-12 w-12 items-center justify-center rounded-full bg-[#112218] text-white hover:bg-[#234832] transition-colors">
+                    <span class="material-symbols-outlined">remove</span>
+                </button>
+                <span class="text-2xl font-bold text-white">{{ sets() }}</span>
+                <button (click)="incrementSets()"
+                    class="flex h-12 w-12 items-center justify-center rounded-full bg-[#13ec6a] text-[#102217] hover:bg-[#0fb650] transition-colors">
+                    <span class="material-symbols-outlined">add</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Reps & Weight Grid -->
+        <div class="grid grid-cols-2 gap-4">
+            <!-- Reps -->
+            <div>
+                <label class="mb-3 block text-base font-semibold text-white">Reps</label>
+                <div class="relative">
+                    <input type="number" inputmode="numeric" [value]="reps()" (input)="updateReps($event)"
+                        placeholder="0"
+                        class="h-16 w-full rounded-2xl border-none bg-[#1d3627] pl-4 pr-4 text-center text-2xl font-bold text-white shadow-sm ring-1 ring-white/5 focus:ring-2 focus:ring-[#13ec6a] placeholder-gray-600" />
+                </div>
+                <!-- Quick Chips -->
+                <div class="mt-3 flex gap-2 overflow-x-auto no-scrollbar">
+                    @for (rep of quickReps; track rep) {
+                    <button (click)="setQuickReps(rep)"
+                        class="rounded-full px-3 py-1 text-xs font-medium border transition-colors" [class]="reps() === rep 
+                                    ? 'bg-[#13ec6a]/20 border-[#13ec6a]/20 text-[#13ec6a]' 
+                                    : 'bg-[#1d3627] border-[#3d5a4c] text-gray-300'">
+                        {{ rep }}
+                    </button>
+                    }
+                </div>
+            </div>
+
+            <!-- Weight -->
+            <div>
+                <label class="mb-3 block text-base font-semibold text-white">Peso <span
+                        class="text-sm font-normal text-gray-500">(kg)</span></label>
+                <div class="relative">
+                    <input type="number" inputmode="decimal" [value]="weight()" (input)="updateWeight($event)"
+                        placeholder="0"
+                        class="h-16 w-full rounded-2xl border-none bg-[#1d3627] pl-4 pr-4 text-center text-2xl font-bold text-white shadow-sm ring-1 ring-white/5 focus:ring-2 focus:ring-[#13ec6a] placeholder-gray-600" />
+                </div>
+                <!-- Quick Chips -->
+                <div class="mt-3 flex gap-2 overflow-x-auto no-scrollbar">
+                    @for (inc of quickWeightIncrements; track inc) {
+                    <button (click)="addWeight(inc)"
+                        class="rounded-full bg-[#1d3627] border border-[#3d5a4c] px-3 py-1 text-xs font-medium text-gray-300 hover:border-[#13ec6a]/50 transition-colors">
+                        +{{ inc }}
+                    </button>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Notes -->
+        <div>
+            <label class="mb-3 block text-base font-semibold text-white">Notas</label>
+            <textarea [value]="notes()" (input)="updateNotes($event)" placeholder="Añade notas sobre forma, RPE, etc..."
+                rows="3"
+                class="w-full resize-none rounded-2xl border-none bg-[#1d3627] p-4 text-base text-white shadow-sm ring-1 ring-white/5 focus:ring-2 focus:ring-[#13ec6a] placeholder-gray-500">
+                </textarea>
+        </div>
+        }
+    </main>
+
+    <!-- Sticky Footer Action -->
+    <div
+        class="fixed bottom-0 left-0 right-0 bg-gradient-to-t from-[#102217] via-[#102217] to-transparent pb-8 pt-12 px-4 z-40 pointer-events-none">
+        <button (click)="save()" [disabled]="!canSave()"
+            class="pointer-events-auto flex w-full h-14 items-center justify-center gap-2 rounded-full text-lg font-bold shadow-[0_4px_20px_rgba(19,236,106,0.3)] transition-all active:scale-[0.98]"
+            [class]="canSave() ? 'bg-[#13ec6a] text-[#102217] hover:bg-[#0fb650]' : 'bg-[#1d3627] text-[#9cacba] cursor-not-allowed'">
+            <span class="material-symbols-outlined">add_circle</span>
+            Añadir a la Rutina
+        </button>
+    </div>
+
+    <!-- Icon Picker Modal -->
+    @if (showIconPicker()) {
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
+        (click)="closeIconPicker()">
+        <div class="bg-[#1d3627] rounded-2xl p-6 w-[90%] max-w-sm" (click)="$event.stopPropagation()">
+            <h3 class="text-lg font-bold text-white mb-4">Elige un Icono</h3>
+            <div class="grid grid-cols-4 gap-3">
+                @for (icon of iconOptions; track icon) {
+                <button (click)="selectIcon(icon)"
+                    class="flex items-center justify-center h-14 w-14 rounded-xl transition-colors"
+                    [class]="selectedIcon() === icon ? 'bg-[#13ec6a] text-[#102217]' : 'bg-[#102217] text-[#13ec6a] hover:bg-[#234832]'">
+                    <span class="material-symbols-outlined" style="font-size: 28px;">{{ icon }}</span>
+                </button>
+                }
+            </div>
+        </div>
+    </div>
+    }
+
+    <!-- Category/Equipment Picker Modal -->
+    @if (showCategoryPicker()) {
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
+        (click)="closeCategoryPicker()">
+        <div class="bg-[#1d3627] rounded-2xl p-6 w-[90%] max-w-sm" (click)="$event.stopPropagation()">
+            <h3 class="text-lg font-bold text-white mb-4">Categoría</h3>
+            <div class="flex flex-wrap gap-2 mb-6">
+                @for (cat of categoryOptions; track cat) {
+                <button (click)="selectCategory(cat)"
+                    class="px-4 py-2 rounded-full text-sm font-medium transition-colors"
+                    [class]="selectedCategory() === cat ? 'bg-[#13ec6a] text-[#102217]' : 'bg-[#102217] text-white border border-[#3d5a4c] hover:border-[#13ec6a]'">
+                    {{ cat }}
+                </button>
+                }
+            </div>
+
+            <h3 class="text-lg font-bold text-white mb-4">Equipamiento</h3>
+            <div class="flex flex-wrap gap-2">
+                @for (eq of equipmentOptions; track eq) {
+                <button (click)="selectEquipment(eq)"
+                    class="px-4 py-2 rounded-full text-sm font-medium transition-colors"
+                    [class]="selectedEquipment() === eq ? 'bg-[#13ec6a] text-[#102217]' : 'bg-[#102217] text-white border border-[#3d5a4c] hover:border-[#13ec6a]'">
+                    {{ eq }}
+                </button>
+                }
+            </div>
+
+            <button (click)="closeCategoryPicker()"
+                class="w-full mt-6 h-12 bg-[#13ec6a] text-[#102217] rounded-full font-bold">
+                Hecho
+            </button>
+        </div>
+    </div>
+    }
+</div>

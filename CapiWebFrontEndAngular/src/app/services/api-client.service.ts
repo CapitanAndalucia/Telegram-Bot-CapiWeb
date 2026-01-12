@@ -592,6 +592,58 @@ export class ApiClientService {
         return this.request(`/workouts/sets/${id}/`, 'DELETE');
     }
 
+    // ---- Exercise Library ----------------------------------------------------
+    listExercises(name?: string): Observable<any> {
+        const params = name ? { name } : undefined;
+        return this.request('/workouts/exercises/', 'GET', { params });
+    }
+
+    getOrCreateExercise(data: {
+        name: string;
+        description?: string;
+        default_sets?: number;
+        default_reps?: number;
+        default_weight?: number;
+    }): Observable<any> {
+        return this.request('/workouts/exercises/get_or_create/', 'POST', { data });
+    }
+
+    searchExercises(query: string): Observable<any> {
+        return this.request('/workouts/exercises/', 'GET', { params: { name: query } });
+    }
+
+    // ---- Routine Day Images ---------------------------------------------------
+    uploadRoutineDayImage(dayId: number, imageFile: File): Observable<any> {
+        const formData = new FormData();
+        formData.append('image', imageFile);
+        return this.http.post(
+            `${this.baseUrl}/workouts/routine-days/${dayId}/upload_image/`,
+            formData,
+            { withCredentials: true }
+        ).pipe(catchError(this.handleError));
+    }
+
+    deleteRoutineDayImage(dayId: number): Observable<any> {
+        return this.request(`/workouts/routine-days/${dayId}/delete_image/`, 'DELETE');
+    }
+
+    // ---- Exercise Images ------------------------------------------------------
+    uploadExerciseImages(exerciseId: number, imageFiles: File[]): Observable<any> {
+        const formData = new FormData();
+        imageFiles.forEach(file => {
+            formData.append('images', file);
+        });
+        return this.http.post(
+            `${this.baseUrl}/workouts/exercises/${exerciseId}/upload_images/`,
+            formData,
+            { withCredentials: true }
+        ).pipe(catchError(this.handleError));
+    }
+
+    deleteExerciseImage(exerciseId: number, mediaId: number): Observable<any> {
+        return this.request(`/workouts/exercises/${exerciseId}/delete_image/${mediaId}/`, 'DELETE');
+    }
+
     // ---- Folders -------------------------------------------------------------
     listFolders(parentId?: number, scope?: 'mine' | 'shared' | 'sent'): Promise<any> {
         const params: any = {};

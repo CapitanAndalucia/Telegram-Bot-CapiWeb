@@ -1,0 +1,201 @@
+<div class="fixed inset-0 w-full flex flex-col bg-[#102217] font-workout text-white overflow-hidden">
+    <!-- TopAppBar -->
+    <div class="flex items-center bg-[#102217] p-4 pb-2 sticky top-0 z-10 justify-between">
+        <button (click)="goBack()"
+            class="flex size-12 shrink-0 items-center justify-center rounded-full hover:bg-white/10 transition-colors">
+            <span class="material-symbols-outlined text-white" style="font-size: 24px;">arrow_back</span>
+        </button>
+        <h2 class="text-white text-lg font-bold leading-tight tracking-tight flex-1 text-center pr-12">
+            {{ exercise()?.exercise_detail?.name || 'Cargando...' }}
+        </h2>
+    </div>
+
+    <!-- Main Scrollable Content -->
+    <div class="flex-1 overflow-y-auto no-scrollbar pb-32">
+        <!-- Loading State -->
+        @if (loading()) {
+        <div class="flex justify-center py-12">
+            <div class="w-8 h-8 border-2 border-[#13ec6a] border-t-transparent rounded-full animate-spin"></div>
+        </div>
+        }
+
+        @if (!loading() && exercise()) {
+        <!-- Image Carousel -->
+        @if (exerciseImages().length > 0) {
+        <div class="px-4 py-2">
+            <div
+                class="relative w-full aspect-video rounded-xl overflow-hidden bg-[#1d3627] shadow-sm border border-white/5">
+                <!-- Images -->
+                @for (img of exerciseImages(); track img.id) {
+                <div class="absolute inset-0 transition-opacity duration-300"
+                    [class.opacity-100]="currentImageIndex() === $index"
+                    [class.opacity-0]="currentImageIndex() !== $index">
+                    <img [src]="img.url" alt="Exercise Image" class="w-full h-full object-cover">
+                </div>
+                }
+
+                <!-- Navigation Arrows (only if more than 1 image) -->
+                @if (exerciseImages().length > 1) {
+                <button (click)="prevImage()"
+                    class="absolute left-2 top-1/2 -translate-y-1/2 flex size-8 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm hover:bg-black/60 transition-colors z-10">
+                    <span class="material-symbols-outlined" style="font-size: 20px;">chevron_left</span>
+                </button>
+                <button (click)="nextImage()"
+                    class="absolute right-2 top-1/2 -translate-y-1/2 flex size-8 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm hover:bg-black/60 transition-colors z-10">
+                    <span class="material-symbols-outlined" style="font-size: 20px;">chevron_right</span>
+                </button>
+
+                <!-- Dots Indicator -->
+                <div class="absolute bottom-2 left-0 right-0 flex justify-center gap-1.5 z-10">
+                    @for (img of exerciseImages(); track img.id) {
+                    <button (click)="goToImage($index)" class="h-1.5 rounded-full transition-all duration-300"
+                        [class.w-4]="$index === currentImageIndex()"
+                        [class.bg-[#13ec6a]]="$index === currentImageIndex()"
+                        [class.w-1.5]="$index !== currentImageIndex()"
+                        [class.bg-white/40]="$index !== currentImageIndex()">
+                    </button>
+                    }
+                </div>
+                }
+            </div>
+        </div>
+        }
+
+        <!-- Target Card -->
+        <div class="px-4 py-2">
+            <div class="flex flex-col gap-4 rounded-xl bg-[#1d3627] p-5 shadow-sm border border-white/5">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-slate-400 text-sm font-medium uppercase tracking-wider">Objetivo</h3>
+                    <button (click)="editTarget()" class="flex items-center gap-1 text-[#13ec6a] text-sm font-medium">
+                        <span class="material-symbols-outlined" style="font-size: 16px;">edit</span>
+                        Editar
+                    </button>
+                </div>
+                <div class="flex items-center justify-between gap-4">
+                    <div class="flex flex-col">
+                        <span class="text-3xl font-bold text-white">{{ targetSets() }}</span>
+                        <span class="text-slate-400 text-xs font-medium uppercase">Series</span>
+                    </div>
+                    <div class="h-10 w-px bg-white/10"></div>
+                    <div class="flex flex-col">
+                        <span class="text-3xl font-bold text-white">{{ targetReps() }}</span>
+                        <span class="text-slate-400 text-xs font-medium uppercase">Rango Reps</span>
+                    </div>
+                    <div class="h-10 w-px bg-white/10"></div>
+                    <div class="flex flex-col">
+                        <span class="text-3xl font-bold text-[#13ec6a]">{{ targetWeight() }}</span>
+                        <span class="text-slate-400 text-xs font-medium uppercase">Kg</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Section -->
+        <div class="flex flex-wrap gap-4 px-4 py-4">
+            <div class="flex min-w-72 flex-1 flex-col gap-2">
+                <div class="flex items-end justify-between">
+                    <div>
+                        <p class="text-white text-base font-medium leading-normal">Progreso de Fuerza</p>
+                        <p class="text-white tracking-tight text-[32px] font-bold leading-tight truncate">{{
+                            currentMaxWeight() }} kg</p>
+                    </div>
+                    <div class="flex flex-col items-end pb-1">
+                        <div class="flex items-center gap-1 text-[#13ec6a] bg-[#13ec6a]/10 px-2 py-0.5 rounded-full">
+                            <span class="material-symbols-outlined" style="font-size: 16px;">trending_up</span>
+                            <span class="text-sm font-bold">+{{ progressPercent() }}%</span>
+                        </div>
+                        <p class="text-slate-500 text-xs mt-1">Últimas 6 Semanas</p>
+                    </div>
+                </div>
+                <!-- Graph Placeholder -->
+                <div class="flex min-h-[180px] flex-1 flex-col gap-8 py-4 relative">
+                    <svg class="overflow-visible" fill="none" height="148" preserveAspectRatio="none"
+                        viewBox="-3 0 478 150" width="100%" xmlns="http://www.w3.org/2000/svg">
+                        <path
+                            d="M0 109C18.1538 109 18.1538 21 36.3077 21C54.4615 21 54.4615 41 72.6154 41C90.7692 41 90.7692 93 108.923 93C127.077 93 127.077 33 145.231 33C163.385 33 163.385 101 181.538 101C199.692 101 199.692 61 217.846 61C236 61 236 45 254.154 45C272.308 45 272.308 121 290.462 121C308.615 121 308.615 149 326.769 149C344.923 149 344.923 1 363.077 1C381.231 1 381.231 81 399.385 81C417.538 81 417.538 129 435.692 129C453.846 129 453.846 25 472 25V149H326.769H0V109Z"
+                            fill="url(#paint0_linear_graph)" opacity="0.4"></path>
+                        <path
+                            d="M0 109C18.1538 109 18.1538 21 36.3077 21C54.4615 21 54.4615 41 72.6154 41C90.7692 41 90.7692 93 108.923 93C127.077 93 127.077 33 145.231 33C163.385 33 163.385 101 181.538 101C199.692 101 199.692 61 217.846 61C236 61 236 45 254.154 45C272.308 45 272.308 121 290.462 121C308.615 121 308.615 149 326.769 149C344.923 149 344.923 1 363.077 1C381.231 1 381.231 81 399.385 81C417.538 81 417.538 129 435.692 129C453.846 129 453.846 25 472 25"
+                            stroke="#13ec6a" stroke-linecap="round" stroke-width="3"></path>
+                        <circle cx="363" cy="1" fill="#13ec6a" r="4" stroke="#102217" stroke-width="2"></circle>
+                        <circle cx="472" cy="25" fill="#13ec6a" r="4" stroke="#102217" stroke-width="2"></circle>
+                        <defs>
+                            <linearGradient gradientUnits="userSpaceOnUse" id="paint0_linear_graph" x1="236" x2="236"
+                                y1="1" y2="149">
+                                <stop stop-color="#13ec6a" stop-opacity="0.3"></stop>
+                                <stop offset="1" stop-color="#13ec6a" stop-opacity="0"></stop>
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                    <div class="flex justify-between px-2">
+                        <p class="text-slate-600 text-[13px] font-bold leading-normal tracking-wide">S1</p>
+                        <p class="text-slate-600 text-[13px] font-bold leading-normal tracking-wide">S2</p>
+                        <p class="text-slate-600 text-[13px] font-bold leading-normal tracking-wide">S3</p>
+                        <p class="text-slate-600 text-[13px] font-bold leading-normal tracking-wide">S4</p>
+                        <p class="text-slate-600 text-[13px] font-bold leading-normal tracking-wide">S5</p>
+                        <p class="text-[#13ec6a] text-[13px] font-bold leading-normal tracking-wide">S6</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Insight Card -->
+        <div class="px-4 pb-4">
+            <div class="flex flex-col gap-3 rounded-xl bg-[#13ec6a]/10 border border-[#13ec6a]/20 p-4">
+                <div class="flex items-center gap-2">
+                    <span class="material-symbols-outlined text-[#13ec6a]" style="font-size: 20px;">lightbulb</span>
+                    <h3 class="text-[#13ec6a] text-sm font-bold uppercase tracking-wider">Consejo Próxima Sesión</h3>
+                </div>
+                <p class="text-slate-200 text-sm leading-relaxed">
+                    ¡Excelente trabajo en tu última serie! Tu velocidad fue alta en las reps finales. Intenta aumentar
+                    el
+                    peso en
+                    <span class="text-[#13ec6a] font-bold">2.5 kg</span> en la próxima sesión para mantener la
+                    sobrecarga
+                    progresiva.
+                </p>
+            </div>
+        </div>
+
+        <!-- Section Header -->
+        <div>
+            <h3 class="text-white text-lg font-bold leading-tight tracking-tight px-4 pb-2 pt-2">Historial Reciente</h3>
+        </div>
+
+        <!-- History List Items -->
+        <div class="flex flex-col gap-1 px-4">
+            @for (item of recentHistory(); track item.date; let i = $index) {
+            <div
+                class="flex items-center gap-4 bg-[#1d3627] p-4 rounded-xl shadow-sm border border-white/5 justify-between">
+                <div class="flex items-center gap-4">
+                    <div class="text-white flex items-center justify-center rounded-lg bg-[#234832] shrink-0 size-10">
+                        <span class="material-symbols-outlined" style="font-size: 24px;"
+                            [class]="i === 0 ? 'text-[#13ec6a]' : i === 1 ? 'text-[#13ec6a]/70' : 'text-[#13ec6a]/50'">
+                            calendar_today
+                        </span>
+                    </div>
+                    <div>
+                        <p class="text-white text-base font-bold leading-normal truncate">{{ item.date }}</p>
+                        <p class="text-slate-400 text-sm">{{ item.weight }} kg</p>
+                    </div>
+                </div>
+                <div class="shrink-0 flex flex-col items-end">
+                    <p class="text-white text-base font-bold leading-normal">{{ item.reps }} Reps</p>
+                    <p class="text-slate-400 text-xs">{{ item.sets }} Series</p>
+                </div>
+            </div>
+            }
+        </div>
+        }
+    </div>
+
+    <!-- Floating Action Button Area -->
+    <div
+        class="fixed bottom-0 left-0 w-full p-4 bg-gradient-to-t from-[#102217] via-[#102217] to-transparent z-20 pt-8">
+        <button (click)="logNewSet()"
+            class="w-full flex items-center justify-center gap-2 bg-[#13ec6a] hover:bg-[#0fb650] text-[#102217] text-lg font-bold py-4 rounded-full shadow-[0_4px_20px_rgba(19,236,106,0.3)] transition-all active:scale-95">
+            <span class="material-symbols-outlined font-bold">add</span>
+            Registrar Nueva Serie
+        </button>
+    </div>
+</div>

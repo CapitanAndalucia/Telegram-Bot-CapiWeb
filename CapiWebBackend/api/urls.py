@@ -30,7 +30,7 @@ from .google_auth_views import (
 from social.views import FriendViewSet
 from transfers.views import FileTransferViewSet, FolderViewSet, ShareLinkViewSet
 from notifications.views import NotificationViewSet
-# from workouts.views import RoutineViewSet, RoutineExerciseViewSet, ExerciseSetViewSet
+from workouts.views import RoutineViewSet, RoutineExerciseViewSet, ExerciseSetViewSet, ExerciseViewSet, RoutineDayViewSet
 
 router = DefaultRouter()
 router.register(r'tickets', TicketViewSet, basename='ticket')
@@ -43,9 +43,11 @@ router.register(r'share-links', ShareLinkViewSet, basename='share-link')
 router.register(r'notifications', NotificationViewSet, basename='notification')
 router.register(r'tecnologias', TecnologiaViewSet, basename='tecnologia')
 router.register('proyectos', ProyectoViewSet, basename='proyecto')
-# router.register(r'workouts/routines', RoutineViewSet, basename='workout-routine')
-# router.register(r'workouts/routine-exercises', RoutineExerciseViewSet, basename='workout-routine-exercise')
-# router.register(r'workouts/sets', ExerciseSetViewSet, basename='workout-set')
+router.register(r'workouts/routines', RoutineViewSet, basename='workout-routine')
+router.register(r'workouts/routine-days', RoutineDayViewSet, basename='workout-routine-day')
+router.register(r'workouts/routine-exercises', RoutineExerciseViewSet, basename='workout-routine-exercise')
+router.register(r'workouts/sets', ExerciseSetViewSet, basename='workout-set')
+router.register(r'workouts/exercises', ExerciseViewSet, basename='workout-exercise')
 
 
 urlpatterns = [
