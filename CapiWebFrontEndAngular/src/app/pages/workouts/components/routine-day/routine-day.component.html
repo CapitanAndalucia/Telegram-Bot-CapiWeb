@@ -1,38 +1,31 @@
-<section class="day">
-  <div class="day-header">
+<section class="bg-white border border-gray-200 rounded-2xl p-4">
+  <div class="flex justify-between items-center">
     <div>
-      <p class="eyebrow">{{ day.day_label }}</p>
-      <h2>{{ day.title || 'Sesión' }}</h2>
+      <p class="uppercase tracking-widest text-xs text-gray-500 m-0">{{ day.day_label }}</p>
+      <h2 class="m-0 font-bold text-lg">{{ day.title || 'Sesión' }}</h2>
     </div>
-    <button class="cta" (click)="start()">Iniciar rutina</button>
+    <button
+      class="bg-gradient-to-br from-cyan-400 to-sky-500 text-white border-0 rounded-full py-2.5 px-5 font-bold cursor-pointer hover:shadow-lg transition-shadow"
+      (click)="start()">
+      Iniciar rutina
+    </button>
   </div>
 
-  <div class="exercise-list">
+  <div class="flex flex-col gap-3 mt-4">
     <article
-      class="exercise-row"
-      *ngFor="let item of day.routine_exercises"
-      (click)="handleOpen(item)"
-    >
-      <div class="thumb">
+      class="grid grid-cols-[auto_1fr_auto] items-center gap-3 p-3 border border-gray-200 rounded-2xl cursor-pointer bg-slate-50 hover:bg-slate-100 transition-colors"
+      *ngFor="let item of day.routine_exercises" (click)="handleOpen(item)">
+      <div class="size-14 rounded-xl overflow-hidden bg-slate-900 flex items-center justify-center shrink-0">
         <ng-container *ngIf="item?.exercise_detail?.media?.[0] as media">
-          <img [src]="media.file" alt="preview" />
+          <img [src]="media.file" alt="preview" class="w-full h-full object-cover" />
         </ng-container>
-        <div class="placeholder" *ngIf="!item?.exercise_detail?.media?.length">🏋️</div>
+        <div class="text-white text-xl" *ngIf="!item?.exercise_detail?.media?.length">🏋️</div>
       </div>
-      <div class="info">
-        <p class="title">{{ item?.exercise_detail?.name || 'Ejercicio sin nombre' }}</p>
-        <small *ngIf="item">{{ item.target_sets }} x {{ item.target_reps }} reps</small>
+      <div class="min-w-0">
+        <p class="font-bold m-0 truncate">{{ item?.exercise_detail?.name || 'Ejercicio sin nombre' }}</p>
+        <small class="text-gray-500" *ngIf="item">{{ item.target_sets }} x {{ item.target_reps }} reps</small>
       </div>
-      <div class="chevron">›</div>
+      <div class="text-2xl text-slate-400">›</div>
     </article>
   </div>
 </section>
-
-
-
-
-
-
-
-
-

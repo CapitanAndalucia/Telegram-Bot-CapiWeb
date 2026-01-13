@@ -567,11 +567,37 @@ export class ApiClientService {
     }
 
     updateRoutine(id: number, data: any): Observable<any> {
-        return this.request(`/workouts/routines/${id}/`, 'PUT', { data });
+        return this.request(`/workouts/routines/${id}/`, 'PATCH', { data });
     }
 
     deleteRoutine(id: number): Observable<any> {
         return this.request(`/workouts/routines/${id}/`, 'DELETE');
+    }
+
+    // ---- Routine Days ---------------------------------------------------------
+    createRoutineDay(data: any): Observable<any> {
+        return this.request('/workouts/routine-days/', 'POST', { data });
+    }
+
+    updateRoutineDay(id: number, data: any): Observable<any> {
+        return this.request(`/workouts/routine-days/${id}/`, 'PATCH', { data });
+    }
+
+    deleteRoutineDay(id: number): Observable<any> {
+        return this.request(`/workouts/routine-days/${id}/`, 'DELETE');
+    }
+
+    // ---- Routine Exercises ----------------------------------------------------
+    createRoutineExercise(data: any): Observable<any> {
+        return this.request('/workouts/routine-exercises/', 'POST', { data });
+    }
+
+    updateRoutineExercise(id: number, data: any): Observable<any> {
+        return this.request(`/workouts/routine-exercises/${id}/`, 'PATCH', { data });
+    }
+
+    deleteRoutineExercise(id: number): Observable<any> {
+        return this.request(`/workouts/routine-exercises/${id}/`, 'DELETE');
     }
 
     getRoutineExercise(id: number): Observable<any> {
@@ -610,6 +636,10 @@ export class ApiClientService {
 
     searchExercises(query: string): Observable<any> {
         return this.request('/workouts/exercises/', 'GET', { params: { name: query } });
+    }
+
+    updateExercise(id: number, data: any): Observable<any> {
+        return this.request(`/workouts/exercises/${id}/`, 'PATCH', { data });
     }
 
     // ---- Routine Day Images ---------------------------------------------------

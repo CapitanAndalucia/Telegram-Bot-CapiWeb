@@ -14,7 +14,8 @@ interface ExerciseWithState extends RoutineExercise {
     standalone: true,
     imports: [CommonModule],
     templateUrl: './today-exercises.component.html',
-    styleUrls: ['./today-exercises.component.css']
+    styleUrls: [],
+    styles: [`:host { display: block; }`]
 })
 export class TodayExercisesComponent implements OnInit, OnDestroy {
     private api = inject(ApiClientService);

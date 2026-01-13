@@ -1,78 +1,91 @@
-<div class="modal">
-  <div class="panel">
-    <button class="close" (click)="close.emit()">✕</button>
+<div class="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-40 backdrop-blur-sm">
+  <div
+    class="bg-[#0b1224] text-white w-full max-w-[900px] max-h-[95vh] overflow-y-auto rounded-[1.2rem] p-4 relative flex flex-col gap-4 shadow-2xl border border-white/10">
+    <button
+      class="absolute top-3 right-3 bg-white/10 border-0 text-white rounded-full w-9 h-9 flex items-center justify-center cursor-pointer hover:bg-white/20 transition-colors z-10"
+      (click)="close.emit()">✕</button>
 
-    <div class="media" *ngIf="exercise.exercise_detail.media.length">
+    <div class="bg-slate-900 rounded-2xl overflow-hidden relative min-h-[220px]"
+      *ngIf="exercise.exercise_detail.media.length">
       <ng-container *ngIf="exercise.exercise_detail.media[activeMediaIndex()] as media">
-        <img
-          *ngIf="media.media_type === 'image'"
-          [src]="media.file"
-          alt="imagen ejercicio"
-        />
-        <video
-          *ngIf="media.media_type === 'video'"
-          controls
-          playsinline
-          [src]="media.file"
-          type="video/mp4"
-        ></video>
+        <img *ngIf="media.media_type === 'image'" [src]="media.file" alt="imagen ejercicio"
+          class="w-full h-[260px] object-cover block" />
+        <video *ngIf="media.media_type === 'video'" controls playsinline [src]="media.file" type="video/mp4"
+          class="w-full h-[260px] object-cover block"></video>
       </ng-container>
-      <div class="media-nav" *ngIf="exercise.exercise_detail.media.length > 1">
-        <button (click)="changeMedia(-1)">‹</button>
-        <span>{{ activeMediaIndex() + 1 }} / {{ exercise.exercise_detail.media.length }}</span>
-        <button (click)="changeMedia(1)">›</button>
+      <div
+        class="absolute inset-x-0 bottom-0 flex justify-between items-center p-2 px-4 bg-gradient-to-b from-transparent to-black/65"
+        *ngIf="exercise.exercise_detail.media.length > 1">
+        <button class="bg-white/10 border-0 text-white py-1 px-3 rounded-lg cursor-pointer hover:bg-white/20"
+          (click)="changeMedia(-1)">‹</button>
+        <span class="text-sm font-medium drop-shadow-md">{{ activeMediaIndex() + 1 }} / {{
+          exercise.exercise_detail.media.length }}</span>
+        <button class="bg-white/10 border-0 text-white py-1 px-3 rounded-lg cursor-pointer hover:bg-white/20"
+          (click)="changeMedia(1)">›</button>
       </div>
     </div>
 
-    <div class="info">
-      <p class="eyebrow" *ngIf="exercise.day_label">{{ exercise.day_label }}</p>
-      <h2>{{ exercise.exercise_detail.name }}</h2>
-      <p class="muted" *ngIf="exercise.exercise_detail.description">
+    <div>
+      <p class="uppercase tracking-widest text-xs text-slate-400 m-0 mb-1" *ngIf="exercise.day_label">{{
+        exercise.day_label }}</p>
+      <h2 class="m-0 text-2xl font-bold">{{ exercise.exercise_detail.name }}</h2>
+      <p class="text-slate-300 text-sm mt-1 mb-0" *ngIf="exercise.exercise_detail.description">
         {{ exercise.exercise_detail.description }}
       </p>
-      <div class="pill-row">
-        <span>{{ exercise.target_sets }} x {{ exercise.target_reps }} reps</span>
-        <span>Peso objetivo: {{ exercise.target_weight }} kg</span>
-        <span>Descanso: {{ exercise.rest_seconds }}s</span>
+      <div class="flex flex-wrap gap-2 mt-2">
+        <span class="bg-white/10 px-3 py-1 rounded-full text-xs">{{ exercise.target_sets }} x {{ exercise.target_reps }}
+          reps</span>
+        <span class="bg-white/10 px-3 py-1 rounded-full text-xs">Peso: {{ exercise.target_weight }} kg</span>
+        <span class="bg-white/10 px-3 py-1 rounded-full text-xs">Descanso: {{ exercise.rest_seconds }}s</span>
       </div>
     </div>
 
-    <div class="form">
-      <h3>Añadir serie</h3>
-      <div class="form-group">
-        <label>Reps</label>
-        <input type="number" [ngModel]="reps()" (ngModelChange)="reps.set($event)" min="1" />
+    <div class="bg-white/5 rounded-2xl p-4 flex flex-col gap-3">
+      <h3 class="m-0 font-bold text-lg">Añadir serie</h3>
+      <div class="grid grid-cols-2 gap-3">
+        <div class="flex flex-col gap-1">
+          <label class="font-semibold text-slate-200 text-sm">Reps</label>
+          <input type="number" [ngModel]="reps()" (ngModelChange)="reps.set($event)" min="1"
+            class="rounded-xl border border-slate-800 p-2.5 bg-slate-900 text-white w-full" />
+        </div>
+        <div class="flex flex-col gap-1">
+          <label class="font-semibold text-slate-200 text-sm">Peso (kg)</label>
+          <input type="number" [ngModel]="weight()" (ngModelChange)="weight.set($event)" min="0" step="0.5"
+            class="rounded-xl border border-slate-800 p-2.5 bg-slate-900 text-white w-full" />
+        </div>
       </div>
-      <div class="form-group">
-        <label>Peso (kg)</label>
-        <input type="number" [ngModel]="weight()" (ngModelChange)="weight.set($event)" min="0" step="0.5" />
+      <div class="flex flex-col gap-1">
+        <label class="font-semibold text-slate-200 text-sm">Nota (opcional)</label>
+        <input type="text" [ngModel]="note()" (ngModelChange)="note.set($event)"
+          class="rounded-xl border border-slate-800 p-2.5 bg-slate-900 text-white w-full" />
       </div>
-      <div class="form-group">
-        <label>Nota (opcional)</label>
-        <input type="text" [ngModel]="note()" (ngModelChange)="note.set($event)" />
+      <div class="flex flex-col gap-1">
+        <label class="font-semibold text-slate-200 text-sm">Media (opcional)</label>
+        <input type="file" (change)="onFileSelected($event)" accept="image/*,video/*"
+          class="text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-white/10 file:text-white hover:file:bg-white/20" />
       </div>
-      <div class="form-group">
-        <label>Media (opcional)</label>
-        <input type="file" (change)="onFileSelected($event)" accept="image/*,video/*" />
-      </div>
-      <button class="cta" (click)="addSet()" [disabled]="submitting()">
+      <button
+        class="bg-gradient-to-br from-cyan-400 to-sky-500 text-white rounded-2xl p-3 font-bold border-0 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg hover:shadow-cyan-500/20 transition-all mt-2"
+        (click)="addSet()" [disabled]="submitting()">
         {{ submitting() ? 'Guardando...' : 'Añadir serie' }}
       </button>
     </div>
 
-    <div class="history" *ngIf="exercise.sets?.length">
-      <h3>Histórico</h3>
-      <div class="set-row" *ngFor="let set of exercise.sets">
+    <div class="bg-white/5 rounded-2xl p-4" *ngIf="exercise.sets?.length">
+      <h3 class="m-0 mb-2 font-bold text-lg">Histórico</h3>
+      <div class="flex items-center justify-between py-2 border-b border-white/5 last:border-0"
+        *ngFor="let set of exercise.sets">
         <div>
-          <strong>{{ set.reps }} reps</strong> · {{ set.weight }} kg
-          <p class="muted">{{ set.performed_at | date: 'short' }}</p>
+          <strong class="text-white">{{ set.reps }} reps</strong> · {{ set.weight }} kg
+          <p class="text-slate-400 text-xs m-0 mt-0.5">{{ set.performed_at | date: 'short' }}</p>
         </div>
-        <span *ngIf="set.media" class="badge">media</span>
+        <span *ngIf="set.media"
+          class="bg-cyan-400 text-[#0b1224] px-2.5 py-0.5 rounded-full font-bold text-xs uppercase">media</span>
       </div>
     </div>
 
-    <div class="chart" *ngIf="progress && progress.length > 0">
-      <h3>Progreso</h3>
+    <div class="bg-white rounded-2xl p-4 text-slate-900" *ngIf="progress && progress.length > 0">
+      <h3 class="m-0 mb-2 font-bold text-lg">Progreso</h3>
       <canvas baseChart [data]="chartConfig().data" [type]="'line'" [options]="chartConfig().options"></canvas>
     </div>
   </div>

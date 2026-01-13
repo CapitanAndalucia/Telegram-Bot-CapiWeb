@@ -43,7 +43,7 @@ class RoutineExerciseSerializer(serializers.ModelSerializer):
 
 
 class RoutineDaySerializer(serializers.ModelSerializer):
-    routine_exercises = RoutineExerciseSerializer(many=True)
+    routine_exercises = RoutineExerciseSerializer(many=True, required=False)
     day_label = serializers.CharField(source="get_day_of_week_display", read_only=True)
     image_url = serializers.SerializerMethodField()
 
@@ -51,6 +51,7 @@ class RoutineDaySerializer(serializers.ModelSerializer):
         model = RoutineDay
         fields = [
             "id",
+            "routine",
             "day_of_week",
             "day_label",
             "title",

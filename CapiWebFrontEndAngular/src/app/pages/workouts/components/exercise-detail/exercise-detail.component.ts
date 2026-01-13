@@ -9,7 +9,8 @@ import { RoutineExercise, ExerciseProgressPoint } from '../../../../models/worko
     standalone: true,
     imports: [CommonModule],
     templateUrl: './exercise-detail.component.html',
-    styleUrls: ['./exercise-detail.component.css']
+    styleUrls: [],
+    styles: [`:host { display: block; }`]
 })
 export class ExerciseDetailComponent implements OnInit {
     private api = inject(ApiClientService);
@@ -34,6 +35,11 @@ export class ExerciseDetailComponent implements OnInit {
     // Image carousel state
     exerciseImages = signal<Array<{ id: number; url: string }>>([]);
     currentImageIndex = signal<number>(0);
+
+    // --- Editing State ---
+    isEditing = signal<boolean>(false);
+    isSaving = signal<boolean>(false);
+    editName = signal<string>('');
 
     ngOnInit(): void {
         const exerciseId = this.route.snapshot.paramMap.get('id');
@@ -129,6 +135,89 @@ export class ExerciseDetailComponent implements OnInit {
     editTarget(): void {
         // TODO: Open modal to edit target
         console.log('Edit target for exercise:', this.exercise()?.id);
+    }
+
+    // --- Edit Methods ---
+
+    toggleEdit(): void {
+        const edit = !this.isEditing();
+        this.isEditing.set(edit);
+        if (edit) {
+            // Initialize with current name
+            this.editName.set(this.exercise()?.exercise_detail?.name || '');
+        }
+    }
+
+    updateEditName(event: Event): void {
+        const input = event.target as HTMLInputElement;
+        this.editName.set(input.value);
+    }
+
+    onFileSelected(event: Event): void {
+        const input = event.target as HTMLInputElement;
+        if (input.files && input.files.length > 0) {
+            const files = Array.from(input.files);
+            const exerciseId = this.exercise()?.exercise_detail?.id;
+
+            if (exerciseId) {
+                // Upload immediately
+                this.api.uploadExerciseImages(exerciseId, files).subscribe({
+                    next: (response) => {
+                        // Reload exercise to refresh images
+                        this.loadExercise(this.exercise()!.id);
+                    },
+                    error: (err) => {
+                        console.error('Error uploading images', err);
+                    }
+                });
+            }
+        }
+        input.value = ''; // Reset
+    }
+
+    deleteImageConfirm(mediaId: number): void {
+        const exerciseId = this.exercise()?.exercise_detail?.id;
+        if (exerciseId && confirm('¿Estás seguro de querer eliminar esta imagen?')) {
+            this.api.deleteExerciseImage(exerciseId, mediaId).subscribe({
+                next: () => {
+                    // Update the signal locally to reflect change immediately
+                    this.exerciseImages.update(imgs => imgs.filter(img => img.id !== mediaId));
+                    // Adjust index if needed
+                    if (this.currentImageIndex() >= this.exerciseImages().length) {
+                        this.currentImageIndex.set(Math.max(0, this.exerciseImages().length - 1));
+                    }
+                },
+                error: (err) => console.error('Error deleting image', err)
+            });
+        }
+    }
+
+    saveChanges(): void {
+        if (!this.editName().trim()) return;
+
+        const exerciseId = this.exercise()?.exercise_detail?.id;
+        const currentName = this.exercise()?.exercise_detail?.name;
+        const newName = this.editName().trim();
+
+        if (exerciseId) {
+            this.isSaving.set(true);
+            if (newName !== currentName) {
+                this.api.updateExercise(exerciseId, { name: newName }).subscribe({
+                    next: () => {
+                        this.isSaving.set(false);
+                        this.isEditing.set(false);
+                        this.loadExercise(this.exercise()!.id); // Reload to update view
+                    },
+                    error: (err) => {
+                        console.error('Error updating name', err);
+                        this.isSaving.set(false);
+                    }
+                });
+            } else {
+                this.isSaving.set(false);
+                this.isEditing.set(false);
+            }
+        }
     }
 
     // Carousel navigation

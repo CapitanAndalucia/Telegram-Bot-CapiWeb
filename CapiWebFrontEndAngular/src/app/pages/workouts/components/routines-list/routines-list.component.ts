@@ -15,7 +15,8 @@ interface RoutineCategory {
     standalone: true,
     imports: [CommonModule],
     templateUrl: './routines-list.component.html',
-    styleUrls: ['./routines-list.component.css']
+    styleUrls: [],
+    styles: [`:host { display: block; }`]
 })
 export class RoutinesListComponent implements OnInit {
     private api = inject(ApiClientService);

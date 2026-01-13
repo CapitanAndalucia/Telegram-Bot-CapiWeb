@@ -36,6 +36,7 @@ export const routes: Routes = [
     },
     {
         path: 'workouts',
+        loadComponent: () => import('./pages/workouts/workouts.component').then(m => m.WorkoutsComponent),
         loadChildren: () => import('./pages/workouts/workouts.routes').then(m => m.workoutRoutes),
         canActivate: [authGuard],
         data: { animation: 'Workouts' }

@@ -6,8 +6,19 @@
             class="flex size-10 shrink-0 items-center justify-center rounded-full hover:bg-white/10 transition-colors">
             <span class="material-symbols-outlined" style="font-size: 24px;">arrow_back</span>
         </button>
-        <h2 class="text-lg font-bold leading-tight tracking-tight flex-1 text-center pr-10">{{ routine()?.title ||
+        <h2 class="text-lg font-bold leading-tight tracking-tight flex-1 text-center truncate px-2">{{ routine()?.title
+            ||
             'Cargando...' }}</h2>
+
+        <!-- Edit Button -->
+        @if (!loading() && routine()) {
+        <button (click)="toggleEdit()"
+            class="flex size-10 shrink-0 items-center justify-center rounded-full hover:bg-white/10 transition-colors">
+            <span class="material-symbols-outlined" style="font-size: 20px;">edit</span>
+        </button>
+        } @else {
+        <div class="size-10 shrink-0"></div>
+        }
     </div>
 
     <!-- Loading State -->

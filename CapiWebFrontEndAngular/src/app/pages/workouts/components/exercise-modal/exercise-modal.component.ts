@@ -16,7 +16,7 @@ import { ApiClientService } from '../../../../services/api-client.service';
     standalone: true,
     imports: [CommonModule, FormsModule, BaseChartDirective],
     templateUrl: './exercise-modal.component.html',
-    styleUrls: ['./exercise-modal.component.css']
+    styleUrls: []
 })
 export class ExerciseModalComponent {
     private api = inject(ApiClientService);

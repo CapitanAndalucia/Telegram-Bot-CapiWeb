@@ -9,7 +9,8 @@ import { Routine, RoutineDay, RoutineExercise } from '../../../../models/workout
     standalone: true,
     imports: [CommonModule],
     templateUrl: './weekly-plan.component.html',
-    styleUrls: ['./weekly-plan.component.css']
+    styleUrls: [],
+    styles: [`:host { display: block; }`]
 })
 export class WeeklyPlanComponent implements OnInit {
     private api = inject(ApiClientService);
@@ -119,4 +120,15 @@ export class WeeklyPlanComponent implements OnInit {
     viewExerciseDetail(exerciseId: number): void {
         this.router.navigate(['/workouts/exercise', exerciseId]);
     }
+
+    // --- Edit Methods ---
+
+    toggleEdit(): void {
+        const routineId = this.routine()?.id;
+        if (routineId) {
+            this.router.navigate(['/workouts/edit', routineId]);
+        }
+    }
+
+    // End of Component
 }

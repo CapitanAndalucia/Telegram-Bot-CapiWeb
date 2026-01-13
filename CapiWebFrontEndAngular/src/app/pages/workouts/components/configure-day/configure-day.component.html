@@ -83,8 +83,8 @@
 
             <!-- Exercise List Items -->
             @for (exercise of exercises(); track $index) {
-            <div
-                class="group flex items-center gap-4 bg-[#1d3627] p-4 rounded-xl border border-transparent hover:border-[#13ec6a]/30 transition-all shadow-sm">
+            <div (click)="editExercise(exercise)"
+                class="group flex items-center gap-4 bg-[#1d3627] p-4 rounded-xl border border-transparent hover:border-[#13ec6a]/30 transition-all shadow-sm cursor-pointer hover:bg-[#1d3627]/80">
                 <!-- Drag Handle -->
                 <div
                     class="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#102217] text-[#9cacba] cursor-move">
@@ -98,7 +98,7 @@
                     </p>
                 </div>
                 <!-- Delete Button -->
-                <button (click)="removeExercise(exercise)"
+                <button (click)="$event.stopPropagation(); removeExercise(exercise)"
                     class="flex size-10 shrink-0 items-center justify-center rounded-full text-[#9cacba] hover:text-red-500 hover:bg-red-500/10 transition-colors">
                     <span class="material-symbols-outlined" style="font-size: 24px;">delete</span>
                 </button>
@@ -133,6 +133,9 @@
             @if (saving()) {
             <div class="w-6 h-6 border-2 border-[#102217] border-t-transparent rounded-full animate-spin"></div>
             <span>Guardando...</span>
+            } @else if (isEditMode()) {
+            <span>Guardar Cambios</span>
+            <span class="material-symbols-outlined" style="font-size: 20px;">check</span>
             } @else if (isLastDay()) {
             <span>Finalizar y Crear Rutina</span>
             <span class="material-symbols-outlined" style="font-size: 20px;">check</span>

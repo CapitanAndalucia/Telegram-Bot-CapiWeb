@@ -7,7 +7,6 @@ import { RoutineDay, RoutineExercise } from '../../../../models/workouts';
     standalone: true,
     imports: [CommonModule],
     templateUrl: './routine-day.component.html',
-    styleUrls: ['./routine-day.component.css']
 })
 export class RoutineDayComponent {
     @Input() day!: RoutineDay;
