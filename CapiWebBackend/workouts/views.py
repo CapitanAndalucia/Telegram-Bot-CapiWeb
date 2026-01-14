@@ -227,11 +227,21 @@ class ExerciseSetViewSet(viewsets.ModelViewSet):
 class ExerciseViewSet(viewsets.ModelViewSet):
     """
     ViewSet para gestionar ejercicios.
-    Los ejercicios son globales (no por usuario) y pueden ser creados por cualquier usuario autenticado.
+    Los ejercicios son globales (catálogo compartido).
+    - Lectura: cualquier usuario autenticado
+    - Creación/Modificación/Eliminación: solo superusuarios
     """
     serializer_class = ExerciseSerializer
-    permission_classes = [IsAuthenticated]
     parser_classes = [MultiPartParser, FormParser, JSONParser]
+
+    def get_permissions(self):
+        """
+        Solo superusuarios pueden crear, modificar o eliminar ejercicios.
+        Usuarios normales solo pueden leer.
+        """
+        if self.action in ['create', 'update', 'partial_update', 'destroy']:
+            return [permissions.IsAdminUser()]
+        return [IsAuthenticated()]
 
     def get_queryset(self):
         queryset = Exercise.objects.all().prefetch_related("media")
@@ -241,7 +251,7 @@ class ExerciseViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(name__icontains=name)
         return queryset
 
-    @action(detail=False, methods=['post'], permission_classes=[IsAuthenticated])
+    @action(detail=False, methods=['post'], permission_classes=[permissions.IsAdminUser])
     def get_or_create(self, request):
         """
         Obtiene un ejercicio existente por nombre o lo crea si no existe.
@@ -267,7 +277,7 @@ class ExerciseViewSet(viewsets.ModelViewSet):
             'created': created
         })
 
-    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAdminUser])
     def upload_images(self, request, pk=None):
         """
         Sube y optimiza múltiples imágenes para un ejercicio.
@@ -304,7 +314,7 @@ class ExerciseViewSet(viewsets.ModelViewSet):
             'count': len(uploaded_media)
         })
 
-    @action(detail=True, methods=['delete'], permission_classes=[IsAuthenticated], url_path='delete_image/(?P<media_id>[^/.]+)')
+    @action(detail=True, methods=['delete'], permission_classes=[permissions.IsAdminUser], url_path='delete_image/(?P<media_id>[^/.]+)')
     def delete_image(self, request, pk=None, media_id=None):
         """
         Elimina una imagen específica de un ejercicio.

@@ -1,0 +1,179 @@
+<!-- Top Navigation Bar -->
+<nav class="sticky top-0 z-50 bg-[#102217]/80 backdrop-blur-md px-4 py-4 flex items-center justify-between">
+    <button (click)="goBack()" class="flex items-center justify-center w-20 text-[#13ec6a]">
+        <span class="material-symbols-outlined">arrow_back_ios_new</span>
+    </button>
+    <h1 class="text-base font-semibold tracking-wide uppercase text-white text-center flex-1">Perfil</h1>
+    <button (click)="editProfile()"
+        class="w-20 bg-[#13ec6a]/20 text-[#13ec6a] px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider">
+        Editar
+    </button>
+</nav>
+
+<!-- Loading State -->
+@if (loading()) {
+<div class="flex items-center justify-center h-64">
+    <div class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#13ec6a]"></div>
+</div>
+} @else {
+
+<!-- Profile Header -->
+<header class="flex flex-col items-center pt-8 pb-10 px-6">
+    <div class="relative">
+        <div class="w-32 h-32 rounded-full border-4 border-[#13ec6a] p-1">
+            @if (userAvatar()) {
+            <div class="w-full h-full rounded-full bg-cover bg-center shadow-2xl"
+                [style.backgroundImage]="'url(' + userAvatar() + ')'">
+            </div>
+            } @else {
+            <div class="w-full h-full rounded-full bg-[#1d3627] flex items-center justify-center">
+                <span class="material-symbols-outlined text-[#13ec6a] text-5xl">person</span>
+            </div>
+            }
+        </div>
+        <div
+            class="absolute bottom-0 right-0 translate-x-1/4 translate-y-1/4 w-8 h-8 bg-[#13ec6a] text-white rounded-full shadow-lg border-2 border-[#102217] flex items-center justify-center">
+            <span class="material-symbols-outlined" style="font-size: 16px;">verified</span>
+        </div>
+    </div>
+    <div class="mt-6 text-center">
+        <h2 class="text-3xl font-bold tracking-tight text-white">{{ userName() }}</h2>
+        <div class="flex items-center justify-center gap-2 mt-2">
+            <span
+                class="bg-[#13ec6a]/10 text-[#13ec6a] text-[10px] font-black uppercase px-2.5 py-1 rounded-full border border-[#13ec6a]/20 tracking-[0.1em]">Elite
+                Tier</span>
+            @if (memberSince()) {
+            <span class="text-slate-400 text-sm font-medium">Miembro desde {{ memberSince() }}</span>
+            }
+        </div>
+    </div>
+    <!-- Stats Cards -->
+    <div class="flex gap-4 mt-8 w-full max-w-sm">
+        <div class="flex-1 flex flex-col items-center bg-[#1d3627]/40 border border-white/5 p-3 rounded-xl">
+            <span class="text-xs text-slate-400 font-medium uppercase tracking-widest">Workouts</span>
+            <span class="text-xl font-bold text-white mt-1">{{ totalWorkouts() }}</span>
+        </div>
+        <div class="flex-1 flex flex-col items-center bg-[#1d3627]/40 border border-white/5 p-3 rounded-xl">
+            <span class="text-xs text-slate-400 font-medium uppercase tracking-widest">Racha</span>
+            <span class="text-xl font-bold text-white mt-1">{{ currentStreak() }}d</span>
+        </div>
+    </div>
+</header>
+
+<!-- Personal Records Section -->
+<section class="px-6 mb-8">
+    <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-bold tracking-tight text-white">Récords Personales</h3>
+        <span class="material-symbols-outlined text-[#13ec6a] text-sm">bolt</span>
+    </div>
+    <div class="grid grid-cols-2 gap-4">
+        @for (record of personalRecords(); track record.id) {
+        @if (record.hasChart) {
+        <!-- Full width record with chart -->
+        <div class="col-span-2 bg-[#1d3627] border border-white/5 p-5 rounded-xl flex items-center justify-between">
+            <div class="flex items-center gap-4">
+                <span class="material-symbols-outlined text-[#13ec6a] bg-[#13ec6a]/10 p-2 rounded-lg">{{ record.icon
+                    }}</span>
+                <div>
+                    <span class="block text-2xl font-bold tracking-tighter text-white">
+                        {{ record.value }}<span class="text-sm font-normal text-slate-500 ml-1">{{ record.unit }}</span>
+                    </span>
+                    <span class="text-xs font-medium text-slate-400 uppercase tracking-wider">{{ record.name }}</span>
+                </div>
+            </div>
+            <div class="w-16 h-8 flex items-end gap-0.5">
+                <div class="flex-1 bg-[#13ec6a]/20 h-1/2 rounded-t-sm"></div>
+                <div class="flex-1 bg-[#13ec6a]/40 h-2/3 rounded-t-sm"></div>
+                <div class="flex-1 bg-[#13ec6a]/60 h-3/4 rounded-t-sm"></div>
+                <div class="flex-1 bg-[#13ec6a] h-full rounded-t-sm"></div>
+            </div>
+        </div>
+        } @else {
+        <!-- Regular record card -->
+        <div class="bg-[#1d3627] border border-white/5 p-5 rounded-xl debossed">
+            <div class="flex justify-between items-start mb-4">
+                <span class="material-symbols-outlined text-[#13ec6a] bg-[#13ec6a]/10 p-2 rounded-lg">{{ record.icon
+                    }}</span>
+                @if (record.isNew) {
+                <span class="text-[10px] font-bold text-[#13ec6a]">NEW</span>
+                } @else if (record.change) {
+                <span class="text-[10px] font-bold text-[#13ec6a]">{{ record.change }}</span>
+                }
+            </div>
+            <div class="flex flex-col">
+                <span class="text-2xl font-bold tracking-tighter text-white">
+                    {{ record.value }}<span class="text-sm font-normal text-slate-500 ml-1">{{ record.unit }}</span>
+                </span>
+                <span class="text-xs font-medium text-slate-400 mt-1 uppercase tracking-wider">{{ record.name }}</span>
+            </div>
+        </div>
+        }
+        }
+    </div>
+</section>
+
+<!-- Menu Sections -->
+<section class="px-6 space-y-2">
+    <h3 class="text-xs font-bold text-slate-500 uppercase tracking-[0.2em] mb-4 pl-1">Preferencias</h3>
+    <div class="bg-[#1d3627]/60 border border-white/5 rounded-xl overflow-hidden">
+        <button (click)="openAccountSettings()"
+            class="w-full flex items-center justify-between p-4 border-b border-white/5 hover:bg-white/5 transition-colors">
+            <div class="flex items-center gap-4">
+                <span class="material-symbols-outlined text-slate-400">person_outline</span>
+                <span class="text-sm font-medium text-white">Configuración de Cuenta</span>
+            </div>
+            <span class="material-symbols-outlined text-slate-600 text-sm">chevron_right</span>
+        </button>
+        <button (click)="openNotifications()"
+            class="w-full flex items-center justify-between p-4 border-b border-white/5 hover:bg-white/5 transition-colors">
+            <div class="flex items-center gap-4">
+                <span class="material-symbols-outlined text-slate-400">notifications</span>
+                <span class="text-sm font-medium text-white">Notificaciones</span>
+            </div>
+            <span class="material-symbols-outlined text-slate-600 text-sm">chevron_right</span>
+        </button>
+        <button (click)="openPrivacy()"
+            class="w-full flex items-center justify-between p-4 hover:bg-white/5 transition-colors">
+            <div class="flex items-center gap-4">
+                <span class="material-symbols-outlined text-slate-400">lock</span>
+                <span class="text-sm font-medium text-white">Privacidad y Datos</span>
+            </div>
+            <span class="material-symbols-outlined text-slate-600 text-sm">chevron_right</span>
+        </button>
+    </div>
+
+    <div class="pt-6">
+        <h3 class="text-xs font-bold text-slate-500 uppercase tracking-[0.2em] mb-4 pl-1">Soporte</h3>
+        <div class="bg-[#1d3627]/60 border border-white/5 rounded-xl overflow-hidden">
+            <button (click)="openHelpCenter()"
+                class="w-full flex items-center justify-between p-4 border-b border-white/5 hover:bg-white/5 transition-colors">
+                <div class="flex items-center gap-4">
+                    <span class="material-symbols-outlined text-slate-400">help</span>
+                    <span class="text-sm font-medium text-white">Centro de Ayuda</span>
+                </div>
+                <span class="material-symbols-outlined text-slate-600 text-sm">chevron_right</span>
+            </button>
+            <button (click)="shareApp()"
+                class="w-full flex items-center justify-between p-4 hover:bg-white/5 transition-colors">
+                <div class="flex items-center gap-4">
+                    <span class="material-symbols-outlined text-slate-400">share</span>
+                    <span class="text-sm font-medium text-white">Compartir con Amigos</span>
+                </div>
+                <span class="material-symbols-outlined text-slate-600 text-sm">chevron_right</span>
+            </button>
+        </div>
+    </div>
+</section>
+
+<!-- Logout Button -->
+<div class="px-6 mt-12 mb-10">
+    <button (click)="logout()"
+        class="w-full py-4 rounded-xl border border-red-500/20 text-red-500 font-semibold flex items-center justify-center gap-2 hover:bg-red-500/5 transition-all">
+        <span class="material-symbols-outlined">logout</span>
+        Cerrar Sesión
+    </button>
+    <!-- <p class="text-center text-slate-600 text-[10px] mt-6 tracking-widest uppercase">Version {{ appVersion }} • Build {{
+        buildNumber }}</p> -->
+</div>
+
+}

@@ -56,5 +56,10 @@ export const workoutRoutes: Routes = [
         path: 'routine/:routineId/day/:dayId/exercise/:exerciseId/edit',
         loadComponent: () => import('./components/add-exercise/add-exercise.component').then(m => m.AddExerciseComponent),
         data: { animation: 'AddExercise' }
+    },
+    {
+        path: 'profile',
+        loadComponent: () => import('./components/workout-profile/workout-profile.component').then(m => m.WorkoutProfileComponent),
+        data: { animation: 'WorkoutProfile' }
     }
 ];

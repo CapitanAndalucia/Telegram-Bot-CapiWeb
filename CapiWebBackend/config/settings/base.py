@@ -234,6 +234,7 @@ REST_FRAMEWORK = {
     # Throttling global para mitigar fuerza bruta y abuso
     "DEFAULT_THROTTLE_CLASSES": [
         "rest_framework.throttling.AnonRateThrottle",
+        "rest_framework.throttling.UserRateThrottle",
         "api.throttling.StaffUserRateThrottle",  # Throttle personalizado para staff
     ],
     "DEFAULT_THROTTLE_RATES": {
