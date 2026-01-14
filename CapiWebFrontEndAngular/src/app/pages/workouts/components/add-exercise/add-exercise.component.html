@@ -6,17 +6,29 @@
                 class="flex h-10 w-10 items-center justify-center rounded-full bg-transparent text-white hover:bg-white/10 transition-colors">
                 <span class="material-symbols-outlined" style="font-size: 28px;">close</span>
             </button>
-            <h2 class="flex-1 text-center text-lg font-bold tracking-tight text-white">Añadir Ejercicio</h2>
+            <h2 class="flex-1 text-center text-lg font-bold tracking-tight text-white">
+                {{ variantParentId() ? 'Añadir Alternativo' : 'Añadir Ejercicio' }}
+            </h2>
             <button (click)="save()" [disabled]="!canSave()"
                 class="flex h-10 px-4 items-center justify-center rounded-full font-semibold transition-colors"
                 [class]="canSave() ? 'text-[#13ec6a] hover:text-[#0fb650]' : 'text-[#9cacba] cursor-not-allowed'">
                 Guardar
             </button>
         </div>
+
+        <!-- Variant mode indicator -->
+        @if (variantParentId()) {
+        <div class="mt-2 px-3 py-2 rounded-xl bg-[#13ec6a]/10 border border-[#13ec6a]/30">
+            <p class="text-sm text-[#13ec6a]">
+                <span class="material-symbols-outlined align-middle text-sm mr-1">link</span>
+                Alternativo para: <strong>{{ variantParentName() }}</strong>
+            </p>
+        </div>
+        }
     </div>
 
     <!-- Main Content -->
-    <main class="flex-1 flex flex-col gap-6 px-4 pb-24">
+    <main class="flex-1 flex flex-col gap-6 px-4 pb-24 overflow-y-auto">
         <!-- Exercise Name Input -->
         <div class="mt-4">
             <label class="block text-sm font-medium text-[#9cacba] uppercase tracking-wider mb-2 ml-1">Nombre del
@@ -175,6 +187,58 @@
                 class="w-full resize-none rounded-2xl border-none bg-[#1d3627] p-4 text-base text-white shadow-sm ring-1 ring-white/5 focus:ring-2 focus:ring-[#13ec6a] placeholder-gray-500">
                 </textarea>
         </div>
+
+        <div class="h-px w-full bg-[#3d5a4c]"></div>
+
+        <!-- Variant Section -->
+        <div>
+            <button (click)="toggleVariantSection()" class="w-full flex items-center justify-between py-3 text-left">
+                <div class="flex items-center gap-2">
+                    <span class="material-symbols-outlined text-[#13ec6a]" style="font-size: 20px;">swap_horiz</span>
+                    <span class="text-base font-semibold text-white">Versión Alternativa</span>
+                    <span class="text-xs text-[#9cacba]">(opcional)</span>
+                </div>
+                <span class="material-symbols-outlined text-[#9cacba] transition-transform"
+                    [class.rotate-180]="showVariantSection()">expand_more</span>
+            </button>
+
+            @if (showVariantSection()) {
+            <div class="space-y-3 mt-2">
+                <p class="text-sm text-[#9cacba]">
+                    Añade una versión alternativa del ejercicio para cuando no esté disponible el equipo principal.
+                </p>
+
+                <!-- Existing Variants -->
+                @if (variants().length > 0) {
+                <div class="space-y-2">
+                    @for (variant of variants(); track $index) {
+                    <div class="flex items-center gap-3 p-3 rounded-xl bg-[#1d3627] border border-[#3d5a4c]">
+                        <span class="size-10 rounded-lg bg-[#13ec6a]/20 flex items-center justify-center">
+                            <span class="material-symbols-outlined text-[#13ec6a]"
+                                style="font-size: 20px;">fitness_center</span>
+                        </span>
+                        <div class="flex-1">
+                            <p class="text-white font-medium">{{ variant.name }}</p>
+                            <p class="text-slate-400 text-xs">{{ variant.sets }} series • {{ variant.reps }} reps</p>
+                        </div>
+                        <button (click)="removeVariant($index)"
+                            class="size-8 flex items-center justify-center rounded-full bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-colors">
+                            <span class="material-symbols-outlined" style="font-size: 16px;">close</span>
+                        </button>
+                    </div>
+                    }
+                </div>
+                }
+
+                <!-- Add Variant Button -->
+                <button (click)="openVariantPicker()"
+                    class="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl border-2 border-dashed border-[#13ec6a]/40 text-[#13ec6a] hover:bg-[#13ec6a]/10 transition-colors">
+                    <span class="material-symbols-outlined" style="font-size: 20px;">add_circle_outline</span>
+                    <span class="font-medium">Añadir versión alternativa</span>
+                </button>
+            </div>
+            }
+        </div>
         }
     </main>
 
@@ -239,6 +303,62 @@
                 class="w-full mt-6 h-12 bg-[#13ec6a] text-[#102217] rounded-full font-bold">
                 Hecho
             </button>
+        </div>
+    </div>
+    }
+
+    <!-- Variant Picker Modal -->
+    @if (showVariantPicker()) {
+    <div class="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm"
+        (click)="closeVariantPicker()">
+        <div class="w-full max-w-lg bg-[#102217] rounded-t-3xl p-6 shadow-2xl border-t border-[#13ec6a]/30"
+            (click)="$event.stopPropagation()">
+
+            <!-- Modal Header -->
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-bold text-white">Seleccionar Ejercicio Alternativo</h3>
+                <button (click)="closeVariantPicker()"
+                    class="size-8 flex items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors">
+                    <span class="material-symbols-outlined" style="font-size: 20px;">close</span>
+                </button>
+            </div>
+
+            <!-- Info Message -->
+            <p class="text-slate-400 text-sm mb-4">
+                Selecciona un ejercicio alternativo para cuando no esté disponible {{ exerciseName() }}.
+            </p>
+
+            <!-- Search Input -->
+            <div class="relative mb-4">
+                <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"
+                    style="font-size: 20px;">search</span>
+                <input type="text" placeholder="Buscar ejercicio..." [value]="variantSearchQuery()"
+                    (input)="variantSearchQuery.set($any($event.target).value)"
+                    class="w-full py-3 pl-10 pr-4 rounded-xl bg-[#1d3627] border border-white/10 text-white placeholder:text-slate-500 focus:outline-none focus:border-[#13ec6a]/50">
+            </div>
+
+            <!-- Suggestions -->
+            <div class="space-y-2 max-h-60 overflow-y-auto">
+                <p class="text-slate-500 text-xs font-medium uppercase tracking-wider mb-2">Sugerencias</p>
+
+                @for (suggestion of filteredVariantSuggestions(); track suggestion.id) {
+                <button (click)="addVariant(suggestion)"
+                    class="w-full flex items-center gap-3 p-3 rounded-xl bg-[#1d3627] hover:bg-[#2a4a38] border border-white/5 transition-colors text-left">
+                    <span class="size-10 rounded-lg bg-[#13ec6a]/20 flex items-center justify-center">
+                        <span class="material-symbols-outlined text-[#13ec6a]" style="font-size: 20px;">{{
+                            suggestion.icon }}</span>
+                    </span>
+                    <div class="flex-1">
+                        <p class="text-white font-medium">{{ suggestion.name }}</p>
+                        <p class="text-slate-400 text-xs">{{ suggestion.category }} • {{ suggestion.equipment }}</p>
+                    </div>
+                </button>
+                }
+
+                @if (filteredVariantSuggestions().length === 0) {
+                <p class="text-center text-slate-500 py-4">No se encontraron ejercicios</p>
+                }
+            </div>
         </div>
     </div>
     }

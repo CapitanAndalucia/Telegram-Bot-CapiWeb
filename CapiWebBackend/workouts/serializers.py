@@ -24,7 +24,8 @@ class ExerciseSerializer(serializers.ModelSerializer):
         ]
 
 
-class RoutineExerciseSerializer(serializers.ModelSerializer):
+class RoutineExerciseVariantSerializer(serializers.ModelSerializer):
+    """Lightweight serializer for variant exercises"""
     exercise_detail = ExerciseSerializer(source="exercise", read_only=True)
 
     class Meta:
@@ -33,12 +34,33 @@ class RoutineExerciseSerializer(serializers.ModelSerializer):
             "id",
             "exercise",
             "exercise_detail",
+            "target_sets",
+            "target_reps",
+            "target_weight",
+            "is_active_variant",
+        ]
+
+
+class RoutineExerciseSerializer(serializers.ModelSerializer):
+    exercise_detail = ExerciseSerializer(source="exercise", read_only=True)
+    variants = RoutineExerciseVariantSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = RoutineExercise
+        fields = [
+            "id",
+            "routine_day",
+            "exercise",
+            "exercise_detail",
             "order",
             "target_sets",
             "target_reps",
             "target_weight",
             "rest_seconds",
             "note",
+            "variant_of",
+            "is_active_variant",
+            "variants",
         ]
 
 
@@ -149,22 +171,21 @@ class ExerciseSetSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ["performed_at"]
 
-    def create(self, validated_data):
-        user = self.context["request"].user
-        return ExerciseSet.objects.create(user=user, **validated_data)
-
 
 class RoutineExerciseDetailSerializer(serializers.ModelSerializer):
     exercise_detail = ExerciseSerializer(source="exercise", read_only=True)
     sets = ExerciseSetSerializer(many=True, read_only=True)
     routine_id = serializers.IntegerField(source="routine_day.routine.id", read_only=True)
+    routine_day_id = serializers.IntegerField(source="routine_day.id", read_only=True)
     day_label = serializers.CharField(source="routine_day.get_day_of_week_display", read_only=True)
+    variants = RoutineExerciseVariantSerializer(many=True, read_only=True)
 
     class Meta:
         model = RoutineExercise
         fields = [
             "id",
             "routine_id",
+            "routine_day_id",
             "day_label",
             "exercise",
             "exercise_detail",
@@ -175,6 +196,9 @@ class RoutineExerciseDetailSerializer(serializers.ModelSerializer):
             "rest_seconds",
             "note",
             "sets",
+            "variant_of",
+            "is_active_variant",
+            "variants",
         ]
 
 

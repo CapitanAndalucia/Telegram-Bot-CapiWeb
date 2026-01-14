@@ -1,7 +1,6 @@
-/* External CSS imports - must come first */
-@import '@angular/material/prebuilt-themes/indigo-pink.css';
-@import '@fontsource/syne';
-@import '@fontsource/manrope';
+/* Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
 
 /* Tailwind CSS v3 */
 @tailwind base;
@@ -9,8 +8,6 @@
 @tailwind utilities;
 
 /* External Google Fonts moved to index.html to avoid inlining */
-@import url('https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
 
 /* Workout primary glow animation */
 @keyframes pulse-glow {
@@ -27,6 +24,39 @@
 
 .animate-glow {
     animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* Carousel Slide Animations */
+@keyframes slide-in-right {
+    from {
+        opacity: 0;
+        transform: translateX(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes slide-in-left {
+    from {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.animate-slide-next {
+    animation: slide-in-right 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.animate-slide-prev {
+    animation: slide-in-left 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
 /* Material Symbols base configuration */

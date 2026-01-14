@@ -1,13 +1,20 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
+import { Location } from '@angular/common';
 import { ApiClientService } from '../../../../services/api-client.service';
 import { RoutineExercise, ExerciseProgressPoint } from '../../../../models/workouts';
+import { forkJoin } from 'rxjs';
+import { BaseChartDirective } from 'ng2-charts';
+import { ChartConfiguration, ChartType, Chart, registerables } from 'chart.js';
+
+// Register all Chart.js components (scales, controllers, elements)
+Chart.register(...registerables);
 
 @Component({
     selector: 'app-exercise-detail',
     standalone: true,
-    imports: [CommonModule],
+    imports: [CommonModule, BaseChartDirective],
     templateUrl: './exercise-detail.component.html',
     styleUrls: [],
     styles: [`:host { display: block; }`]
@@ -16,10 +23,13 @@ export class ExerciseDetailComponent implements OnInit {
     private api = inject(ApiClientService);
     private router = inject(Router);
     private route = inject(ActivatedRoute);
+    private location = inject(Location);
 
     exercise = signal<RoutineExercise | null>(null);
+    exerciseFamily = signal<RoutineExercise | null>(null); // Parent with variants
     progressData = signal<ExerciseProgressPoint[]>([]);
     loading = signal<boolean>(true);
+    weightChartLoading = signal<boolean>(true);
     error = signal<string | null>(null);
 
     // Target display values
@@ -30,16 +40,246 @@ export class ExerciseDetailComponent implements OnInit {
     progressPercent = signal<number>(0);
 
     // History items
-    recentHistory = signal<Array<{ date: string; weight: number; reps: number; sets: number }>>([]);
+    recentHistory = signal<Array<any>>([]); // Changed structure to hold raw sets or grouped sets
 
     // Image carousel state
     exerciseImages = signal<Array<{ id: number; url: string }>>([]);
     currentImageIndex = signal<number>(0);
 
-    // --- Editing State ---
+    // --- Modals State ---
+    showTargetModal = signal<boolean>(false);
+    showLogModal = signal<boolean>(false);
+
+    // --- Editing State (Name) ---
     isEditing = signal<boolean>(false);
     isSaving = signal<boolean>(false);
     editName = signal<string>('');
+
+    // --- Inputs for Modals ---
+    // Target Edit
+    newTargetSets = signal<number>(0);
+    newTargetReps = signal<string>('');
+    newTargetWeight = signal<number>(0);
+
+    // Log Set
+    logWeight = signal<number>(0);
+    logReps = signal<number>(0);
+    logSets = signal<number>(1);
+    logRir = signal<number | null>(null);
+
+    // --- Variant State ---
+    variants = signal<any[]>([]);
+    currentVariantIndex = signal<number>(0);
+    showVariantModal = signal<boolean>(false);
+    showVariantInfo = signal<boolean>(false);
+    variantSearchQuery = signal<string>('');
+    showCreateVariant = signal<boolean>(false);
+    customVariantName = signal<string>('');
+    exerciseSearchResults = signal<any[]>([]);
+    routineExercises = signal<any[]>([]); // Exercises from the same routine
+
+    // All exercise versions (parent + variants) for swipe navigation
+    allVersions = computed(() => {
+        const family = this.exerciseFamily();
+        if (!family) {
+            const ex = this.exercise();
+            return ex ? [ex] : [];
+        }
+
+        const versions = [family];
+        if (family.variants && family.variants.length > 0) {
+            versions.push(...family.variants);
+        }
+        return versions;
+    });
+
+    // Current active exercise (could be parent or variant)
+    activeExercise = computed(() => {
+        const versions = this.allVersions();
+        const index = this.currentVariantIndex();
+        return versions[index] || versions[0] || null;
+    });
+
+    // --- Carousel / Swipe State ---
+    swipeOffsetMap = signal<Map<number, number>>(new Map()); // id -> offset
+    isSwiping = signal<boolean>(false);
+
+    private touchStartX = 0;
+    private currentTouchX = 0;
+    private readonly SWIPE_THRESHOLD = 50;
+
+    onTouchStart(event: TouchEvent) {
+        this.touchStartX = event.touches[0].clientX;
+        this.currentTouchX = this.touchStartX;
+        this.isSwiping.set(true);
+    }
+
+    onTouchMove(event: TouchEvent) {
+        this.currentTouchX = event.touches[0].clientX;
+        let diff = this.currentTouchX - this.touchStartX;
+
+        const versions = this.allVersions();
+        const currentIndex = this.currentVariantIndex();
+        const isFirst = currentIndex === 0;
+        const isLast = currentIndex === (versions.length - 1);
+
+        // Resistance
+        if ((isFirst && diff > 0) || (isLast && diff < 0)) {
+            diff = diff * 0.3;
+        }
+
+        // We use a specific ID (e.g. 999) for the detail view carousel
+        this.swipeOffsetMap.update(map => {
+            const newMap = new Map(map);
+            newMap.set(999, diff);
+            return newMap;
+        });
+    }
+
+    onTouchEnd(event: TouchEvent) {
+        this.isSwiping.set(false);
+        const diff = this.currentTouchX - this.touchStartX;
+
+        const versions = this.allVersions();
+        const currentIndex = this.currentVariantIndex();
+        const isFirst = currentIndex === 0;
+        const isLast = currentIndex === (versions.length - 1);
+
+        if (Math.abs(diff) > this.SWIPE_THRESHOLD) {
+            const direction = diff > 0 ? -1 : 1; // Drag right -> Prev
+
+            if (!((isFirst && direction === -1) || (isLast && direction === 1))) {
+                const newIndex = currentIndex + direction;
+                if (newIndex >= 0 && newIndex < versions.length) {
+                    this.goToVariant(newIndex);
+                }
+            }
+        }
+
+        // Reset offset
+        this.swipeOffsetMap.update(map => {
+            const newMap = new Map(map);
+            newMap.set(999, 0);
+            return newMap;
+        });
+    }
+
+    getTransform(): string {
+        const baseOffset = -(this.currentVariantIndex() || 0) * 100;
+        const pixelOffset = this.swipeOffsetMap().get(999) || 0;
+        return `translateX(calc(${baseOffset}% + ${pixelOffset}px))`;
+    }
+
+    goToVariant(index: number): void {
+        this.currentVariantIndex.set(index);
+        const variants = this.allVersions();
+        const nextVariant = variants[index];
+        if (nextVariant && nextVariant.id !== this.exercise()?.id) {
+            // Load silently so the page doesn't blink
+            this.loadExercise(nextVariant.id, true);
+            this.location.replaceState(`/workouts/exercise/${nextVariant.id}`);
+        }
+    }
+
+    // Filtered routine exercises for variant suggestions
+    filteredRoutineExercises = computed(() => {
+        const query = this.variantSearchQuery().toLowerCase();
+        const currentExId = this.exercise()?.exercise_detail?.id;
+
+        return this.routineExercises()
+            .filter((ex: any) => {
+                // Exclude current exercise
+                if (ex.exercise_detail?.id === currentExId) return false;
+                // Filter by search query
+                if (query.length >= 2) {
+                    return ex.exercise_detail?.name?.toLowerCase().includes(query);
+                }
+                return true;
+            })
+            .slice(0, 10); // Limit to 10 suggestions
+    });
+
+    // --- Chart Configuration ---
+    chartType: ChartType = 'line';
+
+    // Chart data computed from history
+    weightChartData = computed<ChartConfiguration['data']>(() => {
+        const history = this.recentHistory();
+        if (history.length === 0) {
+            return { labels: [], datasets: [] };
+        }
+
+        // Sort by date ascending for chart display
+        const sorted = [...history].sort((a, b) =>
+            new Date(a.date).getTime() - new Date(b.date).getTime()
+        );
+
+        // Extract labels and data
+        const labels = sorted.map(item => this.formatChartDate(item.date));
+        const weights = sorted.map(item => item.weight);
+
+        return {
+            labels,
+            datasets: [{
+                data: weights,
+                label: 'Peso (kg)',
+                borderColor: '#13ec6a',
+                backgroundColor: 'rgba(19, 236, 106, 0.15)',
+                pointBackgroundColor: '#13ec6a',
+                pointBorderColor: '#102217',
+                pointBorderWidth: 2,
+                pointRadius: 5,
+                pointHoverRadius: 7,
+                tension: 0.4,
+                fill: true
+            }]
+        };
+    });
+
+    chartOptions: ChartConfiguration['options'] = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: { display: false },
+            tooltip: {
+                backgroundColor: '#1d3627',
+                titleColor: '#fff',
+                bodyColor: '#13ec6a',
+                borderColor: '#13ec6a',
+                borderWidth: 1,
+                padding: 12,
+                displayColors: false,
+                callbacks: {
+                    label: (context) => `${context.parsed.y} kg`
+                }
+            }
+        },
+        scales: {
+            x: {
+                grid: { display: false },
+                ticks: { color: '#64748b', font: { size: 11, weight: 'bold' } },
+                border: { display: false }
+            },
+            y: {
+                grid: { color: 'rgba(255,255,255,0.05)' },
+                ticks: { color: '#64748b', font: { size: 11 } },
+                border: { display: false },
+                beginAtZero: false
+            }
+        },
+        interaction: {
+            intersect: false,
+            mode: 'index'
+        }
+    };
+
+    // Helper to format dates for chart labels
+    private formatChartDate(dateStr: string): string {
+        const date = new Date(dateStr);
+        const day = date.getDate();
+        const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+        return `${day} ${months[date.getMonth()]}`;
+    }
 
     ngOnInit(): void {
         const exerciseId = this.route.snapshot.paramMap.get('id');
@@ -48,28 +288,45 @@ export class ExerciseDetailComponent implements OnInit {
         }
     }
 
-    loadExercise(id: number): void {
-        this.loading.set(true);
+    loadExercise(id: number, silent: boolean = false): void {
+        if (!silent) {
+            this.loading.set(true);
+        }
         this.error.set(null);
 
-        // Load exercise details
         this.api.getRoutineExercise(id).subscribe({
             next: (data: RoutineExercise) => {
                 this.exercise.set(data);
-                this.targetSets.set(data.target_sets);
-                this.targetReps.set(data.target_reps.toString());
-                this.targetWeight.set(data.target_weight);
+                this.updateDisplayValues(data);
 
-                // Load images from exercise media
-                const media = data.exercise_detail?.media || [];
-                const images = media
-                    .filter((m: any) => m.media_type === 'image')
-                    .map((m: any) => ({ id: m.id, url: m.file }));
-                this.exerciseImages.set(images);
-                this.currentImageIndex.set(0);
+                // Handle Family / All Versions Logic
+                const currentFamily = this.exerciseFamily();
 
-                // Load progress data
-                this.loadProgress(id);
+                // Case 1: Is Child
+                if (data.variant_of) {
+                    // Check if we already have the parent loaded
+                    if (currentFamily?.id === data.variant_of) {
+                        // Already have family, just sync index
+                        this.syncVariantIndex(data.id);
+                    } else {
+                        // Fetch parent to get family
+                        this.api.getRoutineExercise(data.variant_of).subscribe(parent => {
+                            this.exerciseFamily.set(parent);
+                            this.syncVariantIndex(data.id);
+                        });
+                    }
+                }
+                // Case 2: Is Parent
+                else {
+                    this.exerciseFamily.set(data);
+                    this.syncVariantIndex(data.id);
+                }
+
+                // Load individual sets
+                this.loadSets(id);
+                if (!silent) {
+                    this.loading.set(false);
+                }
             },
             error: (err) => {
                 console.error('Error loading exercise:', err);
@@ -79,71 +336,277 @@ export class ExerciseDetailComponent implements OnInit {
         });
     }
 
-    loadProgress(id: number): void {
-        this.api.getRoutineExerciseProgress(id).subscribe({
-            next: (data: ExerciseProgressPoint[]) => {
-                this.progressData.set(data);
+    private syncVariantIndex(currentId: number): void {
+        const versions = this.allVersions();
+        const index = versions.findIndex(v => v.id === currentId);
+        if (index >= 0) {
+            this.currentVariantIndex.set(index);
+        }
+    }
 
-                // Calculate max weight and progress
-                if (data.length > 0) {
-                    const maxWeight = Math.max(...data.map(d => d.max_weight || 0));
+    private updateDisplayValues(data: RoutineExercise): void {
+        this.targetSets.set(data.target_sets);
+        this.targetReps.set(data.target_reps.toString());
+        this.targetWeight.set(data.target_weight);
+
+        // Initialize edit target inputs
+        this.newTargetSets.set(data.target_sets);
+        this.newTargetReps.set(data.target_reps.toString());
+        this.newTargetWeight.set(data.target_weight);
+
+        // Load images
+        const media = data.exercise_detail?.media || [];
+        const images = media
+            .filter((m: any) => m.media_type === 'image')
+            .map((m: any) => ({ id: m.id, url: m.file }));
+        this.exerciseImages.set(images);
+        this.currentImageIndex.set(0);
+    }
+
+    loadSets(id: number): void {
+        this.weightChartLoading.set(true); // Ensure loading state starts
+
+        this.api.getExerciseSets(id).subscribe({
+            next: (sets: any) => {
+                // Handle paginated or list response
+                let setsArray: any[] = [];
+                if (Array.isArray(sets)) {
+                    setsArray = sets;
+                } else if (sets.results && Array.isArray(sets.results)) {
+                    setsArray = sets.results;
+                }
+
+                // Group sets by date descending
+                const sorted = setsArray.sort((a, b) => new Date(b.performed_at).getTime() - new Date(a.performed_at).getTime());
+
+                // Group consecutive sets with same date, weight, reps
+                const groupedHistory: any[] = [];
+                setsArray.forEach(set => {
+                    const date = new Date(set.performed_at).toDateString();
+                    const lastGroup = groupedHistory[groupedHistory.length - 1];
+
+                    const isSameGroup = lastGroup &&
+                        new Date(lastGroup.date).toDateString() === date &&
+                        lastGroup.weight === set.weight &&
+                        lastGroup.reps === set.reps &&
+                        lastGroup.rir === set.rir;
+
+                    if (isSameGroup) {
+                        lastGroup.setsCount++;
+                        lastGroup.ids.push(set.id);
+                    } else {
+                        groupedHistory.push({
+                            id: set.id, // Keep one ID for track (though effectively represents the group)
+                            ids: [set.id], // All IDs in this group
+                            date: set.performed_at,
+                            weight: set.weight,
+                            reps: set.reps,
+                            rir: set.rir,
+                            setsCount: 1
+                        });
+                    }
+                });
+
+                this.recentHistory.set(groupedHistory);
+
+                // Calculate progress stats from sets
+                if (groupedHistory.length > 0) {
+                    const maxWeight = Math.max(...groupedHistory.map((s: any) => s.weight || 0));
                     this.currentMaxWeight.set(maxWeight);
 
-                    // Calculate progress (compare first and last entry)
-                    if (data.length >= 2) {
-                        const first = data[0].max_weight || 0;
-                        const last = data[data.length - 1].max_weight || 0;
-                        if (first > 0) {
-                            this.progressPercent.set(Math.round(((last - first) / first) * 100));
-                        }
-                    }
+                    // Calculate progress percentage (compare first to last entry chronologically)
+                    const sortedByDate = [...groupedHistory].sort((a, b) =>
+                        new Date(a.date).getTime() - new Date(b.date).getTime()
+                    );
+                    const firstWeight = sortedByDate[0].weight || 0;
+                    const lastWeight = sortedByDate[sortedByDate.length - 1].weight || 0;
 
-                    // Build history from progress data
-                    const history = data.slice(-3).reverse().map(point => ({
-                        date: this.formatDate(point.day),
-                        weight: point.max_weight || 0,
-                        reps: point.max_reps || 0,
-                        sets: 3 // Assume 3 sets as we don't have this data
-                    }));
-                    this.recentHistory.set(history);
+                    if (firstWeight > 0) {
+                        const percent = Math.round(((lastWeight - firstWeight) / firstWeight) * 100);
+                        this.progressPercent.set(percent);
+                    } else {
+                        this.progressPercent.set(0);
+                    }
+                } else {
+                    // Reset stats if no history for this variant
+                    this.currentMaxWeight.set(0);
+                    this.progressPercent.set(0);
                 }
+
                 this.loading.set(false);
+                this.weightChartLoading.set(false); // Enable chart display
             },
             error: (err) => {
-                console.error('Error loading progress:', err);
-                // Still show the component but without progress data
+                console.error('Error loading sets:', err);
                 this.loading.set(false);
+                this.weightChartLoading.set(false);
             }
         });
     }
 
+    deleteSet(item: any): void {
+        const confirmMsg = item.setsCount > 1
+            ? `¿Estás seguro de eliminar este grupo de ${item.setsCount} series?`
+            : '¿Estás seguro de eliminar esta serie?';
+
+        if (confirm(confirmMsg)) {
+            const requests = item.ids.map((id: number) => this.api.deleteExerciseSet(id));
+            forkJoin(requests).subscribe({
+                next: () => {
+                    // Reload sets
+                    const ex = this.exercise();
+                    if (ex) this.loadSets(ex.id);
+                },
+                error: (err) => console.error('Error deleting set(s)', err)
+            });
+        }
+    }
+
+    // ... (keep formatDate, goBack)
+
     formatDate(dateStr: string): string {
         const date = new Date(dateStr);
         const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        return `${months[date.getMonth()]} ${date.getDate()}`;
+        return `${months[date.getMonth()]} ${date.getDate()} `;
     }
 
     goBack(): void {
-        this.router.navigate(['/workouts']);
+        this.location.back();
     }
 
-    logNewSet(): void {
-        // TODO: Open modal to log a new set
-        console.log('Log new set for exercise:', this.exercise()?.id);
-    }
+    // --- Target Editing ---
 
     editTarget(): void {
-        // TODO: Open modal to edit target
-        console.log('Edit target for exercise:', this.exercise()?.id);
+        const ex = this.exercise();
+        if (ex) {
+            this.newTargetSets.set(ex.target_sets);
+            this.newTargetReps.set(ex.target_reps.toString());
+            this.newTargetWeight.set(ex.target_weight);
+            this.showTargetModal.set(true);
+        }
     }
 
-    // --- Edit Methods ---
+    closeTargetModal(): void {
+        this.showTargetModal.set(false);
+    }
+
+    saveTarget(): void {
+        const ex = this.exercise();
+        if (!ex) return;
+
+        this.isSaving.set(true);
+        const data = {
+            target_sets: this.newTargetSets(),
+            target_reps: this.newTargetReps(),
+            target_weight: this.newTargetWeight()
+        };
+
+        this.api.updateRoutineExercise(ex.id, data).subscribe({
+            next: (updated) => {
+                // 1. Update current exercise signal
+                this.exercise.set(updated);
+
+                // 2. Update display signals
+                this.targetSets.set(updated.target_sets);
+                this.targetReps.set(updated.target_reps.toString());
+                this.targetWeight.set(updated.target_weight);
+
+                // 3. Update Family/AllVersions so Carousel updates immediately
+                const currentFamily = this.exerciseFamily();
+                if (currentFamily) {
+                    // Deep copy or structured clone if needed, but simple obj spread works for signal update trigger
+                    if (currentFamily.id === updated.id) {
+                        // Updated the parent itself
+                        this.exerciseFamily.set({ ...currentFamily, ...updated });
+                    } else if (currentFamily.variants) {
+                        // Updated a variant
+                        const updatedVariants = currentFamily.variants.map(v =>
+                            v.id === updated.id ? { ...v, ...updated } : v
+                        );
+                        this.exerciseFamily.set({ ...currentFamily, variants: updatedVariants });
+                    }
+                }
+
+                this.isSaving.set(false);
+                this.closeTargetModal();
+            },
+            error: (err) => {
+                console.error('Error updating target', err);
+                this.isSaving.set(false);
+            }
+        });
+    }
+
+    // --- Log Set ---
+
+    logNewSet(): void {
+        // Pre-fill with targets?
+        this.logWeight.set(this.targetWeight());
+        // Parse reps if range
+        const reps = parseInt(this.targetReps().split('-')[0]) || 0;
+        this.logReps.set(reps);
+        this.logSets.set(this.targetSets());
+        this.logRir.set(null);
+        this.showLogModal.set(true);
+    }
+
+    closeLogModal(): void {
+        this.showLogModal.set(false);
+    }
+
+    // Weight helpers for template
+    incrementWeight(): void {
+        this.logWeight.set(Number(this.logWeight()) + 2.5);
+    }
+
+    decrementWeight(): void {
+        this.logWeight.set(Math.max(0, Number(this.logWeight()) - 2.5));
+    }
+
+    updateWeight(event: Event): void {
+        const value = (event.target as HTMLInputElement).value;
+        this.logWeight.set(parseFloat(value) || 0);
+    }
+
+    saveLog(): void {
+        const ex = this.exercise();
+        if (!ex) return;
+
+        this.isSaving.set(true);
+        const requests = [];
+
+        for (let i = 0; i < this.logSets(); i++) {
+            const formData = new FormData();
+            formData.append('routine_exercise', ex.id.toString());
+            formData.append('weight', this.logWeight().toString());
+            formData.append('reps', this.logReps().toString());
+            if (this.logRir() !== null) {
+                formData.append('rir', this.logRir()!.toString());
+            }
+            requests.push(this.api.createExerciseSet(formData));
+        }
+
+        forkJoin(requests).subscribe({
+            next: () => {
+                this.isSaving.set(false);
+                this.closeLogModal();
+                // Reload progress/history
+                this.loadSets(ex.id);
+            },
+            error: (err) => {
+                console.error('Error logging set', err);
+                this.isSaving.set(false);
+            }
+        });
+    }
+
+    // --- Existing Edit Methods ---
+    // (Ensure updateEditName, onFileSelected, deleteImageConfirm, saveChanges... are kept)
 
     toggleEdit(): void {
         const edit = !this.isEditing();
         this.isEditing.set(edit);
         if (edit) {
-            // Initialize with current name
             this.editName.set(this.exercise()?.exercise_detail?.name || '');
         }
     }
@@ -160,10 +623,8 @@ export class ExerciseDetailComponent implements OnInit {
             const exerciseId = this.exercise()?.exercise_detail?.id;
 
             if (exerciseId) {
-                // Upload immediately
                 this.api.uploadExerciseImages(exerciseId, files).subscribe({
                     next: (response) => {
-                        // Reload exercise to refresh images
                         this.loadExercise(this.exercise()!.id);
                     },
                     error: (err) => {
@@ -172,7 +633,7 @@ export class ExerciseDetailComponent implements OnInit {
                 });
             }
         }
-        input.value = ''; // Reset
+        input.value = '';
     }
 
     deleteImageConfirm(mediaId: number): void {
@@ -180,9 +641,7 @@ export class ExerciseDetailComponent implements OnInit {
         if (exerciseId && confirm('¿Estás seguro de querer eliminar esta imagen?')) {
             this.api.deleteExerciseImage(exerciseId, mediaId).subscribe({
                 next: () => {
-                    // Update the signal locally to reflect change immediately
                     this.exerciseImages.update(imgs => imgs.filter(img => img.id !== mediaId));
-                    // Adjust index if needed
                     if (this.currentImageIndex() >= this.exerciseImages().length) {
                         this.currentImageIndex.set(Math.max(0, this.exerciseImages().length - 1));
                     }
@@ -195,7 +654,11 @@ export class ExerciseDetailComponent implements OnInit {
     saveChanges(): void {
         if (!this.editName().trim()) return;
 
-        const exerciseId = this.exercise()?.exercise_detail?.id;
+        const exerciseId = this.exercise()?.exercise_detail?.id; // Corrected: update the exercise detail name, not routine exercise name?
+        // RoutineExercise has a name property? No, it delegates to ExerciseDetail.
+        // But invalidation might be tricky.
+        // api.updateExercise updates the Library Exercise name.
+
         const currentName = this.exercise()?.exercise_detail?.name;
         const newName = this.editName().trim();
 
@@ -206,7 +669,7 @@ export class ExerciseDetailComponent implements OnInit {
                     next: () => {
                         this.isSaving.set(false);
                         this.isEditing.set(false);
-                        this.loadExercise(this.exercise()!.id); // Reload to update view
+                        this.loadExercise(this.exercise()!.id);
                     },
                     error: (err) => {
                         console.error('Error updating name', err);
@@ -237,5 +700,172 @@ export class ExerciseDetailComponent implements OnInit {
 
     goToImage(index: number): void {
         this.currentImageIndex.set(index);
+    }
+
+    // --- Variant Navigation ---
+
+    // Original GoToVariant logic removed (handled by new slider logic)
+
+    // --- Add Variant Modal ---
+    openVariantModal(): void {
+        this.variantSearchQuery.set('');
+        this.showVariantModal.set(true);
+        this.loadRoutineExercises();
+    }
+
+    loadRoutineExercises(): void {
+        const ex = this.exercise();
+        if (!ex?.routine_id) return;
+
+        // Load all exercises from this routine directly
+        this.api.getRoutine(ex.routine_id).subscribe({
+            next: (routine: any) => {
+                const allExercises: any[] = [];
+                if (routine?.days) {
+                    routine.days.forEach((d: any) => {
+                        const dayExercises = d.routine_exercises || d.exercises || [];
+                        dayExercises.forEach((exercise: any) => {
+                            allExercises.push({
+                                ...exercise,
+                                dayName: d.title || d.day_label
+                            });
+                            // Also add variants
+                            if (exercise.variants) {
+                                exercise.variants.forEach((v: any) => {
+                                    allExercises.push({
+                                        ...v,
+                                        dayName: d.title || d.day_label,
+                                        isVariant: true
+                                    });
+                                });
+                            }
+                        });
+                    });
+                }
+                this.routineExercises.set(allExercises);
+            }
+        });
+    }
+
+    closeVariantModal(): void {
+        this.showVariantModal.set(false);
+        this.showCreateVariant.set(false);
+        this.customVariantName.set('');
+        this.variantSearchQuery.set('');
+        this.exerciseSearchResults.set([]);
+    }
+
+    openAddExerciseForVariant(): void {
+        const ex = this.exercise();
+        if (!ex?.routine_id || !ex?.routine_day_id) return;
+
+        this.closeVariantModal();
+        // Navigate to add-exercise with variant parent info
+        this.router.navigate(['/workouts/routine', ex.routine_id, 'day', ex.routine_day_id, 'add-exercise'], {
+            queryParams: {
+                variantParentId: ex.id,
+                variantParentName: ex.exercise_detail?.name
+            }
+        });
+    }
+
+    toggleVariantInfo(): void {
+        this.showVariantInfo.update(v => !v);
+    }
+
+    addVariant(exerciseId: number): void {
+        const ex = this.exercise();
+        if (!ex) return;
+
+        const data = {
+            exercise: exerciseId,
+            target_sets: ex.target_sets,
+            target_reps: ex.target_reps,
+            target_weight: ex.target_weight
+        };
+
+        this.isSaving.set(true);
+        this.api.addExerciseVariant(ex.id, data).subscribe({
+            next: () => {
+                this.isSaving.set(false);
+                this.closeVariantModal();
+                // Reload exercise to get updated variants
+                this.loadExercise(ex.id);
+            },
+            error: (err) => {
+                console.error('Error adding variant', err);
+                this.isSaving.set(false);
+            }
+        });
+    }
+
+    setActiveVariant(variantId: number): void {
+        this.isSaving.set(true);
+        this.api.setActiveVariant(variantId).subscribe({
+            next: () => {
+                this.isSaving.set(false);
+                const ex = this.exercise();
+                if (ex) this.loadExercise(ex.id);
+            },
+            error: (err) => {
+                console.error('Error setting active variant', err);
+                this.isSaving.set(false);
+            }
+        });
+    }
+
+    // Toggle create variant mode
+    toggleCreateVariant(): void {
+        this.showCreateVariant.update(v => !v);
+        if (this.showCreateVariant()) {
+            this.customVariantName.set('');
+        }
+    }
+
+    // Search exercises in real-time
+    searchExercises(): void {
+        const query = this.variantSearchQuery();
+        if (query.length < 2) {
+            this.exerciseSearchResults.set([]);
+            return;
+        }
+        this.api.searchExercises(query).subscribe({
+            next: (results) => this.exerciseSearchResults.set(results || []),
+            error: () => this.exerciseSearchResults.set([])
+        });
+    }
+
+    // Create variant from custom name
+    createCustomVariant(): void {
+        const name = this.customVariantName().trim();
+        if (!name) return;
+
+        const ex = this.exercise();
+        if (!ex) return;
+
+        this.isSaving.set(true);
+
+        // First create/get the exercise
+        this.api.getOrCreateExercise({
+            name: name,
+            description: '',
+            default_sets: ex.target_sets,
+            default_reps: ex.target_reps,
+            default_weight: ex.target_weight
+        }).subscribe({
+            next: (response) => {
+                const exerciseId = response.exercise?.id;
+                if (exerciseId) {
+                    // Now add as variant
+                    this.addVariant(exerciseId);
+                } else {
+                    this.isSaving.set(false);
+                }
+            },
+            error: (err) => {
+                console.error('Error creating exercise', err);
+                this.isSaving.set(false);
+            }
+        });
     }
 }

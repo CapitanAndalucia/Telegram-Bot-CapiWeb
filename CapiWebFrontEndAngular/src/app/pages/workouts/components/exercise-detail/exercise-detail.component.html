@@ -21,7 +21,8 @@
     </div>
 
     <!-- Main Scrollable Content -->
-    <div class="flex-1 overflow-y-auto no-scrollbar pb-32">
+    <div class="flex-1 overflow-y-auto no-scrollbar pb-32" (touchstart)="onTouchStart($event)"
+        (touchend)="onTouchEnd($event)">
         <!-- Loading State -->
         @if (loading()) {
         <div class="flex justify-center py-12">
@@ -72,34 +73,87 @@
         }
 
         <!-- Target Card -->
-        <div class="px-4 py-2">
-            <div class="flex flex-col gap-4 rounded-xl bg-[#1d3627] p-5 shadow-sm border border-white/5">
-                <div class="flex justify-between items-center">
-                    <h3 class="text-slate-400 text-sm font-medium uppercase tracking-wider">Objetivo</h3>
-                    <button (click)="editTarget()" class="flex items-center gap-1 text-[#13ec6a] text-sm font-medium">
-                        <span class="material-symbols-outlined" style="font-size: 16px;">edit</span>
-                        Editar
-                    </button>
+        <div class="px-4 py-2 overflow-hidden select-none" (touchstart)="onTouchStart($event)"
+            (touchmove)="onTouchMove($event)" (touchend)="onTouchEnd($event)">
+
+            <!-- Carousel Track -->
+            <div class="flex transition-transform will-change-transform" [style.transform]="getTransform()"
+                [class.duration-300]="!isSwiping()" [class.ease-out]="!isSwiping()"
+                [class.transition-none]="isSwiping()">
+
+                @for (version of allVersions(); track version.id) {
+                <div class="w-full shrink-0">
+                    <div class="flex flex-col gap-4 rounded-xl bg-[#1d3627] p-5 shadow-sm border border-white/5 mx-0.5">
+                        <div class="flex justify-between items-center">
+                            <h3 class="text-slate-400 text-sm font-medium uppercase tracking-wider">
+                                {{ version.variant_of ? 'Variante' : 'Objetivo' }}
+                            </h3>
+                            <button (click)="editTarget()"
+                                class="flex items-center gap-1 text-[#13ec6a] text-sm font-medium">
+                                <span class="material-symbols-outlined" style="font-size: 16px;">edit</span>
+                                Editar
+                            </button>
+                        </div>
+                        <div class="flex items-center justify-between gap-4">
+                            <div class="flex flex-col">
+                                <span class="text-3xl font-bold text-white">{{ version.target_sets }}</span>
+                                <span class="text-slate-400 text-xs font-medium uppercase">Series</span>
+                            </div>
+                            <div class="h-10 w-px bg-white/10"></div>
+                            <div class="flex flex-col">
+                                <span class="text-3xl font-bold text-white">{{ version.target_reps }}</span>
+                                <span class="text-slate-400 text-xs font-medium uppercase">Rango Reps</span>
+                            </div>
+                            <div class="h-10 w-px bg-white/10"></div>
+                            <div class="flex flex-col">
+                                <span class="text-3xl font-bold text-[#13ec6a]">{{ version.target_weight }}</span>
+                                <span class="text-slate-400 text-xs font-medium uppercase">Kg</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="flex items-center justify-between gap-4">
-                    <div class="flex flex-col">
-                        <span class="text-3xl font-bold text-white">{{ targetSets() }}</span>
-                        <span class="text-slate-400 text-xs font-medium uppercase">Series</span>
-                    </div>
-                    <div class="h-10 w-px bg-white/10"></div>
-                    <div class="flex flex-col">
-                        <span class="text-3xl font-bold text-white">{{ targetReps() }}</span>
-                        <span class="text-slate-400 text-xs font-medium uppercase">Rango Reps</span>
-                    </div>
-                    <div class="h-10 w-px bg-white/10"></div>
-                    <div class="flex flex-col">
-                        <span class="text-3xl font-bold text-[#13ec6a]">{{ targetWeight() }}</span>
-                        <span class="text-slate-400 text-xs font-medium uppercase">Kg</span>
-                    </div>
-                </div>
+                }
             </div>
+
+            <!-- Variant Indicator -->
+            @if (allVersions().length > 1) {
+            <div class="flex justify-center pt-3 pb-1 gap-2">
+                @for (version of allVersions(); track version.id) {
+                <button (click)="goToVariant($index)" class="h-1.5 rounded-full transition-all duration-300"
+                    [class.w-6]="$index === currentVariantIndex()"
+                    [class.bg-[#13ec6a]]="$index === currentVariantIndex()"
+                    [class.w-2]="$index !== currentVariantIndex()"
+                    [class.bg-white/30]="$index !== currentVariantIndex()">
+                </button>
+                }
+            </div>
+            }
         </div>
 
+        <!-- Add Variant Button -->
+        <div class="px-4 py-2">
+            <div (click)="openVariantModal()"
+                class="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl border-2 border-dashed border-[#13ec6a]/40 text-[#13ec6a] hover:bg-[#13ec6a]/10 transition-colors group cursor-pointer select-none">
+                <span class="material-symbols-outlined" style="font-size: 20px;">add_circle_outline</span>
+                <span class="font-medium">Añadir versión</span>
+                <!-- Info icon with tooltip -->
+                <button (click)="toggleVariantInfo(); $event.stopPropagation()"
+                    class="relative ml-2 size-5 rounded-full bg-white/10 text-slate-400 hover:bg-white/20 flex items-center justify-center">
+                    <span class="material-symbols-outlined" style="font-size: 14px;">info</span>
+                    <!-- Tooltip -->
+                    @if (showVariantInfo()) {
+                    <div
+                        class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 p-3 rounded-lg bg-[#0a1910] border border-[#13ec6a]/30 text-xs text-slate-300 shadow-xl z-20">
+                        Añade una versión alternativa del ejercicio para cuando no esté disponible el equipo
+                        principal (ej: máquina en lugar de barra).
+                        <div
+                            class="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 rotate-45 w-2 h-2 bg-[#0a1910] border-r border-b border-[#13ec6a]/30">
+                        </div>
+                    </div>
+                    }
+                </button>
+            </div>
+        </div>
         <!-- Charts Section -->
         <div class="flex flex-wrap gap-4 px-4 py-4">
             <div class="flex min-w-72 flex-1 flex-col gap-2">
@@ -117,34 +171,19 @@
                         <p class="text-slate-500 text-xs mt-1">Últimas 6 Semanas</p>
                     </div>
                 </div>
-                <!-- Graph Placeholder -->
-                <div class="flex min-h-[180px] flex-1 flex-col gap-8 py-4 relative">
-                    <svg class="overflow-visible" fill="none" height="148" preserveAspectRatio="none"
-                        viewBox="-3 0 478 150" width="100%" xmlns="http://www.w3.org/2000/svg">
-                        <path
-                            d="M0 109C18.1538 109 18.1538 21 36.3077 21C54.4615 21 54.4615 41 72.6154 41C90.7692 41 90.7692 93 108.923 93C127.077 93 127.077 33 145.231 33C163.385 33 163.385 101 181.538 101C199.692 101 199.692 61 217.846 61C236 61 236 45 254.154 45C272.308 45 272.308 121 290.462 121C308.615 121 308.615 149 326.769 149C344.923 149 344.923 1 363.077 1C381.231 1 381.231 81 399.385 81C417.538 81 417.538 129 435.692 129C453.846 129 453.846 25 472 25V149H326.769H0V109Z"
-                            fill="url(#paint0_linear_graph)" opacity="0.4"></path>
-                        <path
-                            d="M0 109C18.1538 109 18.1538 21 36.3077 21C54.4615 21 54.4615 41 72.6154 41C90.7692 41 90.7692 93 108.923 93C127.077 93 127.077 33 145.231 33C163.385 33 163.385 101 181.538 101C199.692 101 199.692 61 217.846 61C236 61 236 45 254.154 45C272.308 45 272.308 121 290.462 121C308.615 121 308.615 149 326.769 149C344.923 149 344.923 1 363.077 1C381.231 1 381.231 81 399.385 81C417.538 81 417.538 129 435.692 129C453.846 129 453.846 25 472 25"
-                            stroke="#13ec6a" stroke-linecap="round" stroke-width="3"></path>
-                        <circle cx="363" cy="1" fill="#13ec6a" r="4" stroke="#102217" stroke-width="2"></circle>
-                        <circle cx="472" cy="25" fill="#13ec6a" r="4" stroke="#102217" stroke-width="2"></circle>
-                        <defs>
-                            <linearGradient gradientUnits="userSpaceOnUse" id="paint0_linear_graph" x1="236" x2="236"
-                                y1="1" y2="149">
-                                <stop stop-color="#13ec6a" stop-opacity="0.3"></stop>
-                                <stop offset="1" stop-color="#13ec6a" stop-opacity="0"></stop>
-                            </linearGradient>
-                        </defs>
-                    </svg>
-                    <div class="flex justify-between px-2">
-                        <p class="text-slate-600 text-[13px] font-bold leading-normal tracking-wide">S1</p>
-                        <p class="text-slate-600 text-[13px] font-bold leading-normal tracking-wide">S2</p>
-                        <p class="text-slate-600 text-[13px] font-bold leading-normal tracking-wide">S3</p>
-                        <p class="text-slate-600 text-[13px] font-bold leading-normal tracking-wide">S4</p>
-                        <p class="text-slate-600 text-[13px] font-bold leading-normal tracking-wide">S5</p>
-                        <p class="text-[#13ec6a] text-[13px] font-bold leading-normal tracking-wide">S6</p>
+                <!-- Dynamic Chart -->
+                <div class="h-[180px] w-full">
+                    @if (weightChartData().datasets.length > 0 && (weightChartData().datasets[0].data.length) > 0 &&
+                    !weightChartLoading())
+                    {
+                    <canvas baseChart [data]="weightChartData()" [type]="chartType" [options]="chartOptions">
+                    </canvas>
+                    } @else {
+                    <div class="flex items-center justify-center h-full text-slate-500 text-sm">
+                        <span class="material-symbols-outlined mr-2" style="font-size: 20px;">show_chart</span>
+                        Sin datos de progreso aún
                     </div>
+                    }
                 </div>
             </div>
         </div>
@@ -154,10 +193,12 @@
             <div class="flex flex-col gap-3 rounded-xl bg-[#13ec6a]/10 border border-[#13ec6a]/20 p-4">
                 <div class="flex items-center gap-2">
                     <span class="material-symbols-outlined text-[#13ec6a]" style="font-size: 20px;">lightbulb</span>
-                    <h3 class="text-[#13ec6a] text-sm font-bold uppercase tracking-wider">Consejo Próxima Sesión</h3>
+                    <h3 class="text-[#13ec6a] text-sm font-bold uppercase tracking-wider">Consejo Próxima Sesión
+                    </h3>
                 </div>
                 <p class="text-slate-200 text-sm leading-relaxed">
-                    ¡Excelente trabajo en tu última serie! Tu velocidad fue alta en las reps finales. Intenta aumentar
+                    ¡Excelente trabajo en tu última serie! Tu velocidad fue alta en las reps finales. Intenta
+                    aumentar
                     el
                     peso en
                     <span class="text-[#13ec6a] font-bold">2.5 kg</span> en la próxima sesión para mantener la
@@ -169,29 +210,48 @@
 
         <!-- Section Header -->
         <div>
-            <h3 class="text-white text-lg font-bold leading-tight tracking-tight px-4 pb-2 pt-2">Historial Reciente</h3>
+            <h3 class="text-white text-lg font-bold leading-tight tracking-tight px-4 pb-2 pt-2">Historial Reciente
+            </h3>
         </div>
 
         <!-- History List Items -->
-        <div class="flex flex-col gap-1 px-4">
-            @for (item of recentHistory(); track item.date; let i = $index) {
+        <div class="flex flex-col gap-3 px-4 pb-32">
+            @for (item of recentHistory(); track item.id; let i = $index) {
             <div
-                class="flex items-center gap-4 bg-[#1d3627] p-4 rounded-xl shadow-sm border border-white/5 justify-between">
-                <div class="flex items-center gap-4">
-                    <div class="text-white flex items-center justify-center rounded-lg bg-[#234832] shrink-0 size-10">
-                        <span class="material-symbols-outlined" style="font-size: 24px;"
-                            [class]="i === 0 ? 'text-[#13ec6a]' : i === 1 ? 'text-[#13ec6a]/70' : 'text-[#13ec6a]/50'">
-                            calendar_today
-                        </span>
+                class="flex items-center justify-between bg-[#1d3627] p-4 rounded-[20px] shadow-sm border border-white/5 relative overflow-hidden group">
+                <!-- Date & Icon -->
+                <div class="flex items-center gap-4 z-10">
+                    <div class="flex items-center justify-center rounded-xl shrink-0 size-12"
+                        [class]="i === 0 ? 'bg-[#13ec6a]/20 text-[#13ec6a]' : 'bg-[#2a4a38] text-slate-400'">
+                        <span class="material-symbols-outlined" style="font-size: 24px;">calendar_today</span>
                     </div>
-                    <div>
-                        <p class="text-white text-base font-bold leading-normal truncate">{{ item.date }}</p>
-                        <p class="text-slate-400 text-sm">{{ item.weight }} kg</p>
+                    <div class="flex flex-col gap-0.5">
+                        <p class="text-white text-base font-bold leading-tight">{{ formatDate(item.date) }}</p>
+                        <p [class]="i === 0 ? 'text-[#13ec6a]' : 'text-slate-400'" class="text-sm font-medium">{{
+                            item.weight }} kg</p>
                     </div>
                 </div>
-                <div class="shrink-0 flex flex-col items-end">
-                    <p class="text-white text-base font-bold leading-normal">{{ item.reps }} Reps</p>
-                    <p class="text-slate-400 text-xs">{{ item.sets }} Series</p>
+
+                <!-- Stats & Actions -->
+                <div class="flex items-center gap-4 z-10">
+                    <div class="flex flex-col items-end gap-0.5">
+                        <p class="text-white text-lg font-bold leading-tight">{{ item.reps }} <span
+                                class="text-xs font-medium text-slate-400 uppercase ml-0.5">Reps</span></p>
+                        <p class="text-slate-400 text-xs font-medium">{{ item.setsCount }} Series</p>
+                        @if (item.rir !== null && item.rir !== undefined) {
+                        <p class="text-slate-400 text-xs font-medium">RIR {{ item.rir }}</p>
+                        }
+                    </div>
+
+                    <!-- Delete Button -->
+                    <button (click)="deleteSet(item)"
+                        class="size-8 flex items-center justify-center rounded-full bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-colors">
+                        <span class="material-symbols-outlined" style="font-size: 18px;">delete</span>
+                    </button>
+                </div>
+
+                <!-- Hover/bg effect -->
+                <div class="absolute inset-0 bg-white/0 group-hover:bg-white/5 transition-colors pointer-events-none">
                 </div>
             </div>
             }
@@ -199,49 +259,47 @@
         }
     </div>
 
-    <!-- Edit Modal -->
+    <!-- Edit Name Modal -->
     @if (isEditing()) {
-    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fadeIn">
         <div
-            class="w-full max-w-md bg-[#102217] rounded-2xl border border-white/10 overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
-            <!-- Header -->
-            <div class="flex items-center justify-between p-4 border-b border-white/5">
+            class="w-full max-w-md bg-[#102217] rounded-3xl border border-white/10 overflow-hidden shadow-2xl flex flex-col max-h-[90vh] animate-slideUp">
+            <div class="flex items-center justify-between p-5 border-b border-white/5">
                 <h3 class="text-white font-bold text-lg">Editar Ejercicio</h3>
                 <button (click)="toggleEdit()"
-                    class="size-8 flex items-center justify-center rounded-full bg-white/5 text-slate-400 hover:text-white">
+                    class="size-8 flex items-center justify-center rounded-full bg-white/5 text-slate-400 hover:text-white transition-colors">
                     <span class="material-symbols-outlined">close</span>
                 </button>
             </div>
 
-            <!-- Content -->
-            <div class="p-4 overflow-y-auto custom-scrollbar flex flex-col gap-6">
+            <div class="p-5 overflow-y-auto custom-scrollbar flex flex-col gap-6">
                 <!-- Name Input -->
                 <div class="flex flex-col gap-2">
-                    <label class="text-[#9cacba] text-xs font-bold uppercase tracking-wider">Nombre</label>
+                    <label class="text-[#9cacba] text-xs font-bold uppercase tracking-wider pl-1">Nombre</label>
                     <input type="text" [value]="editName()" (input)="updateEditName($event)"
                         class="w-full bg-[#1d3627] border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#13ec6a] transition-all">
                 </div>
 
                 <!-- Images Management -->
                 <div class="flex flex-col gap-3">
-                    <label class="text-[#9cacba] text-xs font-bold uppercase tracking-wider">Imágenes</label>
+                    <label class="text-[#9cacba] text-xs font-bold uppercase tracking-wider pl-1">Imágenes</label>
 
-                    <div class="grid grid-cols-3 gap-2">
-                        <!-- Existing Images -->
+                    <div class="grid grid-cols-3 gap-3">
                         @for (img of exerciseImages(); track img.id) {
-                        <div class="relative aspect-square rounded-lg overflow-hidden group bg-[#1d3627]">
-                            <img [src]="img.url"
-                                class="size-full object-cover opacity-80 group-hover:opacity-100 transition-opacity">
-                            <button (click)="deleteImageConfirm(img.id)"
-                                class="absolute top-1 right-1 size-6 bg-red-500/80 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors">
-                                <span class="material-symbols-outlined text-sm">close</span>
-                            </button>
+                        <div class="relative aspect-square rounded-xl overflow-hidden group bg-[#1d3627] shadow-sm">
+                            <img [src]="img.url" class="size-full object-cover">
+                            <div
+                                class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                <button (click)="deleteImageConfirm(img.id)"
+                                    class="size-8 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-transform hover:scale-110">
+                                    <span class="material-symbols-outlined text-sm">delete</span>
+                                </button>
+                            </div>
                         </div>
                         }
 
-                        <!-- Add Button -->
                         <button (click)="fileInput.click()"
-                            class="aspect-square rounded-lg border-2 border-dashed border-[#13ec6a]/30 flex flex-col items-center justify-center gap-1 hover:bg-[#13ec6a]/5 hover:border-[#13ec6a]/50 transition-all group">
+                            class="aspect-square rounded-xl border-2 border-dashed border-[#13ec6a]/30 flex flex-col items-center justify-center gap-1 hover:bg-[#13ec6a]/5 hover:border-[#13ec6a]/50 transition-all group active:scale-95">
                             <span
                                 class="material-symbols-outlined text-[#13ec6a] group-hover:scale-110 transition-transform">add_photo_alternate</span>
                             <span class="text-[10px] text-[#13ec6a] font-medium">Añadir</span>
@@ -251,19 +309,159 @@
                 </div>
             </div>
 
-            <!-- Actions -->
-            <div class="p-4 border-t border-white/5 flex gap-3">
+            <div class="p-5 border-t border-white/5 flex gap-3 bg-[#0a160f]/50">
                 <button (click)="toggleEdit()"
-                    class="flex-1 py-3 rounded-xl font-bold bg-[#1d3627] text-slate-300 hover:bg-[#2a4a38] transition-colors">
+                    class="flex-1 py-3.5 rounded-xl font-bold bg-[#1d3627] text-slate-300 hover:bg-[#2a4a38] transition-colors">
                     Cancelar
                 </button>
                 <button (click)="saveChanges()"
-                    class="flex-1 py-3 rounded-xl font-bold bg-[#13ec6a] text-[#102217] hover:bg-[#0fb650] shadow-lg shadow-[#13ec6a]/20 transition-all flex items-center justify-center gap-2"
+                    class="flex-1 py-3.5 rounded-xl font-bold bg-[#13ec6a] text-[#102217] hover:bg-[#0fb650] shadow-lg shadow-[#13ec6a]/20 transition-all flex items-center justify-center gap-2"
                     [disabled]="isSaving()">
                     @if (isSaving()) {
-                    <div class="size-4 border-2 border-[#102217] border-t-transparent rounded-full animate-spin"></div>
+                    <div class="size-4 border-2 border-[#102217] border-t-transparent rounded-full animate-spin">
+                    </div>
                     } @else {
-                    Guardar Cambios
+                    Guardar
+                    }
+                </button>
+            </div>
+        </div>
+    </div>
+    }
+
+    <!-- Edit Target Modal -->
+    @if (showTargetModal()) {
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fadeIn">
+        <div
+            class="w-full max-w-sm bg-[#102217] rounded-3xl border border-white/10 overflow-hidden shadow-2xl animate-slideUp">
+            <div class="flex items-center justify-between p-5 border-b border-white/5">
+                <h3 class="text-white font-bold text-lg">Editar Objetivo</h3>
+                <button (click)="closeTargetModal()"
+                    class="size-8 flex items-center justify-center rounded-full bg-white/5 text-slate-400 hover:text-white transition-colors">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+
+            <div class="p-6 flex flex-col gap-5">
+                <div class="flex items-center justify-between">
+                    <label class="text-slate-400 font-medium">Sets Objetivo</label>
+                    <div class="flex items-center gap-3 bg-[#1d3627] rounded-lg p-1">
+                        <button (click)="newTargetSets.set(newTargetSets() - 1)"
+                            class="size-8 flex items-center justify-center text-white hover:bg-white/5 rounded-md disabled:opacity-50"
+                            [disabled]="newTargetSets() <= 0"><span
+                                class="material-symbols-outlined">remove</span></button>
+                        <span class="text-white font-bold w-4 text-center">{{ newTargetSets() }}</span>
+                        <button (click)="newTargetSets.set(newTargetSets() + 1)"
+                            class="size-8 flex items-center justify-center text-white hover:bg-white/5 rounded-md"><span
+                                class="material-symbols-outlined">add</span></button>
+                    </div>
+                </div>
+
+                <div class="flex flex-col gap-2">
+                    <label class="text-slate-400 font-medium text-sm uppercase tracking-wider">Rango de Reps</label>
+                    <input type="text" [value]="newTargetReps()" (input)="newTargetReps.set($any($event.target).value)"
+                        class="w-full bg-[#1d3627] border border-white/10 rounded-xl px-4 py-3 text-white text-center font-bold focus:border-[#13ec6a] outline-none">
+                </div>
+
+                <div class="flex flex-col gap-2">
+                    <label class="text-slate-400 font-medium text-sm uppercase tracking-wider">Peso Objetivo
+                        (Kg)</label>
+                    <input type="number" [value]="newTargetWeight()"
+                        (input)="newTargetWeight.set(+$any($event.target).value)"
+                        class="w-full bg-[#1d3627] border border-white/10 rounded-xl px-4 py-3 text-white text-center font-bold focus:border-[#13ec6a] outline-none">
+                </div>
+            </div>
+
+            <div class="p-5 border-t border-white/5 bg-[#0a160f]/50">
+                <button (click)="saveTarget()"
+                    class="w-full py-3.5 rounded-xl font-bold bg-[#13ec6a] text-[#102217] hover:bg-[#0fb650] shadow-lg shadow-[#13ec6a]/20 transition-all flex items-center justify-center gap-2"
+                    [disabled]="isSaving()">
+                    @if (isSaving()) {
+                    <div class="size-5 border-2 border-[#102217] border-t-transparent rounded-full animate-spin">
+                    </div>
+                    } @else {
+                    Guardar Objetivo
+                    }
+                </button>
+            </div>
+        </div>
+    </div>
+    }
+
+    <!-- Log Set Modal -->
+    @if (showLogModal()) {
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fadeIn">
+        <div
+            class="w-full max-w-sm bg-[#102217] rounded-3xl border border-white/10 overflow-hidden shadow-2xl animate-slideUp">
+            <div class="flex items-center justify-between p-5 border-b border-white/5">
+                <h3 class="text-white font-bold text-lg">Registrar Serie</h3>
+                <button (click)="closeLogModal()"
+                    class="size-8 flex items-center justify-center rounded-full bg-white/5 text-slate-400 hover:text-white transition-colors">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+
+            <div class="p-6 flex flex-col gap-6">
+                <!-- Weight Input -->
+                <div class="flex flex-col gap-2">
+                    <label class="text-[#9cacba] text-xs font-bold uppercase tracking-wider text-center">Peso
+                        Realizada
+                        (Kg)</label>
+                    <div class="flex items-center justify-center gap-4">
+                        <button (click)="decrementWeight()"
+                            class="size-10 rounded-full bg-[#1d3627] text-[#13ec6a] hover:bg-[#2a4a38] flex items-center justify-center transition-colors"><span
+                                class="material-symbols-outlined">remove</span></button>
+                        <input type="number" step="0.5" [value]="logWeight()" (input)="updateWeight($event)"
+                            class="w-24 bg-transparent text-center text-4xl font-bold text-white outline-none border-b-2 border-[#13ec6a] pb-1">
+                        <button (click)="incrementWeight()"
+                            class="size-10 rounded-full bg-[#1d3627] text-[#13ec6a] hover:bg-[#2a4a38] flex items-center justify-center transition-colors"><span
+                                class="material-symbols-outlined">add</span></button>
+                    </div>
+                </div>
+
+                <!-- Reps Input -->
+                <div class="flex flex-col gap-2">
+                    <label class="text-[#9cacba] text-xs font-bold uppercase tracking-wider text-center">Reps
+                        Realizadas</label>
+                    <div class="flex items-center justify-center gap-4">
+                        <button (click)="logReps.set(logReps() - 1)"
+                            class="size-10 rounded-full bg-[#1d3627] text-white hover:bg-[#2a4a38] flex items-center justify-center transition-colors"><span
+                                class="material-symbols-outlined">remove</span></button>
+                        <input type="number" [value]="logReps()" (input)="logReps.set(+$any($event.target).value)"
+                            class="w-20 bg-transparent text-center text-4xl font-bold text-white outline-none border-b-2 border-white/20 pb-1 focus:border-[#13ec6a]">
+                        <button (click)="logReps.set(logReps() + 1)"
+                            class="size-10 rounded-full bg-[#1d3627] text-white hover:bg-[#2a4a38] flex items-center justify-center transition-colors"><span
+                                class="material-symbols-outlined">add</span></button>
+                    </div>
+                </div>
+
+                <!-- Sets Input (Added) -->
+                <div class="flex flex-col gap-2">
+                    <label class="text-[#9cacba] text-xs font-bold uppercase tracking-wider text-center">Series
+                        Realizadas</label>
+                    <div class="flex items-center justify-center gap-4">
+                        <button (click)="logSets.set(logSets() - 1)"
+                            class="size-10 rounded-full bg-[#1d3627] text-white hover:bg-[#2a4a38] flex items-center justify-center transition-colors"
+                            [disabled]="logSets() <= 1"><span class="material-symbols-outlined">remove</span></button>
+                        <input type="number" [value]="logSets()" (input)="logSets.set(+$any($event.target).value)"
+                            class="w-20 bg-transparent text-center text-4xl font-bold text-white outline-none border-b-2 border-white/20 pb-1 focus:border-[#13ec6a]">
+                        <button (click)="logSets.set(logSets() + 1)"
+                            class="size-10 rounded-full bg-[#1d3627] text-white hover:bg-[#2a4a38] flex items-center justify-center transition-colors"><span
+                                class="material-symbols-outlined">add</span></button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-5 border-t border-white/5 bg-[#0a160f]/50">
+                <button (click)="saveLog()"
+                    class="w-full py-3.5 rounded-xl font-bold bg-[#13ec6a] text-[#102217] hover:bg-[#0fb650] shadow-lg shadow-[#13ec6a]/20 transition-all flex items-center justify-center gap-2"
+                    [disabled]="isSaving()">
+                    @if (isSaving()) {
+                    <div class="size-5 border-2 border-[#102217] border-t-transparent rounded-full animate-spin">
+                    </div>
+                    } @else {
+                    <span class="material-symbols-outlined font-bold">check</span>
+                    Registrar Serie
                     }
                 </button>
             </div>
@@ -280,4 +478,70 @@
             Registrar Nueva Serie
         </button>
     </div>
+
+    <!-- Variant Selection Modal -->
+    @if (showVariantModal()) {
+    <div class="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm"
+        (click)="closeVariantModal()">
+        <div class="w-full max-w-lg bg-[#102217] rounded-t-3xl p-6 shadow-2xl border-t border-[#13ec6a]/30"
+            (click)="$event.stopPropagation()">
+
+            <!-- Modal Header -->
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-bold text-white">
+                    {{ showCreateVariant() ? 'Crear Nuevo Ejercicio' : 'Seleccionar Alternativo' }}
+                </h3>
+                <button (click)="closeVariantModal()"
+                    class="size-8 flex items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors">
+                    <span class="material-symbols-outlined" style="font-size: 20px;">close</span>
+                </button>
+            </div>
+
+            @if (!showCreateVariant()) {
+            <!-- Search Mode -->
+            <p class="text-slate-400 text-sm mb-4">
+                Selecciona un ejercicio de tu rutina o busca uno nuevo.
+            </p>
+
+            <!-- Search Input -->
+            <div class="relative mb-4">
+                <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"
+                    style="font-size: 20px;">search</span>
+                <input type="text" placeholder="Filtrar ejercicios..." [value]="variantSearchQuery()"
+                    (input)="variantSearchQuery.set($any($event.target).value)"
+                    class="w-full py-3 pl-10 pr-4 rounded-xl bg-[#1d3627] border border-white/10 text-white placeholder:text-slate-500 focus:outline-none focus:border-[#13ec6a]/50">
+            </div>
+
+            <!-- Routine Exercises as Suggestions -->
+            <div class="space-y-2 max-h-48 overflow-y-auto">
+                <p class="text-slate-500 text-xs font-medium uppercase tracking-wider mb-2">Ejercicios de tu rutina</p>
+
+                @for (ex of filteredRoutineExercises(); track ex.id) {
+                <button (click)="addVariant(ex.exercise_detail?.id || ex.exercise)"
+                    class="w-full flex items-center gap-3 p-3 rounded-xl bg-[#1d3627] hover:bg-[#2a4a38] border border-white/5 transition-colors text-left">
+                    <span class="size-10 rounded-lg bg-[#13ec6a]/20 flex items-center justify-center">
+                        <span class="material-symbols-outlined text-[#13ec6a]"
+                            style="font-size: 20px;">fitness_center</span>
+                    </span>
+                    <div class="flex-1">
+                        <p class="text-white font-medium">{{ ex.exercise_detail?.name || 'Ejercicio' }}</p>
+                        <p class="text-slate-400 text-xs">{{ ex.dayName }}{{ ex.isVariant ? ' (alternativo)' : '' }}</p>
+                    </div>
+                </button>
+                }
+
+                @if (filteredRoutineExercises().length === 0) {
+                <p class="text-center text-slate-500 py-4 text-sm">No hay más ejercicios en tu rutina</p>
+                }
+            </div>
+
+            <!-- Create New Exercise Button -->
+            <button (click)="openAddExerciseForVariant()"
+                class="w-full mt-4 py-3 rounded-xl border-2 border-dashed border-[#13ec6a]/40 text-[#13ec6a] hover:bg-[#13ec6a]/10 transition-colors font-medium">
+                + Crear nuevo ejercicio
+            </button>
+            }
+        </div>
+    </div>
+    }
 </div>

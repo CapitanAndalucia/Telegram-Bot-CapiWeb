@@ -72,6 +72,57 @@ export class AddExerciseComponent implements OnInit {
     quickReps = [6, 8, 10, 12, 15];
     quickWeightIncrements = [2.5, 5, 10];
 
+    // Variant support
+    variants = signal<PendingExercise[]>([]);
+    showVariantSection = signal<boolean>(false);
+    showVariantPicker = signal<boolean>(false);
+    variantSearchQuery = signal<string>('');
+
+    // Variant parent tracking (when coming from exercise-detail)
+    variantParentId = signal<number | null>(null);
+    variantParentName = signal<string>('');
+
+    // Toggle variant section visibility
+    toggleVariantSection(): void {
+        this.showVariantSection.update(v => !v);
+    }
+
+    // Variant picker
+    openVariantPicker(): void {
+        this.variantSearchQuery.set('');
+        this.showVariantPicker.set(true);
+    }
+
+    closeVariantPicker(): void {
+        this.showVariantPicker.set(false);
+    }
+
+    filteredVariantSuggestions(): ExerciseSuggestion[] {
+        const query = this.variantSearchQuery().toLowerCase();
+        const currentName = this.exerciseName().toLowerCase();
+        // Filter out current exercise from suggestions
+        return this.suggestions
+            .filter(s => s.name.toLowerCase() !== currentName)
+            .filter(s => !query || s.name.toLowerCase().includes(query) || s.category.toLowerCase().includes(query))
+            .slice(0, 5);
+    }
+
+    addVariant(suggestion: ExerciseSuggestion): void {
+        this.variants.update(v => [...v, {
+            id: suggestion.id,
+            name: suggestion.name,
+            sets: this.sets(),
+            reps: this.reps(),
+            weight: this.weight(),
+            notes: ''
+        }]);
+        this.closeVariantPicker();
+    }
+
+    removeVariant(index: number): void {
+        this.variants.update(v => v.filter((_, i) => i !== index));
+    }
+
 
 
     updateExerciseName(event: Event): void {
@@ -194,6 +245,17 @@ export class AddExerciseComponent implements OnInit {
                 this.dayIndex.set(index);
             }
         });
+
+        // Check for variant parent query params
+        this.route.queryParamMap.subscribe(queryParams => {
+            const parentId = queryParams.get('variantParentId');
+            const parentName = queryParams.get('variantParentName');
+
+            if (parentId) {
+                this.variantParentId.set(parseInt(parentId));
+                this.variantParentName.set(parentName || '');
+            }
+        });
     }
 
     loadEditingExercise(id: number): void {
@@ -254,10 +316,34 @@ export class AddExerciseComponent implements OnInit {
                 next: (response) => {
                     const exerciseId = response.exercise?.id;
                     const dayId = this.editingDayId();
+                    const parentId = this.variantParentId();
+
+                    console.log('Create exercise - exerciseId:', exerciseId, 'dayId:', dayId, 'parentId:', parentId);
+
+                    // If we have a variant parent, add as variant instead of new exercise
+                    if (parentId && exerciseId) {
+                        const variantData = {
+                            exercise: exerciseId,
+                            target_sets: this.sets(),
+                            target_reps: this.reps(),
+                            target_weight: this.weight()
+                        };
+                        this.api.addExerciseVariant(parentId, variantData).subscribe({
+                            next: () => {
+                                // Navigate back to the exercise detail
+                                this.router.navigate(['/workouts/exercise', parentId]);
+                            },
+                            error: (err) => {
+                                this.saving.set(false);
+                                console.error('Error adding variant', err);
+                            }
+                        });
+                        return;
+                    }
 
                     if (exerciseId && dayId) {
                         const routineExerciseData = {
-                            day: dayId,
+                            routine_day: dayId,
                             exercise: exerciseId,
                             target_sets: this.sets(),
                             target_reps: this.reps(),
@@ -265,6 +351,7 @@ export class AddExerciseComponent implements OnInit {
                             note: this.notes(),
                             order: 999
                         };
+                        console.log('Creating routine exercise with data:', routineExerciseData);
                         this.api.createRoutineExercise(routineExerciseData).subscribe({
                             next: () => this.close(),
                             error: (err) => {
@@ -272,6 +359,10 @@ export class AddExerciseComponent implements OnInit {
                                 console.error('Error creating routine exercise', err);
                             }
                         });
+                    } else {
+                        console.error('Missing exerciseId or dayId - exerciseId:', exerciseId, 'dayId:', dayId);
+                        this.saving.set(false);
+                        this.error.set('Error: No se pudo determinar el día de la rutina');
                     }
                 },
                 error: (err) => {

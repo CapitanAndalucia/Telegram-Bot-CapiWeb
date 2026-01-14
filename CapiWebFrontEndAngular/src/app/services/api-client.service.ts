@@ -608,6 +608,24 @@ export class ApiClientService {
         return this.request(`/workouts/routine-exercises/${id}/progress/`, 'GET');
     }
 
+    /**
+     * Creates a variant of an existing routine exercise.
+     * @param parentId - ID of the parent routine exercise
+     * @param data - Variant data: { exercise: number, target_sets, target_reps, target_weight }
+     */
+    addExerciseVariant(parentId: number, data: any): Observable<any> {
+        return this.request(`/workouts/routine-exercises/${parentId}/add_variant/`, 'POST', { data });
+    }
+
+    /**
+     * Sets a specific exercise (or variant) as the active one.
+     * All other variants become inactive.
+     * @param exerciseId - ID of the routine exercise to activate
+     */
+    setActiveVariant(exerciseId: number): Observable<any> {
+        return this.request(`/workouts/routine-exercises/${exerciseId}/set_active_variant/`, 'POST');
+    }
+
     createExerciseSet(data: FormData): Observable<any> {
         return this.http.post(`${this.baseUrl}/workouts/sets/`, data, {
             withCredentials: true
@@ -616,6 +634,12 @@ export class ApiClientService {
 
     deleteExerciseSet(id: number): Observable<any> {
         return this.request(`/workouts/sets/${id}/`, 'DELETE');
+    }
+
+    getExerciseSets(routineExerciseId: number): Observable<any> {
+        return this.request('/workouts/sets/', 'GET', {
+            params: { routine_exercise: routineExerciseId }
+        });
     }
 
     // ---- Exercise Library ----------------------------------------------------

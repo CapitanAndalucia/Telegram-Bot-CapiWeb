@@ -27,6 +27,12 @@ export interface RoutineExercise {
     note?: string;
     sets?: ExerciseSet[];
     day_label?: string;
+    routine_id?: number;
+    routine_day_id?: number;
+    // Variant support
+    variant_of?: number | null;
+    is_active_variant?: boolean;
+    variants?: RoutineExercise[];
 }
 
 export interface RoutineDay {

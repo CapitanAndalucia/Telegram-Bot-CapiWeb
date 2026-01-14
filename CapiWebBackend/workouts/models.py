@@ -86,6 +86,14 @@ class RoutineExercise(models.Model):
     target_weight = models.DecimalField(max_digits=6, decimal_places=2, default=0)
     rest_seconds = models.PositiveSmallIntegerField(default=90)
     note = models.CharField(max_length=255, blank=True)
+    
+    # Variant support: link to parent exercise if this is a variant
+    variant_of = models.ForeignKey(
+        'self', on_delete=models.CASCADE, 
+        related_name='variants', 
+        null=True, blank=True
+    )
+    is_active_variant = models.BooleanField(default=True)
 
     class Meta:
         ordering = ["order", "id"]

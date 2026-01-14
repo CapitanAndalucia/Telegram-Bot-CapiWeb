@@ -4,9 +4,15 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { ApiClientService } from '../../../../services/api-client.service';
 import { Routine, RoutineDay, RoutineExercise } from '../../../../models/workouts';
 
-interface ExerciseWithState extends RoutineExercise {
+interface ExerciseGroup {
+    parent: RoutineExercise;
+    active: RoutineExercise;
+    versions: RoutineExercise[];
+    activeIndex?: number;
+    hasVariants: boolean;
     isCompleted: boolean;
-    isActive: boolean;
+    isActive: boolean; // Is this the current focus in the workout flow
+    animationClass?: string;
 }
 
 @Component({
@@ -25,7 +31,10 @@ export class TodayExercisesComponent implements OnInit, OnDestroy {
     routineId = signal<number | null>(null);
     dayId = signal<number | null>(null);
     dayTitle = signal<string>('Workout');
-    exercises = signal<ExerciseWithState[]>([]);
+
+    // Changed to hold groups
+    exercises = signal<ExerciseGroup[]>([]);
+
     loading = signal<boolean>(true);
     error = signal<string | null>(null);
 
@@ -74,13 +83,42 @@ export class TodayExercisesComponent implements OnInit, OnDestroy {
 
                 if (day) {
                     this.dayTitle.set(day.title || day.day_label || 'Workout');
-                    const exercisesWithState: ExerciseWithState[] = (day.routine_exercises || []).map((ex, idx) => ({
-                        ...ex,
-                        isCompleted: false,
-                        isActive: idx === 0
-                    }));
-                    this.exercises.set(exercisesWithState);
-                    this.updateProgress();
+
+                    if (day.routine_exercises) {
+                        // 1. Filter parents
+                        const parents = day.routine_exercises.filter(ex => !ex.variant_of);
+
+                        // 2. Map to groups
+                        const groups: ExerciseGroup[] = parents.map((parent, idx) => {
+                            const versions = [parent, ...(parent.variants || [])];
+                            let activeVersion = parent;
+
+                            // Default active: check is_active_variant
+                            if (parent.variants && parent.variants.length > 0) {
+                                const activeVariant = parent.variants.find((v: any) => v.is_active_variant);
+                                if (activeVariant) {
+                                    activeVersion = activeVariant;
+                                }
+                            }
+
+                            // Determine active index
+                            const activeIndex = versions.findIndex(v => v.id === activeVersion.id);
+
+                            return {
+                                parent: parent,
+                                active: activeVersion,
+                                activeIndex: activeIndex >= 0 ? activeIndex : 0,
+                                versions: versions,
+                                hasVariants: versions.length > 1,
+                                isCompleted: false,
+                                isActive: idx === 0, // First group active by default
+                                animationClass: ''
+                            };
+                        });
+
+                        this.exercises.set(groups);
+                        this.updateProgress();
+                    }
                 }
                 this.loading.set(false);
             },
@@ -118,11 +156,13 @@ export class TodayExercisesComponent implements OnInit, OnDestroy {
         this.progressPercent.set(total > 0 ? Math.round((completed / total) * 100) : 0);
     }
 
-    toggleExercise(exercise: ExerciseWithState): void {
+    toggleExercise(group: ExerciseGroup): void {
         const exercises = this.exercises();
-        const index = exercises.findIndex(e => e.id === exercise.id);
+        const index = exercises.findIndex(e => e.parent.id === group.parent.id);
+
         if (index >= 0) {
             const updated = [...exercises];
+            // Toggle completion
             updated[index] = { ...updated[index], isCompleted: !updated[index].isCompleted };
 
             // Update active status - first incomplete exercise becomes active
@@ -141,7 +181,137 @@ export class TodayExercisesComponent implements OnInit, OnDestroy {
         }
     }
 
-    getExerciseIcon(exercise: ExerciseWithState): string {
+    // Cycle variants (Swipe)
+    cycleVariant(group: ExerciseGroup, direction: number): void {
+        if (!group.hasVariants) return;
+
+        const versions = group.versions;
+        const currentIndex = versions.findIndex(v => v.id === group.active.id);
+
+        const newIndex = (currentIndex + direction + versions.length) % versions.length;
+        const newActive = versions[newIndex];
+
+        // Anim class
+        const animClass = direction > 0 ? 'animate-slide-next' : 'animate-slide-prev';
+
+        // Update the group with animation
+        this.exercises.update(currentGroups => {
+            return currentGroups.map(g => {
+                if (g.parent.id === group.parent.id) {
+                    return { ...g, active: newActive, animationClass: animClass };
+                }
+                return g;
+            });
+        });
+
+        // Reset animation class after timeout
+        setTimeout(() => {
+            this.exercises.update(currentGroups => {
+                return currentGroups.map(g => {
+                    if (g.parent.id === group.parent.id) {
+                        return { ...g, animationClass: '' };
+                    }
+                    return g;
+                });
+            });
+        }, 300);
+    }
+
+    // Track swipe offsets
+    swipeOffsetMap = signal<Map<number, number>>(new Map());
+    isSwipingMap = signal<Map<number, boolean>>(new Map());
+
+    // Touch Handling Variables
+    private touchStartX = 0;
+    private currentTouchX = 0;
+    private readonly SWIPE_THRESHOLD = 50;
+
+    onTouchStart(event: TouchEvent, parentId: number) {
+        this.touchStartX = event.touches[0].clientX;
+        this.currentTouchX = this.touchStartX;
+
+        this.isSwipingMap.update(map => {
+            const newMap = new Map(map);
+            newMap.set(parentId, true);
+            return newMap;
+        });
+    }
+
+    onTouchMove(event: TouchEvent, parentId: number) {
+        this.currentTouchX = event.touches[0].clientX;
+        let diff = this.currentTouchX - this.touchStartX;
+
+        // Find group to check bounds
+        const group = this.exercises().find(g => g.parent.id === parentId);
+        if (group) {
+            const isFirst = group.activeIndex === 0;
+            const isLast = group.activeIndex === (group.versions.length - 1);
+
+            // Add resistance at edges (rubber-banding)
+            if ((isFirst && diff > 0) || (isLast && diff < 0)) {
+                diff = diff * 0.3; // Much harder to pull
+            }
+        }
+
+        this.swipeOffsetMap.update(map => {
+            const newMap = new Map(map);
+            newMap.set(parentId, diff);
+            return newMap;
+        });
+    }
+
+    onTouchEnd(event: TouchEvent, group: any) {
+        this.isSwipingMap.update(map => {
+            const newMap = new Map(map);
+            newMap.set(group.parent.id, false);
+            return newMap;
+        });
+
+        const diff = this.currentTouchX - this.touchStartX;
+        const isFirst = group.activeIndex === 0;
+        const isLast = group.activeIndex === (group.versions.length - 1);
+
+        if (Math.abs(diff) > this.SWIPE_THRESHOLD) {
+            const direction = diff > 0 ? -1 : 1;
+
+            // Prevent cycle if at bounds
+            if (!((isFirst && direction === -1) || (isLast && direction === 1))) {
+                const newIndex = (group.activeIndex || 0) + direction;
+
+                if (newIndex >= 0 && newIndex < group.versions.length) {
+                    const newActive = group.versions[newIndex];
+
+                    // Update active in signal
+                    this.exercises.update(currentGroups => {
+                        return currentGroups.map(g => {
+                            if (g.parent.id === group.parent.id) {
+                                return { ...g, active: newActive, activeIndex: newIndex };
+                            }
+                            return g;
+                        });
+                    });
+                }
+            }
+        }
+
+        // Reset offset
+        this.swipeOffsetMap.update(map => {
+            const newMap = new Map(map);
+            newMap.set(group.parent.id, 0);
+            return newMap;
+        });
+    }
+
+    getTransform(group: any): string {
+        const baseOffset = -(group.activeIndex || 0) * 100;
+        const pixelOffset = this.swipeOffsetMap().get(group.parent.id) || 0;
+        return `translateX(calc(${baseOffset}% + ${pixelOffset}px))`;
+    }
+
+    isSwiping(parentId: number): boolean {
+        return this.isSwipingMap().get(parentId) || false;
+    }
+    getExerciseIcon(exercise: RoutineExercise): string {
         const name = exercise.exercise_detail?.name?.toLowerCase() || '';
         if (name.includes('cardio') || name.includes('run')) return 'monitor_heart';
         if (name.includes('press') || name.includes('raise')) return 'directions_run';
@@ -153,7 +323,7 @@ export class TodayExercisesComponent implements OnInit, OnDestroy {
         return weight > 0 ? `${weight}kg` : '';
     }
 
-    formatExerciseInfo(exercise: ExerciseWithState): string {
+    formatExerciseInfo(exercise: RoutineExercise): string {
         if (exercise.note) return exercise.note;
         const parts = [];
         parts.push(`${exercise.target_sets} sets`);
@@ -173,7 +343,7 @@ export class TodayExercisesComponent implements OnInit, OnDestroy {
         }
     }
 
-    openExerciseDetail(exercise: ExerciseWithState): void {
+    openExerciseDetail(exercise: RoutineExercise): void {
         this.router.navigate(['/workouts/exercise', exercise.id]);
     }
 

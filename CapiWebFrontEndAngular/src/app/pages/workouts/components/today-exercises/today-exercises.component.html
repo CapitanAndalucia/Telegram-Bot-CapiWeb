@@ -78,39 +78,65 @@
 
         <!-- Exercise List -->
         <section class="flex flex-col gap-3 px-4 pb-4">
-            @for (exercise of exercises(); track exercise.id) {
-            <div (click)="openExerciseDetail(exercise)"
-                class="group relative flex items-center justify-between gap-4 rounded-xl bg-[#1d3627] p-4 shadow-sm transition-all active:scale-[0.99] cursor-pointer"
-                [class]="exercise.isCompleted ? 'border border-[#13ec6a]/20' : exercise.isActive ? 'border-l-4 border-l-[#13ec6a] shadow-lg ring-1 ring-white/5' : 'border border-transparent hover:border-white/5 opacity-80'">
+            @for (group of exercises(); track group.parent.id) {
+            <div (click)="toggleExercise(group)" (touchstart)="onTouchStart($event, group.parent.id)"
+                (touchmove)="onTouchMove($event, group.parent.id)" (touchend)="onTouchEnd($event, group)"
+                class="group relative flex items-center justify-between gap-4 rounded-xl bg-[#1d3627] p-4 shadow-sm transition-all active:scale-[0.99] cursor-pointer overflow-hidden select-none"
+                [class]="group.isCompleted ? 'border border-[#13ec6a]/20' : group.isActive ? 'border-l-4 border-l-[#13ec6a] shadow-lg ring-1 ring-white/5' : 'border border-transparent hover:border-white/5 opacity-80'">
 
-                <div class="flex items-center gap-4 flex-1">
-                    <!-- Icon -->
-                    <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full"
-                        [class]="exercise.isCompleted ? 'bg-[#13ec6a]/20 text-[#13ec6a]' : exercise.isActive ? 'bg-white/10 text-white' : 'bg-white/5 text-slate-500'">
-                        <span class="material-symbols-outlined">{{ getExerciseIcon(exercise) }}</span>
+                <!-- Content Wrapper (Carousel) -->
+                <div class="flex flex-col flex-1 min-w-0 overflow-hidden">
+                    <!-- Carousel Track -->
+                    <div class="flex transition-transform will-change-transform" [style.transform]="getTransform(group)"
+                        [class.duration-300]="!isSwiping(group.parent.id)"
+                        [class.ease-out]="!isSwiping(group.parent.id)" style="width: 100%;">
+
+                        @for (version of group.versions; track version.id) {
+                        <div class="w-full shrink-0 flex items-center gap-4">
+                            <!-- Icon -->
+                            <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full"
+                                [class]="group.isCompleted ? 'bg-[#13ec6a]/20 text-[#13ec6a]' : group.isActive ? 'bg-white/10 text-white' : 'bg-white/5 text-slate-500'">
+                                <span class="material-symbols-outlined">{{ getExerciseIcon(version) }}</span>
+                            </div>
+
+                            <!-- Info -->
+                            <div class="flex flex-col min-w-0">
+                                <div class="flex items-center gap-2">
+                                    <p class="text-lg font-medium leading-normal truncate"
+                                        [class]="group.isCompleted ? 'text-slate-400 line-through' : group.isActive ? 'text-white font-bold' : 'text-slate-200'">
+                                        {{ version.exercise_detail.name }}
+                                    </p>
+                                </div>
+                                <p class="text-sm font-normal"
+                                    [class]="group.isCompleted ? 'text-slate-500' : 'text-slate-400'">
+                                    {{ formatExerciseInfo(version) }}
+                                </p>
+                            </div>
+                        </div>
+                        }
                     </div>
 
-                    <!-- Info -->
-                    <div class="flex flex-col">
-                        <p class="text-lg font-medium leading-normal truncate"
-                            [class]="exercise.isCompleted ? 'text-slate-400 line-through' : exercise.isActive ? 'text-white font-bold' : 'text-slate-200'">
-                            {{ exercise.exercise_detail.name }}
-                        </p>
-                        <p class="text-sm font-normal"
-                            [class]="exercise.isCompleted ? 'text-slate-500' : 'text-slate-400'">
-                            {{ formatExerciseInfo(exercise) }}
-                        </p>
+                    <!-- Static Variant Indicator Dots -->
+                    @if (group.hasVariants && !group.isCompleted) {
+                    <div class="flex gap-1 mt-1.5 pl-[4rem]">
+                        @for (v of group.versions; track v.id) {
+                        <div class="h-1 rounded-full transition-all duration-300" [class.w-4]="v.id === group.active.id"
+                            [class.bg-[#13ec6a]]="v.id === group.active.id" [class.w-1]="v.id !== group.active.id"
+                            [class.bg-white/20]="v.id !== group.active.id">
+                        </div>
+                        }
                     </div>
+                    }
                 </div>
 
                 <!-- Checkbox -->
-                <div class="shrink-0 relative" (click)="toggleExercise(exercise); $event.stopPropagation()">
-                    <input type="checkbox" [checked]="exercise.isCompleted"
+                <div class="shrink-0 relative" (click)="toggleExercise(group); $event.stopPropagation()">
+                    <input type="checkbox" [checked]="group.isCompleted"
                         class="peer h-8 w-8 cursor-pointer appearance-none rounded-full border-2 transition-all focus:ring-0 focus:ring-offset-0"
-                        [class]="exercise.isCompleted ? 'border-[#13ec6a] bg-[#13ec6a]' : 'border-white/20 bg-transparent hover:border-[#13ec6a]'" />
+                        [class]="group.isCompleted ? 'border-[#13ec6a] bg-[#13ec6a]' : 'border-white/20 bg-transparent hover:border-[#13ec6a]'" />
                     <span
                         class="material-symbols-outlined absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none text-[#102217] text-xl font-bold transition-opacity"
-                        [class]="exercise.isCompleted ? 'opacity-100' : 'opacity-0'">
+                        [class]="group.isCompleted ? 'opacity-100' : 'opacity-0'">
                         check
                     </span>
                 </div>

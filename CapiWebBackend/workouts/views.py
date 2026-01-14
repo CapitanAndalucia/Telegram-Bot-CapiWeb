@@ -1,4 +1,4 @@
-from django.db.models import Sum, Avg, Max
+from django.db.models import Sum, Avg, Max, Count
 from django.db.models.functions import TruncDate
 from rest_framework import permissions, viewsets, status
 from rest_framework.decorators import action
@@ -14,6 +14,7 @@ from .serializers import (
     ExerciseSerializer,
     ExerciseMediaSerializer,
     RoutineDaySerializer,
+    RoutineExerciseSerializer,
 )
 from .image_utils import optimize_exercise_image, optimize_day_image
 
@@ -105,9 +106,14 @@ class RoutineDayViewSet(viewsets.ModelViewSet):
         return Response({'message': 'Imagen eliminada'})
 
 
-class RoutineExerciseViewSet(viewsets.ReadOnlyModelViewSet):
+class RoutineExerciseViewSet(viewsets.ModelViewSet):
     serializer_class = RoutineExerciseDetailSerializer
     permission_classes = [IsAuthenticated, IsRoutineOwner]
+
+    def get_serializer_class(self):
+        if self.action in ['create', 'update', 'partial_update']:
+            return RoutineExerciseSerializer
+        return RoutineExerciseDetailSerializer
 
     def get_queryset(self):
         return RoutineExercise.objects.filter(
@@ -129,10 +135,71 @@ class RoutineExerciseViewSet(viewsets.ReadOnlyModelViewSet):
                 max_reps=Max("reps"),
                 avg_weight=Avg("weight"),
                 max_weight=Max("weight"),
+                total_sets=Count("id"),
             )
             .order_by("day")
         )
         return Response(list(points))
+
+    @action(detail=True, methods=["post"], permission_classes=[IsAuthenticated, IsRoutineOwner])
+    def add_variant(self, request, pk=None):
+        """
+        Crea una variante de ejercicio vinculada al ejercicio actual.
+        Expects: { exercise: int, target_sets, target_reps, target_weight }
+        """
+        parent_exercise = self.get_object()
+        
+        exercise_id = request.data.get('exercise')
+        if not exercise_id:
+            return Response({'error': 'Se requiere un ejercicio'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            exercise = Exercise.objects.get(id=exercise_id)
+        except Exercise.DoesNotExist:
+            return Response({'error': 'Ejercicio no encontrado'}, status=status.HTTP_404_NOT_FOUND)
+        
+        # Create variant linked to parent
+        variant = RoutineExercise.objects.create(
+            routine_day=parent_exercise.routine_day,
+            exercise=exercise,
+            order=parent_exercise.order,
+            target_sets=request.data.get('target_sets', 3),
+            target_reps=request.data.get('target_reps', 10),
+            target_weight=request.data.get('target_weight', 0),
+            rest_seconds=parent_exercise.rest_seconds,
+            variant_of=parent_exercise,
+            is_active_variant=False  # New variants are inactive by default
+        )
+        
+        serializer = self.get_serializer(variant)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=["post"], permission_classes=[IsAuthenticated, IsRoutineOwner])
+    def set_active_variant(self, request, pk=None):
+        """
+        Establece este ejercicio (o su variante) como el activo.
+        All other variants of the same parent become inactive.
+        """
+        exercise = self.get_object()
+        
+        # Find the parent - could be self if this is the parent, or variant_of if it's a variant
+        if exercise.variant_of:
+            parent = exercise.variant_of
+        else:
+            parent = exercise
+        
+        # Deactivate all in the family
+        parent.is_active_variant = False
+        parent.save()
+        parent.variants.update(is_active_variant=False)
+        
+        # Activate the selected one
+        exercise.is_active_variant = True
+        exercise.save()
+        
+        # Return the parent with all variants
+        serializer = self.get_serializer(parent)
+        return Response(serializer.data)
 
 
 class ExerciseSetViewSet(viewsets.ModelViewSet):
@@ -140,9 +207,13 @@ class ExerciseSetViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, IsRoutineOwner]
 
     def get_queryset(self):
-        return ExerciseSet.objects.filter(user=self.request.user).select_related(
+        queryset = ExerciseSet.objects.filter(user=self.request.user).select_related(
             "routine_exercise__routine_day__routine"
         )
+        routine_exercise = self.request.query_params.get('routine_exercise', None)
+        if routine_exercise:
+            queryset = queryset.filter(routine_exercise_id=routine_exercise)
+        return queryset
 
     def perform_create(self, serializer):
         routine_exercise = serializer.validated_data.get("routine_exercise")

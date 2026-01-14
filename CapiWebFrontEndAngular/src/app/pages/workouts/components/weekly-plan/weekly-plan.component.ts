@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ApiClientService } from '../../../../services/api-client.service';
@@ -19,8 +19,125 @@ export class WeeklyPlanComponent implements OnInit {
 
     routine = signal<Routine | null>(null);
     selectedDay = signal<RoutineDay | null>(null);
+
+    // Track manually selected variant IDs for each parent exercise
+    activeVariantIdMap = signal<Map<number, number>>(new Map());
+
+    // Track swipe offsets for direct manipulation during drag
+    swipeOffsetMap = signal<Map<number, number>>(new Map());
+    isSwipingMap = signal<Map<number, boolean>>(new Map());
+
+    // Group exercises by variant (only show parents)
+    groupedExercises = computed(() => {
+        const day = this.selectedDay();
+        if (!day || !day.routine_exercises) return [];
+
+        const parents = day.routine_exercises.filter(ex => !ex.variant_of);
+
+        return parents.map(parent => {
+            const versions = [parent, ...(parent.variants || [])];
+
+            // Determine active ID
+            let activeId = parent.id;
+            const manualMap = this.activeVariantIdMap();
+            if (manualMap.has(parent.id)) {
+                activeId = manualMap.get(parent.id)!;
+            } else {
+                if (parent.variants && parent.variants.length > 0) {
+                    const activeVariant = parent.variants.find((v: any) => v.is_active_variant);
+                    if (activeVariant) {
+                        activeId = activeVariant.id;
+                    }
+                }
+            }
+
+            const activeIndex = versions.findIndex(v => v.id === activeId);
+            // Fallback to 0 if not found
+            const safeIndex = activeIndex >= 0 ? activeIndex : 0;
+
+            return {
+                parent: parent,
+                versions: versions,
+                activeIndex: safeIndex,
+                active: versions[safeIndex],
+                hasVariants: versions.length > 1
+            };
+        });
+    });
+
     loading = signal<boolean>(true);
     error = signal<string | null>(null);
+
+    // Touch Handling Variables
+    private touchStartX = 0;
+    private currentTouchX = 0;
+    private readonly SWIPE_THRESHOLD = 50;
+
+    // Touch handling for swipe cards
+    onTouchStart(event: TouchEvent, parentId: number) {
+        this.touchStartX = event.touches[0].clientX;
+        this.currentTouchX = this.touchStartX;
+
+        this.isSwipingMap.update(map => {
+            const newMap = new Map(map);
+            newMap.set(parentId, true);
+            return newMap;
+        });
+    }
+
+    onTouchMove(event: TouchEvent, parentId: number) {
+        this.currentTouchX = event.touches[0].clientX;
+        let diff = this.currentTouchX - this.touchStartX;
+
+        // Find group to check bounds
+        const group = this.groupedExercises().find(g => g.parent.id === parentId);
+        if (group) {
+            const isFirst = group.activeIndex === 0;
+            const isLast = group.activeIndex === (group.versions.length - 1);
+
+            // Add resistance at edges (rubber-banding)
+            if ((isFirst && diff > 0) || (isLast && diff < 0)) {
+                diff = diff * 0.3; // Much harder to pull
+            }
+        }
+
+        // Update offset for visual feedback
+        this.swipeOffsetMap.update(map => {
+            const newMap = new Map(map);
+            newMap.set(parentId, diff);
+            return newMap;
+        });
+    }
+
+    onTouchEnd(event: TouchEvent, group: any) {
+        this.isSwipingMap.update(map => {
+            const newMap = new Map(map);
+            newMap.set(group.parent.id, false);
+            return newMap;
+        });
+
+        const diff = this.currentTouchX - this.touchStartX;
+        const isFirst = group.activeIndex === 0;
+        const isLast = group.activeIndex === (group.versions.length - 1);
+
+        // Identify direction
+        // Only trigger if threshold met AND not swiping out of bounds against resistance
+        if (Math.abs(diff) > this.SWIPE_THRESHOLD) {
+            const direction = diff > 0 ? -1 : 1; // Drag right (pos diff) -> go prev (-1 index)
+
+            // Prevent cycle if at bounds
+            if (!((isFirst && direction === -1) || (isLast && direction === 1))) {
+                this.cycleVariant(group.parent, direction);
+            }
+        }
+
+        // Reset offset (will animate back or to new position)
+        this.swipeOffsetMap.update(map => {
+            const newMap = new Map(map);
+            newMap.set(group.parent.id, 0);
+            return newMap;
+        });
+    }
 
     // Placeholder images for days
     dayImages = [
@@ -119,6 +236,36 @@ export class WeeklyPlanComponent implements OnInit {
 
     viewExerciseDetail(exerciseId: number): void {
         this.router.navigate(['/workouts/exercise', exerciseId]);
+    }
+
+    // --- Carousel Methods ---
+
+    cycleVariant(parent: RoutineExercise, direction: number): void {
+        const groupProp = this.groupedExercises().find(g => g.parent.id === parent.id);
+        if (!groupProp || groupProp.versions.length <= 1) return;
+
+        const versions = groupProp.versions;
+        // activeIndex comes from computed signal mapping
+        const newIndex = groupProp.activeIndex + direction;
+
+        if (newIndex >= 0 && newIndex < versions.length) {
+            const newVariant = versions[newIndex];
+            this.activeVariantIdMap.update(map => {
+                const newMap = new Map(map);
+                newMap.set(parent.id, newVariant.id);
+                return newMap;
+            });
+        }
+    }
+
+    getTransform(group: any): string {
+        const baseOffset = -(group.activeIndex || 0) * 100; // Percent
+        const pixelOffset = this.swipeOffsetMap().get(group.parent.id) || 0;
+        return `translateX(calc(${baseOffset}% + ${pixelOffset}px))`;
+    }
+
+    isSwiping(parentId: number): boolean {
+        return this.isSwipingMap().get(parentId) || false;
     }
 
     // --- Edit Methods ---
