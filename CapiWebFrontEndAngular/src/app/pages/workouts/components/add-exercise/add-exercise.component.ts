@@ -38,6 +38,7 @@ export class AddExerciseComponent implements OnInit {
     reps = signal<number>(10);
     weight = signal<number>(0);
     notes = signal<string>('');
+    baseExerciseId = signal<number | null>(null); // ID of the base Exercise in the library
 
     // Modal states
     showIconPicker = signal<boolean>(false);
@@ -51,7 +52,7 @@ export class AddExerciseComponent implements OnInit {
     iconOptions = [
         'fitness_center', 'accessibility_new', 'directions_run', 'self_improvement',
         'sports_gymnastics', 'monitor_heart', 'sprint', 'hiking',
-        'sports_martial_arts', 'exercise', 'pool', 'sports_kabaddi'
+        'sports_martial_arts', 'assets/icons/maquina_gimnasio.png', 'pool', 'sports_kabaddi'
     ];
 
     categoryOptions = ['Pecho', 'Espalda', 'Hombros', 'Brazos', 'Piernas', 'Core', 'Cardio', 'Cuerpo Completo'];
@@ -223,6 +224,8 @@ export class AddExerciseComponent implements OnInit {
     editingDayId = signal<number | null>(null);
     editingExerciseId = signal<number | null>(null);
 
+    returnUrl = signal<string | null>(null);
+
     ngOnInit(): void {
         this.route.paramMap.subscribe(params => {
             const routineId = params.get('routineId');
@@ -246,14 +249,19 @@ export class AddExerciseComponent implements OnInit {
             }
         });
 
-        // Check for variant parent query params
+        // Check for variant parent and returnUrl query params
         this.route.queryParamMap.subscribe(queryParams => {
             const parentId = queryParams.get('variantParentId');
             const parentName = queryParams.get('variantParentName');
+            const returnUrl = queryParams.get('returnUrl');
 
             if (parentId) {
                 this.variantParentId.set(parseInt(parentId));
                 this.variantParentName.set(parentName || '');
+            }
+
+            if (returnUrl) {
+                this.returnUrl.set(returnUrl);
             }
         });
     }
@@ -261,19 +269,52 @@ export class AddExerciseComponent implements OnInit {
     loadEditingExercise(id: number): void {
         this.api.getRoutineExercise(id).subscribe({
             next: (data) => {
-                this.exerciseName.set(data.exercise_detail.name);
+                this.exerciseName.set(data.custom_name || data.exercise_detail.name); // Use custom name if available
                 this.sets.set(data.target_sets);
                 this.reps.set(data.target_reps);
                 this.weight.set(data.target_weight);
                 this.notes.set(data.note || '');
+                // Load icon if available, otherwise default or from suggestion match
+                if (data.icon) {
+                    this.selectedIcon.set(data.icon);
+                } else {
+                    // Try to guess from suggestions
+                    const match = this.suggestions.find(s => s.name === data.exercise_detail.name);
+                    this.selectedIcon.set(match?.icon || 'fitness_center');
+                }
+
+                if (data.variants && data.variants.length > 0) {
+                    const mappedVariants: PendingExercise[] = data.variants.map((v: any) => ({
+                        id: v.exercise_detail.id, // ID of the Exercise (Library)
+                        name: v.exercise_detail.name,
+                        sets: v.target_sets,
+                        reps: v.target_reps,
+                        weight: v.target_weight,
+                        notes: ''
+                    }));
+                    this.variants.set(mappedVariants);
+                    this.showVariantSection.set(true);
+                }
+
+                // Store the base exercise ID for image uploads
+                if (data.exercise_detail?.id) {
+                    this.baseExerciseId.set(data.exercise_detail.id);
+                }
             },
             error: (err) => console.error('Error loading exercise', err)
         });
     }
 
     close(): void {
+        const returnUrl = this.returnUrl();
+        if (returnUrl) {
+            // Use replaceUrl to avoid creating duplicate history entries
+            this.router.navigateByUrl(returnUrl, { replaceUrl: true });
+            return;
+        }
+
         if (this.isEditMode()) {
-            this.router.navigate(['/workouts/routine', this.editingRoutineId(), 'day', this.editingDayId(), 'edit']);
+            this.router.navigate(['/workouts/routine', this.editingRoutineId(), 'day', this.editingDayId(), 'edit'], { replaceUrl: true });
         } else {
             this.router.navigate(['/workouts/create/day', this.dayIndex()]);
         }
@@ -293,10 +334,15 @@ export class AddExerciseComponent implements OnInit {
                     target_sets: this.sets(),
                     target_reps: this.reps(),
                     target_weight: this.weight(),
-                    note: this.notes()
+                    note: this.notes(),
+                    icon: this.selectedIcon(),
+                    custom_name: this.exerciseName() // Save custom name
                 };
                 this.api.updateRoutineExercise(this.editingExerciseId()!, updateData).subscribe({
-                    next: () => this.close(),
+                    next: () => {
+                        // Upload images if any were added
+                        this.uploadPendingImages().then(() => this.close());
+                    },
                     error: (err) => {
                         this.saving.set(false);
                         console.error('Error updating exercise', err);
@@ -331,7 +377,11 @@ export class AddExerciseComponent implements OnInit {
                         this.api.addExerciseVariant(parentId, variantData).subscribe({
                             next: () => {
                                 // Navigate back to the exercise detail
-                                this.router.navigate(['/workouts/exercise', parentId]);
+                                this.router.navigate(['/workouts/exercise', parentId], {
+                                    queryParams: {
+                                        previousUrl: this.returnUrl() || '/workouts'
+                                    }
+                                });
                             },
                             error: (err) => {
                                 this.saving.set(false);
@@ -349,7 +399,8 @@ export class AddExerciseComponent implements OnInit {
                             target_reps: this.reps(),
                             target_weight: this.weight(),
                             note: this.notes(),
-                            order: 999
+                            order: 999,
+                            icon: this.selectedIcon() // Save the selected icon
                         };
                         console.log('Creating routine exercise with data:', routineExerciseData);
                         this.api.createRoutineExercise(routineExerciseData).subscribe({
@@ -442,5 +493,26 @@ export class AddExerciseComponent implements OnInit {
 
     removeImage(index: number): void {
         this.exerciseImages.update(images => images.filter((_, i) => i !== index));
+    }
+
+    async uploadPendingImages(): Promise<void> {
+        const images = this.exerciseImages();
+        const exerciseId = this.baseExerciseId();
+
+        if (images.length === 0 || !exerciseId) {
+            return;
+        }
+
+        const files = images.map(img => img.file);
+
+        return new Promise((resolve, reject) => {
+            this.api.uploadExerciseImages(exerciseId, files).subscribe({
+                next: () => resolve(),
+                error: (err) => {
+                    console.error('Error uploading images', err);
+                    resolve(); // Still resolve to not block navigation
+                }
+            });
+        });
     }
 }

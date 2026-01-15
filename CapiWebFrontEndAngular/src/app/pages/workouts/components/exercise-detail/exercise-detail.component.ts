@@ -7,6 +7,8 @@ import { RoutineExercise, ExerciseProgressPoint } from '../../../../models/worko
 import { forkJoin } from 'rxjs';
 import { BaseChartDirective } from 'ng2-charts';
 import { ChartConfiguration, ChartType, Chart, registerables } from 'chart.js';
+import { ConfirmModalComponent } from '../../../../shared/components/confirm-modal/confirm-modal.component';
+import { trigger, transition, style, animate } from '@angular/animations';
 
 // Register all Chart.js components (scales, controllers, elements)
 Chart.register(...registerables);
@@ -14,10 +16,25 @@ Chart.register(...registerables);
 @Component({
     selector: 'app-exercise-detail',
     standalone: true,
-    imports: [CommonModule, BaseChartDirective],
+    imports: [CommonModule, BaseChartDirective, ConfirmModalComponent],
     templateUrl: './exercise-detail.component.html',
     styleUrls: [],
-    styles: [`:host { display: block; }`]
+    styles: [`:host { display: block; }`],
+    animations: [
+        trigger('fullscreenModal', [
+            transition(':enter', [
+                style({ opacity: 0, transform: 'scale(1.05)' }),
+                animate('250ms cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+                    style({ opacity: 1, transform: 'scale(1)' })
+                )
+            ]),
+            transition(':leave', [
+                animate('200ms cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+                    style({ opacity: 0, transform: 'scale(0.95)' })
+                )
+            ])
+        ])
+    ]
 })
 export class ExerciseDetailComponent implements OnInit {
     private api = inject(ApiClientService);
@@ -77,6 +94,18 @@ export class ExerciseDetailComponent implements OnInit {
     customVariantName = signal<string>('');
     exerciseSearchResults = signal<any[]>([]);
     routineExercises = signal<any[]>([]); // Exercises from the same routine
+
+    // Navigation tracking
+    previousUrl = signal<string | null>(null);
+
+    // Delete confirmation modals
+    showDeleteSetModal = signal<boolean>(false);
+    setToDelete = signal<any>(null);
+    showDeleteImageModal = signal<boolean>(false);
+    imageToDelete = signal<number | null>(null);
+
+    // Fullscreen image modal
+    showFullscreenImage = signal<boolean>(false);
 
     // All exercise versions (parent + variants) for swipe navigation
     allVersions = computed(() => {
@@ -283,6 +312,12 @@ export class ExerciseDetailComponent implements OnInit {
 
     ngOnInit(): void {
         const exerciseId = this.route.snapshot.paramMap.get('id');
+        const previousUrl = this.route.snapshot.queryParamMap.get('previousUrl');
+
+        if (previousUrl) {
+            this.previousUrl.set(previousUrl);
+        }
+
         if (exerciseId) {
             this.loadExercise(parseInt(exerciseId));
         }
@@ -400,6 +435,7 @@ export class ExerciseDetailComponent implements OnInit {
                             ids: [set.id], // All IDs in this group
                             date: set.performed_at,
                             weight: set.weight,
+                            exerciseIcon: this.exercise()?.icon || 'fitness_center',
                             reps: set.reps,
                             rir: set.rir,
                             setsCount: 1
@@ -445,21 +481,29 @@ export class ExerciseDetailComponent implements OnInit {
     }
 
     deleteSet(item: any): void {
-        const confirmMsg = item.setsCount > 1
-            ? `¿Estás seguro de eliminar este grupo de ${item.setsCount} series?`
-            : '¿Estás seguro de eliminar esta serie?';
+        this.setToDelete.set(item);
+        this.showDeleteSetModal.set(true);
+    }
 
-        if (confirm(confirmMsg)) {
-            const requests = item.ids.map((id: number) => this.api.deleteExerciseSet(id));
-            forkJoin(requests).subscribe({
-                next: () => {
-                    // Reload sets
-                    const ex = this.exercise();
-                    if (ex) this.loadSets(ex.id);
-                },
-                error: (err) => console.error('Error deleting set(s)', err)
-            });
-        }
+    confirmDeleteSet(): void {
+        const item = this.setToDelete();
+        if (!item) return;
+
+        const requests = item.ids.map((id: number) => this.api.deleteExerciseSet(id));
+        forkJoin(requests).subscribe({
+            next: () => {
+                const ex = this.exercise();
+                if (ex) this.loadSets(ex.id);
+                this.showDeleteSetModal.set(false);
+                this.setToDelete.set(null);
+            },
+            error: (err) => console.error('Error deleting set(s)', err)
+        });
+    }
+
+    cancelDeleteSet(): void {
+        this.showDeleteSetModal.set(false);
+        this.setToDelete.set(null);
     }
 
     // ... (keep formatDate, goBack)
@@ -471,7 +515,14 @@ export class ExerciseDetailComponent implements OnInit {
     }
 
     goBack(): void {
-        this.location.back();
+        const prevUrl = this.previousUrl();
+        if (prevUrl) {
+            // Navigate explicitly to the previous URL
+            this.router.navigateByUrl(prevUrl);
+        } else {
+            // Fallback to default workout list
+            this.router.navigate(['/workouts']);
+        }
     }
 
     // --- Target Editing ---
@@ -604,10 +655,23 @@ export class ExerciseDetailComponent implements OnInit {
     // (Ensure updateEditName, onFileSelected, deleteImageConfirm, saveChanges... are kept)
 
     toggleEdit(): void {
-        const edit = !this.isEditing();
-        this.isEditing.set(edit);
-        if (edit) {
-            this.editName.set(this.exercise()?.exercise_detail?.name || '');
+        const ex = this.exercise();
+        if (ex && ex.routine_id && ex.routine_day_id) {
+            const prevUrl = this.previousUrl();
+            const returnUrl = prevUrl
+                ? `/workouts/exercise/${ex.id}?previousUrl=${encodeURIComponent(prevUrl)}`
+                : `/workouts/exercise/${ex.id}`;
+
+            this.router.navigate(
+                ['/workouts/routine', ex.routine_id, 'day', ex.routine_day_id, 'exercise', ex.id, 'edit'],
+                {
+                    queryParams: {
+                        returnUrl: returnUrl,
+                        previousUrl: prevUrl // Keep this for consistency, though returnUrl is what matters for the way back
+                    },
+                    replaceUrl: true // Replace current history entry to avoid back button loop
+                }
+            );
         }
     }
 
@@ -637,18 +701,31 @@ export class ExerciseDetailComponent implements OnInit {
     }
 
     deleteImageConfirm(mediaId: number): void {
+        this.imageToDelete.set(mediaId);
+        this.showDeleteImageModal.set(true);
+    }
+
+    confirmDeleteImage(): void {
+        const mediaId = this.imageToDelete();
         const exerciseId = this.exercise()?.exercise_detail?.id;
-        if (exerciseId && confirm('¿Estás seguro de querer eliminar esta imagen?')) {
+        if (exerciseId && mediaId) {
             this.api.deleteExerciseImage(exerciseId, mediaId).subscribe({
                 next: () => {
                     this.exerciseImages.update(imgs => imgs.filter(img => img.id !== mediaId));
                     if (this.currentImageIndex() >= this.exerciseImages().length) {
                         this.currentImageIndex.set(Math.max(0, this.exerciseImages().length - 1));
                     }
+                    this.showDeleteImageModal.set(false);
+                    this.imageToDelete.set(null);
                 },
                 error: (err) => console.error('Error deleting image', err)
             });
         }
+    }
+
+    cancelDeleteImage(): void {
+        this.showDeleteImageModal.set(false);
+        this.imageToDelete.set(null);
     }
 
     saveChanges(): void {
@@ -683,23 +760,87 @@ export class ExerciseDetailComponent implements OnInit {
         }
     }
 
-    // Carousel navigation
+    // Carousel navigation - Infinite loop implementation
+    isImageWrapAround = signal<boolean>(false);
+    virtualImageIndex = signal<number>(1); // Start at 1 because of clone at beginning
+
+    // Computed: Images with clones for infinite effect
+    infiniteImages = computed(() => {
+        const images = this.exerciseImages();
+        if (images.length <= 1) return images;
+
+        // Add last image at beginning and first image at end
+        return [
+            images[images.length - 1], // Clone of last
+            ...images,                  // Original images
+            images[0]                   // Clone of first
+        ];
+    });
+
+    // Computed: Real current index (without clones)
+    realImageIndex = computed(() => {
+        const virtual = this.virtualImageIndex();
+        const length = this.exerciseImages().length;
+        if (length <= 1) return 0;
+
+        if (virtual === 0) return length - 1;
+        if (virtual === length + 1) return 0;
+        return virtual - 1;
+    });
+
+    // Initialize virtual index when images change
+    initializeCarousel(): void {
+        const images = this.exerciseImages();
+        if (images.length > 1) {
+            this.virtualImageIndex.set(1);
+        } else {
+            this.virtualImageIndex.set(0);
+        }
+    }
+
     nextImage(): void {
         const images = this.exerciseImages();
-        if (images.length > 0) {
-            this.currentImageIndex.update(i => (i + 1) % images.length);
+        if (images.length <= 1) return;
+
+        const current = this.virtualImageIndex();
+        const newIndex = current + 1;
+
+        this.isImageWrapAround.set(false);
+        this.virtualImageIndex.set(newIndex);
+
+        // If we're now at the clone of first, jump to real first after animation
+        if (newIndex === images.length + 1) {
+            setTimeout(() => {
+                this.isImageWrapAround.set(true);
+                this.virtualImageIndex.set(1);
+                setTimeout(() => this.isImageWrapAround.set(false), 50);
+            }, 350); // Wait for animation to complete
         }
     }
 
     prevImage(): void {
         const images = this.exerciseImages();
-        if (images.length > 0) {
-            this.currentImageIndex.update(i => (i - 1 + images.length) % images.length);
+        if (images.length <= 1) return;
+
+        const current = this.virtualImageIndex();
+        const newIndex = current - 1;
+
+        this.isImageWrapAround.set(false);
+        this.virtualImageIndex.set(newIndex);
+
+        // If we're now at the clone of last, jump to real last after animation
+        if (newIndex === 0) {
+            setTimeout(() => {
+                this.isImageWrapAround.set(true);
+                this.virtualImageIndex.set(images.length);
+                setTimeout(() => this.isImageWrapAround.set(false), 50);
+            }, 350); // Wait for animation to complete
         }
     }
 
     goToImage(index: number): void {
-        this.currentImageIndex.set(index);
+        // index is the real index (0-based without clones)
+        this.virtualImageIndex.set(index + 1);
     }
 
     // --- Variant Navigation ---
@@ -867,5 +1008,50 @@ export class ExerciseDetailComponent implements OnInit {
                 this.isSaving.set(false);
             }
         });
+    }
+
+    // --- Fullscreen Image Swipe ---
+    private fullscreenTouchStartX = 0;
+    fullscreenDragOffset = signal<number>(0);
+    private fullscreenIsDragging = false;
+
+    getFullscreenTransform(): string {
+        const baseOffset = -(this.virtualImageIndex()) * 100;
+        const pixelOffset = this.fullscreenDragOffset();
+        return `translateX(calc(${baseOffset}% + ${pixelOffset}px))`;
+    }
+
+    onFullscreenTouchStart(event: TouchEvent): void {
+        this.fullscreenTouchStartX = event.touches[0].clientX;
+        this.fullscreenDragOffset.set(0);
+        this.fullscreenIsDragging = true;
+    }
+
+    onFullscreenTouchMove(event: TouchEvent): void {
+        if (!this.fullscreenIsDragging) return;
+        const currentX = event.touches[0].clientX;
+        const diff = currentX - this.fullscreenTouchStartX;
+        this.fullscreenDragOffset.set(diff);
+    }
+
+    onFullscreenTouchEnd(event: TouchEvent): void {
+        if (!this.fullscreenIsDragging) return;
+        this.fullscreenIsDragging = false;
+
+        const offset = this.fullscreenDragOffset();
+        const threshold = 50; // minimum swipe distance
+
+        if (Math.abs(offset) > threshold) {
+            if (offset < 0) {
+                // Swipe left - next image
+                this.nextImage();
+            } else {
+                // Swipe right - prev image
+                this.prevImage();
+            }
+        }
+
+        // Reset offset with animation
+        this.fullscreenDragOffset.set(0);
     }
 }

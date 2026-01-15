@@ -344,7 +344,11 @@ export class TodayExercisesComponent implements OnInit, OnDestroy {
     }
 
     openExerciseDetail(exercise: RoutineExercise): void {
-        this.router.navigate(['/workouts/exercise', exercise.id]);
+        this.router.navigate(['/workouts/exercise', exercise.id], {
+            queryParams: {
+                previousUrl: '/workouts' // Current page
+            }
+        });
     }
 
     finishWorkout(): void {

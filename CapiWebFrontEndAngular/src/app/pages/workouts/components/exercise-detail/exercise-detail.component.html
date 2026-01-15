@@ -6,7 +6,7 @@
             <span class="material-symbols-outlined text-white" style="font-size: 24px;">arrow_back</span>
         </button>
         <h2 class="text-white text-lg font-bold leading-tight tracking-tight flex-1 text-center truncate px-2">
-            {{ exercise()?.exercise_detail?.name || 'Cargando...' }}
+            {{ exercise()?.custom_name || exercise()?.exercise_detail?.name || 'Cargando...' }}
         </h2>
 
         <!-- Edit Button -->
@@ -36,14 +36,17 @@
         <div class="px-4 py-2">
             <div
                 class="relative w-full aspect-video rounded-xl overflow-hidden bg-[#1d3627] shadow-sm border border-white/5">
-                <!-- Images -->
-                @for (img of exerciseImages(); track img.id) {
-                <div class="absolute inset-0 transition-opacity duration-300"
-                    [class.opacity-100]="currentImageIndex() === $index"
-                    [class.opacity-0]="currentImageIndex() !== $index">
-                    <img [src]="img.url" alt="Exercise Image" class="w-full h-full object-cover">
+                <!-- Images Container - Infinite Sliding -->
+                <div class="flex h-full ease-out cursor-pointer" [class.transition-transform]="!isImageWrapAround()"
+                    [class.duration-300]="!isImageWrapAround()"
+                    [style.transform]="'translateX(-' + (virtualImageIndex() * 100) + '%)'"
+                    (click)="showFullscreenImage.set(true)">
+                    @for (img of infiniteImages(); track $index) {
+                    <div class="flex-shrink-0 w-full h-full">
+                        <img [src]="img.url" alt="Exercise Image" class="w-full h-full object-cover">
+                    </div>
+                    }
                 </div>
-                }
 
                 <!-- Navigation Arrows (only if more than 1 image) -->
                 @if (exerciseImages().length > 1) {
@@ -60,10 +63,8 @@
                 <div class="absolute bottom-2 left-0 right-0 flex justify-center gap-1.5 z-10">
                     @for (img of exerciseImages(); track img.id) {
                     <button (click)="goToImage($index)" class="h-1.5 rounded-full transition-all duration-300"
-                        [class.w-4]="$index === currentImageIndex()"
-                        [class.bg-[#13ec6a]]="$index === currentImageIndex()"
-                        [class.w-1.5]="$index !== currentImageIndex()"
-                        [class.bg-white/40]="$index !== currentImageIndex()">
+                        [class.w-4]="$index === realImageIndex()" [class.bg-[#13ec6a]]="$index === realImageIndex()"
+                        [class.w-1.5]="$index !== realImageIndex()" [class.bg-white/40]="$index !== realImageIndex()">
                     </button>
                     }
                 </div>
@@ -223,7 +224,12 @@
                 <div class="flex items-center gap-4 z-10">
                     <div class="flex items-center justify-center rounded-xl shrink-0 size-12"
                         [class]="i === 0 ? 'bg-[#13ec6a]/20 text-[#13ec6a]' : 'bg-[#2a4a38] text-slate-400'">
-                        <span class="material-symbols-outlined" style="font-size: 24px;">calendar_today</span>
+                        @if (item.exerciseIcon && item.exerciseIcon.includes('/')) {
+                        <img [src]="item.exerciseIcon" class="w-6 h-6 object-contain" [class.filter-green]="i === 0">
+                        } @else {
+                        <span class="material-symbols-outlined" style="font-size: 24px;">{{ item.exerciseIcon ||
+                            'calendar_today' }}</span>
+                        }
                     </div>
                     <div class="flex flex-col gap-0.5">
                         <p class="text-white text-base font-bold leading-tight">{{ formatDate(item.date) }}</p>
@@ -524,7 +530,8 @@
                             style="font-size: 20px;">fitness_center</span>
                     </span>
                     <div class="flex-1">
-                        <p class="text-white font-medium">{{ ex.exercise_detail?.name || 'Ejercicio' }}</p>
+                        <p class="text-white font-medium">{{ ex.custom_name || ex.exercise_detail?.name || 'Ejercicio'
+                            }}</p>
                         <p class="text-slate-400 text-xs">{{ ex.dayName }}{{ ex.isVariant ? ' (alternativo)' : '' }}</p>
                     </div>
                 </button>
@@ -545,3 +552,74 @@
     </div>
     }
 </div>
+
+<!-- Delete Set Modal -->
+<app-confirm-modal [isOpen]="showDeleteSetModal()" [title]="'Eliminar serie'" [message]="setToDelete()?.setsCount > 1 
+        ? '¿Estás seguro de eliminar este grupo de ' + setToDelete()?.setsCount + ' series?' 
+        : '¿Estás seguro de eliminar esta serie?'" [confirmText]="'Eliminar'" [cancelText]="'Cancelar'"
+    [variant]="'danger'" [icon]="'delete'" (confirmed)="confirmDeleteSet()" (cancelled)="cancelDeleteSet()">
+</app-confirm-modal>
+
+<!-- Delete Image Modal -->
+<app-confirm-modal [isOpen]="showDeleteImageModal()" [title]="'Eliminar imagen'"
+    [message]="'¿Estás seguro de querer eliminar esta imagen?'" [confirmText]="'Eliminar'" [cancelText]="'Cancelar'"
+    [variant]="'danger'" [icon]="'image'" (confirmed)="confirmDeleteImage()" (cancelled)="cancelDeleteImage()">
+</app-confirm-modal>
+
+<!-- Fullscreen Image Modal -->
+@if (showFullscreenImage()) {
+<div @fullscreenModal class="fixed inset-0 z-50 bg-black/95 flex items-center justify-center"
+    (click)="showFullscreenImage.set(false)">
+    <!-- Close Button -->
+    <button (click)="showFullscreenImage.set(false); $event.stopPropagation()"
+        class="absolute top-4 right-4 z-20 flex size-10 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors">
+        <span class="material-symbols-outlined">close</span>
+    </button>
+
+    <!-- Image Counter -->
+    @if (exerciseImages().length > 1) {
+    <div class="absolute top-4 left-4 z-20 px-3 py-1.5 rounded-full bg-black/60 text-white text-sm font-medium">
+        {{ realImageIndex() + 1 }} / {{ exerciseImages().length }}
+    </div>
+    }
+
+    <!-- Images Container with swipe -->
+    <div class="w-full h-full flex items-center justify-center overflow-hidden touch-pan-y"
+        (click)="$event.stopPropagation()" (touchstart)="onFullscreenTouchStart($event)"
+        (touchmove)="onFullscreenTouchMove($event)" (touchend)="onFullscreenTouchEnd($event)">
+        <div class="flex h-full w-full will-change-transform"
+            [style.transition]="fullscreenDragOffset() === 0 && !isImageWrapAround() ? 'transform 400ms cubic-bezier(0.25, 0.46, 0.45, 0.94)' : 'none'"
+            [style.transform]="getFullscreenTransform()">
+            @for (img of infiniteImages(); track $index) {
+            <div class="flex-shrink-0 w-full h-full flex items-center justify-center p-4">
+                <img [src]="img.url" alt="Exercise Image"
+                    class="max-w-full max-h-full object-contain rounded-lg select-none pointer-events-none">
+            </div>
+            }
+        </div>
+    </div>
+
+    <!-- Navigation Arrows -->
+    @if (exerciseImages().length > 1) {
+    <button (click)="prevImage(); $event.stopPropagation()"
+        class="absolute left-4 top-1/2 -translate-y-1/2 flex size-12 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80 transition-colors z-20">
+        <span class="material-symbols-outlined" style="font-size: 28px;">chevron_left</span>
+    </button>
+    <button (click)="nextImage(); $event.stopPropagation()"
+        class="absolute right-4 top-1/2 -translate-y-1/2 flex size-12 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80 transition-colors z-20">
+        <span class="material-symbols-outlined" style="font-size: 28px;">chevron_right</span>
+    </button>
+
+    <!-- Dots Indicator -->
+    <div class="absolute bottom-6 left-0 right-0 flex justify-center gap-2 z-20">
+        @for (img of exerciseImages(); track img.id) {
+        <button (click)="goToImage($index); $event.stopPropagation()"
+            class="h-2 rounded-full transition-all duration-300" [class.w-6]="$index === realImageIndex()"
+            [class.bg-[#13ec6a]]="$index === realImageIndex()" [class.w-2]="$index !== realImageIndex()"
+            [class.bg-white/40]="$index !== realImageIndex()">
+        </button>
+        }
+    </div>
+    }
+</div>
+}

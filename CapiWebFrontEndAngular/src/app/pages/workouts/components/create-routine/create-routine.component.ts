@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 import { ApiClientService } from '../../../../services/api-client.service';
 import { Routine, RoutineDay } from '../../../../models/workouts';
+import { ConfirmModalComponent } from '../../../../shared/components/confirm-modal/confirm-modal.component';
 
 interface DayOption {
     id: number;
@@ -34,12 +35,13 @@ export interface PendingExercise {
     reps: number;
     weight: number;
     notes?: string;
+    icon?: string;
 }
 
 @Component({
     selector: 'app-create-routine',
     standalone: true,
-    imports: [CommonModule, FormsModule],
+    imports: [CommonModule, FormsModule, ConfirmModalComponent],
     templateUrl: './create-routine.component.html',
     styleUrls: [],
     styles: [`:host { display: block; }`]
@@ -69,6 +71,11 @@ export class CreateRoutineComponent implements OnInit {
         { id: 5, short: 'Sáb', full: 'Sábado', selected: false },
         { id: 6, short: 'Dom', full: 'Domingo', selected: false }
     ]);
+
+    // Modal state
+    showDeleteDayModal = signal<boolean>(false);
+    dayToDelete = signal<DayOption | null>(null);
+    showDeleteRoutineModal = signal<boolean>(false);
 
     ngOnInit(): void {
         const idParam = this.route.snapshot.paramMap.get('id');
@@ -126,15 +133,9 @@ export class CreateRoutineComponent implements OnInit {
         if (!routineId) return;
 
         if (day.selected) {
-            // Deselecting -> Delete Day
-            if (confirm(`¿Eliminar el día ${day.full} de la rutina? Se borrarán sus ejercicios.`)) {
-                if (day.routineDayId) {
-                    this.api.deleteRoutineDay(day.routineDayId).subscribe({
-                        next: () => this.loadRoutine(routineId),
-                        error: (err) => console.error('Error deleting day', err)
-                    });
-                }
-            }
+            // Deselecting -> Delete Day - show modal
+            this.dayToDelete.set(day);
+            this.showDeleteDayModal.set(true);
         } else {
             // Selecting -> Create Day
             const nextOrder = (this.editingRoutine()?.days?.length || 0) + 1;
@@ -162,7 +163,12 @@ export class CreateRoutineComponent implements OnInit {
     }
 
     goBack(): void {
-        this.router.navigate(['/workouts']);
+        if (this.isEditMode() && this.editingRoutineId()) {
+            // Go back to the routine's weekly plan view
+            this.router.navigate(['/workouts/routine', this.editingRoutineId()]);
+        } else {
+            this.router.navigate(['/workouts']);
+        }
     }
 
     next(): void {
@@ -218,13 +224,43 @@ export class CreateRoutineComponent implements OnInit {
     }
 
     deleteRoutine(): void {
+        if (this.editingRoutineId()) {
+            this.showDeleteRoutineModal.set(true);
+        }
+    }
+
+    confirmDeleteDay(): void {
+        const day = this.dayToDelete();
         const routineId = this.editingRoutineId();
-        if (routineId && confirm('¿Estás seguro de eliminar esta rutina y todo su contenido?')) {
+        if (day?.routineDayId && routineId) {
+            this.api.deleteRoutineDay(day.routineDayId).subscribe({
+                next: () => {
+                    this.showDeleteDayModal.set(false);
+                    this.dayToDelete.set(null);
+                    this.loadRoutine(routineId);
+                },
+                error: (err) => console.error('Error deleting day', err)
+            });
+        }
+    }
+
+    cancelDeleteDay(): void {
+        this.showDeleteDayModal.set(false);
+        this.dayToDelete.set(null);
+    }
+
+    confirmDeleteRoutine(): void {
+        const routineId = this.editingRoutineId();
+        if (routineId) {
             this.api.deleteRoutine(routineId).subscribe({
                 next: () => this.router.navigate(['/workouts']),
                 error: (err) => console.error('Error deleting routine', err)
             });
         }
+    }
+
+    cancelDeleteRoutine(): void {
+        this.showDeleteRoutineModal.set(false);
     }
 
     editDayDetails(day: DayOption): void {

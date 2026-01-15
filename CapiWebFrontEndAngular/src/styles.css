@@ -1318,3 +1318,11 @@ app-user-icon .edit-modal {
 .animate-fill-circle {
     animation: fill-circle 0.5s ease-out forwards;
 }
+/* CSS Filters for custom icons */
+.filter-green {
+    filter: brightness(0) saturate(100%) invert(70%) sepia(55%) saturate(518%) hue-rotate(85deg) brightness(95%) contrast(92%);
+}
+
+.filter-dark {
+    filter: brightness(0) saturate(100%) invert(8%) sepia(21%) saturate(996%) hue-rotate(94deg) brightness(96%) contrast(98%);
+}

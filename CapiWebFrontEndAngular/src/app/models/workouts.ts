@@ -24,7 +24,10 @@ export interface RoutineExercise {
     target_reps: number;
     target_weight: number;
     rest_seconds: number;
+
     note?: string;
+    icon?: string;
+    custom_name?: string;
     sets?: ExerciseSet[];
     day_label?: string;
     routine_id?: number;

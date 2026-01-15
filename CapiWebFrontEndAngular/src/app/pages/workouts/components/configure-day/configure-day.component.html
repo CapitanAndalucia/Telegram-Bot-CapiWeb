@@ -82,28 +82,31 @@
             </div>
 
             <!-- Exercise List Items -->
-            @for (exercise of exercises(); track $index) {
-            <div (click)="editExercise(exercise)"
-                class="group flex items-center gap-4 bg-[#1d3627] p-4 rounded-xl border border-transparent hover:border-[#13ec6a]/30 transition-all shadow-sm cursor-pointer hover:bg-[#1d3627]/80">
-                <!-- Drag Handle -->
-                <div
-                    class="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#102217] text-[#9cacba] cursor-move">
-                    <span class="material-symbols-outlined" style="font-size: 20px;">drag_indicator</span>
+            <div cdkDropList (cdkDropListDropped)="onDrop($event)" class="flex flex-col gap-4">
+                @for (exercise of exercises(); track exercise) {
+                <div cdkDrag [cdkDragPreviewClass]="'drag-preview'" (click)="editExercise(exercise)"
+                    class="group flex items-center gap-4 bg-[#1d3627] p-4 rounded-xl border border-transparent hover:border-[#13ec6a]/30 shadow-sm cursor-pointer hover:bg-[#1d3627]/80">
+                    <!-- Drag Handle -->
+                    <div cdkDragHandle
+                        class="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#102217] text-[#9cacba] cursor-grab active:cursor-grabbing touch-none">
+                        <span class="material-symbols-outlined" style="font-size: 20px;">drag_indicator</span>
+                    </div>
+                    <!-- Exercise Info -->
+                    <div class="flex flex-col flex-1 min-w-0">
+                        <p class="text-base font-bold text-white truncate">{{ exercise.name }}</p>
+                        <p class="text-sm text-[#13ec6a] font-medium mt-0.5">
+                            {{ exercise.sets }} Series <span class="text-[#9cacba] mx-1">•</span> {{ exercise.reps }}
+                            Reps
+                        </p>
+                    </div>
+                    <!-- Delete Button -->
+                    <button (click)="$event.stopPropagation(); removeExercise(exercise)"
+                        class="flex size-10 shrink-0 items-center justify-center rounded-full text-[#9cacba] hover:text-red-500 hover:bg-red-500/10 transition-colors">
+                        <span class="material-symbols-outlined" style="font-size: 24px;">delete</span>
+                    </button>
                 </div>
-                <!-- Exercise Info -->
-                <div class="flex flex-col flex-1 min-w-0">
-                    <p class="text-base font-bold text-white truncate">{{ exercise.name }}</p>
-                    <p class="text-sm text-[#13ec6a] font-medium mt-0.5">
-                        {{ exercise.sets }} Series <span class="text-[#9cacba] mx-1">•</span> {{ exercise.reps }} Reps
-                    </p>
-                </div>
-                <!-- Delete Button -->
-                <button (click)="$event.stopPropagation(); removeExercise(exercise)"
-                    class="flex size-10 shrink-0 items-center justify-center rounded-full text-[#9cacba] hover:text-red-500 hover:bg-red-500/10 transition-colors">
-                    <span class="material-symbols-outlined" style="font-size: 24px;">delete</span>
-                </button>
+                }
             </div>
-            }
 
             <!-- Add Button -->
             <button (click)="addExercise()"
@@ -146,3 +149,10 @@
         </button>
     </div>
 </div>
+
+<!-- Delete Confirmation Modal -->
+<app-confirm-modal [isOpen]="showDeleteModal()" [title]="'Eliminar ejercicio'"
+    [message]="'¿Estás seguro de eliminar este ejercicio de la rutina?'" [confirmText]="'Eliminar'"
+    [cancelText]="'Cancelar'" [variant]="'danger'" [icon]="'delete'" (confirmed)="confirmDeleteExercise()"
+    (cancelled)="cancelDeleteExercise()">
+</app-confirm-modal>

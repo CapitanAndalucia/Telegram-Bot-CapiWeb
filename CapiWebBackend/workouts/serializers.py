@@ -38,6 +38,8 @@ class RoutineExerciseVariantSerializer(serializers.ModelSerializer):
             "target_reps",
             "target_weight",
             "is_active_variant",
+            "icon",
+            "custom_name",
         ]
 
 
@@ -58,6 +60,8 @@ class RoutineExerciseSerializer(serializers.ModelSerializer):
             "target_weight",
             "rest_seconds",
             "note",
+            "icon",
+            "custom_name",
             "variant_of",
             "is_active_variant",
             "variants",
@@ -195,6 +199,8 @@ class RoutineExerciseDetailSerializer(serializers.ModelSerializer):
             "target_weight",
             "rest_seconds",
             "note",
+            "icon",
+            "custom_name",
             "sets",
             "variant_of",
             "is_active_variant",

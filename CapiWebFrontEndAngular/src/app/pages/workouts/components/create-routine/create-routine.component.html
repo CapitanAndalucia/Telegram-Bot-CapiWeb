@@ -106,3 +106,17 @@
         </button>
     </div>
 </div>
+
+<!-- Delete Day Modal -->
+<app-confirm-modal [isOpen]="showDeleteDayModal()" [title]="'Eliminar día'"
+    [message]="'¿Eliminar el día ' + (dayToDelete()?.full || '') + ' de la rutina? Se borrarán sus ejercicios.'"
+    [confirmText]="'Eliminar'" [cancelText]="'Cancelar'" [variant]="'danger'" [icon]="'delete'"
+    (confirmed)="confirmDeleteDay()" (cancelled)="cancelDeleteDay()">
+</app-confirm-modal>
+
+<!-- Delete Routine Modal -->
+<app-confirm-modal [isOpen]="showDeleteRoutineModal()" [title]="'Eliminar rutina'"
+    [message]="'¿Estás seguro de eliminar esta rutina y todo su contenido?'" [confirmText]="'Eliminar'"
+    [cancelText]="'Cancelar'" [variant]="'danger'" [icon]="'delete_forever'" (confirmed)="confirmDeleteRoutine()"
+    (cancelled)="cancelDeleteRoutine()">
+</app-confirm-modal>

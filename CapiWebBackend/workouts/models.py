@@ -86,6 +86,8 @@ class RoutineExercise(models.Model):
     target_weight = models.DecimalField(max_digits=6, decimal_places=2, default=0)
     rest_seconds = models.PositiveSmallIntegerField(default=90)
     note = models.CharField(max_length=255, blank=True)
+    icon = models.CharField(max_length=50, blank=True, default='fitness_center')
+    custom_name = models.CharField(max_length=255, blank=True, help_text="Custom name for this exercise in this routine")
     
     # Variant support: link to parent exercise if this is a variant
     variant_of = models.ForeignKey(

@@ -57,7 +57,7 @@ export const slideInAnimation =
         ]),
 
         // Drill Down (generic deeper)
-        transition('WeeklyPlan => TodayExercises, WeeklyPlan => ConfigureDay, WeeklyPlan => ExerciseDetail, CreateRoutine => ConfigureDay, ConfigureDay => AddExercise', [
+        transition('WeeklyPlan => TodayExercises, WeeklyPlan => ConfigureDay, WeeklyPlan => ExerciseDetail, WeeklyPlan => CreateRoutine, CreateRoutine => ConfigureDay, ConfigureDay => AddExercise, TodayExercises => ExerciseDetail, ExerciseDetail => AddExercise', [
             style({ position: 'relative' }),
             query(':enter, :leave', [
                 style({
@@ -74,17 +74,17 @@ export const slideInAnimation =
             query(':leave', animateChild(), { optional: true }),
             group([
                 query(':leave', [
-                    animate('300ms cubic-bezier(0.35, 0, 0.25, 1)', style({ transform: 'translateX(-20%)', opacity: 0 }))
+                    animate('200ms cubic-bezier(0.35, 0, 0.25, 1)', style({ transform: 'translateX(-15%)', opacity: 0 }))
                 ], { optional: true }),
                 query(':enter', [
-                    animate('300ms cubic-bezier(0.35, 0, 0.25, 1)', style({ transform: 'translateX(0%)', opacity: 1 }))
+                    animate('200ms cubic-bezier(0.35, 0, 0.25, 1)', style({ transform: 'translateX(0%)', opacity: 1 }))
                 ], { optional: true })
             ]),
             query(':enter', animateChild(), { optional: true }),
         ]),
 
         // Drill Up (generic back)
-        transition('TodayExercises => WeeklyPlan, ConfigureDay => WeeklyPlan, ExerciseDetail => WeeklyPlan, ConfigureDay => CreateRoutine, AddExercise => ConfigureDay', [
+        transition('TodayExercises => WeeklyPlan, ConfigureDay => WeeklyPlan, ExerciseDetail => WeeklyPlan, CreateRoutine => WeeklyPlan, ConfigureDay => CreateRoutine, AddExercise => ConfigureDay, ExerciseDetail => TodayExercises, AddExercise => ExerciseDetail', [
             style({ position: 'relative' }),
             query(':enter, :leave', [
                 style({
@@ -96,21 +96,21 @@ export const slideInAnimation =
                 })
             ], { optional: true }),
             query(':enter', [
-                style({ transform: 'translateX(-20%)', opacity: 0 })
+                style({ transform: 'translateX(-15%)', opacity: 0 })
             ], { optional: true }),
             query(':leave', animateChild(), { optional: true }),
             group([
                 query(':leave', [
-                    animate('300ms cubic-bezier(0.35, 0, 0.25, 1)', style({ transform: 'translateX(100%)', opacity: 0 }))
+                    animate('200ms cubic-bezier(0.35, 0, 0.25, 1)', style({ transform: 'translateX(100%)', opacity: 0 }))
                 ], { optional: true }),
                 query(':enter', [
-                    animate('300ms cubic-bezier(0.35, 0, 0.25, 1)', style({ transform: 'translateX(0%)', opacity: 1 }))
+                    animate('200ms cubic-bezier(0.35, 0, 0.25, 1)', style({ transform: 'translateX(0%)', opacity: 1 }))
                 ], { optional: true })
             ]),
             query(':enter', animateChild(), { optional: true }),
         ]),
 
-        // Fallback for everything else (fade up)
+        // Fallback for everything else (simple fade - should rarely trigger now)
         transition('* <=> *', [
             style({ position: 'relative' }),
             query(':enter, :leave', [
@@ -123,15 +123,15 @@ export const slideInAnimation =
                 })
             ], { optional: true }),
             query(':enter', [
-                style({ opacity: 0, transform: 'translateY(15px)' })
+                style({ opacity: 0 })
             ], { optional: true }),
             query(':leave', animateChild(), { optional: true }),
             group([
                 query(':leave', [
-                    animate('250ms ease-out', style({ opacity: 0, transform: 'translateY(-15px)' }))
+                    animate('150ms ease-out', style({ opacity: 0 }))
                 ], { optional: true }),
                 query(':enter', [
-                    animate('250ms ease-out', style({ opacity: 1, transform: 'translateY(0)' }))
+                    animate('150ms ease-out', style({ opacity: 1 }))
                 ], { optional: true }),
             ]),
             query(':enter', animateChild(), { optional: true }),

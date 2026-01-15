@@ -235,7 +235,12 @@ export class WeeklyPlanComponent implements OnInit {
     }
 
     viewExerciseDetail(exerciseId: number): void {
-        this.router.navigate(['/workouts/exercise', exerciseId]);
+        const routineId = this.routine()?.id;
+        this.router.navigate(['/workouts/exercise', exerciseId], {
+            queryParams: {
+                previousUrl: routineId ? `/workouts/routine/${routineId}` : '/workouts'
+            }
+        });
     }
 
     // --- Carousel Methods ---

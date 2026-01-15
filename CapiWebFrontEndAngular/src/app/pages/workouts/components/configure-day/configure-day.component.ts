@@ -2,17 +2,58 @@ import { Component, OnInit, inject, signal, ViewChild, ElementRef } from '@angul
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
+import { DragDropModule, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 import { ApiClientService } from '../../../../services/api-client.service';
 import { PendingRoutine, PendingRoutineDay, PendingExercise } from '../create-routine/create-routine.component';
 import { Routine, RoutineDay } from '../../../../models/workouts';
+import { ConfirmModalComponent } from '../../../../shared/components/confirm-modal/confirm-modal.component';
 
 @Component({
     selector: 'app-configure-day',
     standalone: true,
-    imports: [CommonModule, FormsModule],
+    imports: [CommonModule, FormsModule, DragDropModule, ConfirmModalComponent],
     templateUrl: './configure-day.component.html',
     styleUrls: [],
-    styles: [`:host { display: block; }`]
+    styles: [`
+        :host { display: block; }
+        
+        /* Hide the placeholder (original item) while dragging */
+        .cdk-drag-placeholder {
+            opacity: 0;
+        }
+        
+        /* Style the preview (the copy being dragged) with animated shadow */
+        .cdk-drag-preview {
+            border-radius: 12px;
+            background: #1d3627;
+            animation: shadow-lift 150ms ease-out forwards;
+            /* Maintain original width - calc based on container padding */
+            width: calc(100vw - 32px) !important;
+            max-width: calc(100vw - 32px);
+            box-sizing: border-box;
+            /* Inherit font from workout module */
+            font-family: 'Lexend', sans-serif;
+        }
+        
+        @keyframes shadow-lift {
+            from {
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            }
+            to {
+                box-shadow: 0 12px 35px rgba(0, 0, 0, 0.4);
+            }
+        }
+        
+        /* Disable return animation - this prevents the flash on drop */
+        .cdk-drag-animating {
+            transition: none !important;
+        }
+        
+        /* Smooth transition for items moving out of the way */
+        .cdk-drop-list-dragging .cdk-drag:not(.cdk-drag-placeholder) {
+            transition: transform 200ms ease-out;
+        }
+    `]
 })
 export class ConfigureDayComponent implements OnInit {
     private api = inject(ApiClientService);
@@ -37,6 +78,10 @@ export class ConfigureDayComponent implements OnInit {
     dayImagePreview = signal<string | null>(null);
     dayImageFile = signal<File | null>(null);
     uploadingImage = signal<boolean>(false);
+
+    // Confirm modal state
+    showDeleteModal = signal<boolean>(false);
+    exerciseToDelete = signal<PendingExercise | null>(null);
 
     ngOnInit(): void {
         this.route.paramMap.subscribe(params => {
@@ -68,7 +113,7 @@ export class ConfigureDayComponent implements OnInit {
                     // Map exercises
                     const mapped: PendingExercise[] = (day.routine_exercises || []).map(ex => ({
                         id: ex.id, // Keep ID for updates/deletes
-                        name: ex.exercise_detail.name,
+                        name: ex.custom_name || ex.exercise_detail.name,
                         sets: ex.target_sets,
                         reps: ex.target_reps,
                         weight: ex.target_weight,
@@ -131,17 +176,47 @@ export class ConfigureDayComponent implements OnInit {
 
     removeExercise(exercise: PendingExercise): void {
         if (this.isEditMode()) {
-            if (exercise.id && confirm('¿Eliminar este ejercicio?')) {
-                this.api.deleteRoutineExercise(exercise.id).subscribe({
-                    next: () => {
-                        // Reload or just remove locally
-                        this.exercises.update(list => list.filter(e => e.id !== exercise.id));
-                    },
-                    error: (err) => console.error('Error deleting exercise', err)
-                });
+            if (exercise.id) {
+                this.exerciseToDelete.set(exercise);
+                this.showDeleteModal.set(true);
             }
         } else {
             this.exercises.update(ex => ex.filter(e => e !== exercise));
+            this.saveToPending();
+        }
+    }
+
+    confirmDeleteExercise(): void {
+        const exercise = this.exerciseToDelete();
+        if (exercise?.id) {
+            this.api.deleteRoutineExercise(exercise.id).subscribe({
+                next: () => {
+                    this.exercises.update(list => list.filter(e => e.id !== exercise.id));
+                    this.showDeleteModal.set(false);
+                    this.exerciseToDelete.set(null);
+                },
+                error: (err) => console.error('Error deleting exercise', err)
+            });
+        }
+    }
+
+    cancelDeleteExercise(): void {
+        this.showDeleteModal.set(false);
+        this.exerciseToDelete.set(null);
+    }
+
+    onDrop(event: CdkDragDrop<PendingExercise[]>): void {
+        // Only update if position actually changed
+        if (event.previousIndex === event.currentIndex) return;
+
+        // Use update to modify in place - CDK handles the animation
+        this.exercises.update(exercises => {
+            moveItemInArray(exercises, event.previousIndex, event.currentIndex);
+            return exercises;
+        });
+
+        // Save to pending in create mode
+        if (!this.isEditMode()) {
             this.saveToPending();
         }
     }
@@ -169,10 +244,10 @@ export class ConfigureDayComponent implements OnInit {
                 };
                 this.api.updateRoutineDay(dayId, data).subscribe({
                     next: () => {
-                        // Upload image if changed? 
-                        // Need separate logic (uploadRoutineDayImage).
-                        // Assuming image upload is separate or I can do it here.
-                        this.finishEdit();
+                        // Update exercise order
+                        this.updateExerciseOrder().then(() => {
+                            this.finishEdit();
+                        });
                     },
                     error: (err) => {
                         console.error('Error updating day', err);
@@ -200,6 +275,21 @@ export class ConfigureDayComponent implements OnInit {
             this.saving.set(false); // Reset saving state for next day
         } else {
             this.createFullRoutine(routine); // Finish
+        }
+    }
+
+    async updateExerciseOrder(): Promise<void> {
+        const exercises = this.exercises();
+        const updates = exercises
+            .filter(ex => ex.id)
+            .map((ex, index) =>
+                this.api.updateRoutineExercise(ex.id!, { order: index }).toPromise()
+            );
+
+        try {
+            await Promise.all(updates);
+        } catch (err) {
+            console.error('Error updating exercise order', err);
         }
     }
 

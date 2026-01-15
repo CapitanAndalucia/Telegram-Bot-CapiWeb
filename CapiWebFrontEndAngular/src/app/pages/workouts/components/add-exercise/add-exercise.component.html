@@ -69,8 +69,12 @@
                 <!-- Icon Button -->
                 <button (click)="openIconPicker()"
                     class="h-16 w-16 flex-shrink-0 overflow-hidden rounded-xl bg-[#234832] relative flex items-center justify-center border-2 border-dashed border-[#3d5a4c] hover:border-[#13ec6a] transition-colors">
+                    @if (selectedIcon().includes('/')) {
+                    <img [src]="selectedIcon()" class="w-8 h-8 object-contain filter-green">
+                    } @else {
                     <span class="material-symbols-outlined text-[#13ec6a]" style="font-size: 32px;">{{ selectedIcon()
                         }}</span>
+                    }
                 </button>
                 <div class="flex flex-col justify-center flex-1">
                     <h3 class="text-lg font-bold text-white">{{ exerciseName() }}</h3>
@@ -214,8 +218,12 @@
                     @for (variant of variants(); track $index) {
                     <div class="flex items-center gap-3 p-3 rounded-xl bg-[#1d3627] border border-[#3d5a4c]">
                         <span class="size-10 rounded-lg bg-[#13ec6a]/20 flex items-center justify-center">
-                            <span class="material-symbols-outlined text-[#13ec6a]"
-                                style="font-size: 20px;">fitness_center</span>
+                            @if (variant.icon && variant.icon.includes('/')) {
+                            <img [src]="variant.icon" class="w-5 h-5 object-contain filter-green">
+                            } @else {
+                            <span class="material-symbols-outlined text-[#13ec6a]" style="font-size: 20px;">{{
+                                variant.icon || 'fitness_center' }}</span>
+                            }
                         </span>
                         <div class="flex-1">
                             <p class="text-white font-medium">{{ variant.name }}</p>
@@ -264,7 +272,12 @@
                 <button (click)="selectIcon(icon)"
                     class="flex items-center justify-center h-14 w-14 rounded-xl transition-colors"
                     [class]="selectedIcon() === icon ? 'bg-[#13ec6a] text-[#102217]' : 'bg-[#102217] text-[#13ec6a] hover:bg-[#234832]'">
+                    @if (icon.includes('/')) {
+                    <img [src]="icon" class="w-8 h-8 object-contain" [class.filter-dark]="selectedIcon() === icon"
+                        [class.filter-green]="selectedIcon() !== icon">
+                    } @else {
                     <span class="material-symbols-outlined" style="font-size: 28px;">{{ icon }}</span>
+                    }
                 </button>
                 }
             </div>
@@ -345,8 +358,12 @@
                 <button (click)="addVariant(suggestion)"
                     class="w-full flex items-center gap-3 p-3 rounded-xl bg-[#1d3627] hover:bg-[#2a4a38] border border-white/5 transition-colors text-left">
                     <span class="size-10 rounded-lg bg-[#13ec6a]/20 flex items-center justify-center">
+                        @if (suggestion.icon && suggestion.icon.includes('/')) {
+                        <img [src]="suggestion.icon" class="w-5 h-5 object-contain filter-green">
+                        } @else {
                         <span class="material-symbols-outlined text-[#13ec6a]" style="font-size: 20px;">{{
-                            suggestion.icon }}</span>
+                            suggestion.icon || 'fitness_center' }}</span>
+                        }
                     </span>
                     <div class="flex-1">
                         <p class="text-white font-medium">{{ suggestion.name }}</p>
