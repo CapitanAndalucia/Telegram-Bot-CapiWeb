@@ -1238,6 +1238,90 @@ class FileTransferViewSet(viewsets.ModelViewSet):
                 }
             )
 
+    @action(detail=False, methods=['get'], url_path='buscar-por-usuario')
+    def buscar_archivos_usuario(self, request):
+        """
+        Busca todos los archivos o imágenes subidas por un usuario específico.
+        
+        Esta acción solo está disponible para superusuarios.
+        
+        Parámetros de query:
+            username: Nombre del usuario cuyos archivos se quieren buscar (requerido)
+            tipo: Filtro opcional - 'imagenes' para solo imágenes, 
+                  'archivos' para solo archivos no-imagen,
+                  vacío o 'todos' para todos los archivos
+        
+        Retorna:
+            Lista de archivos que coinciden con los criterios de búsqueda
+            
+        Errores:
+            403: Si el usuario no es superusuario
+            400: Si no se proporciona el nombre de usuario
+            404: Si el usuario especificado no existe
+        """
+        # Verificar que el usuario sea superusuario
+        if not request.user.is_superuser:
+            logger.warning(f"Usuario {request.user.username} intentó acceder a buscar_archivos_usuario sin ser superusuario")
+            return Response({
+                'error': 'forbidden',
+                'message': 'Esta acción solo está disponible para superusuarios'
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        # Obtener el nombre de usuario del parámetro de query
+        username = request.query_params.get('username')
+        if not username:
+            return Response({
+                'error': 'missing_parameter',
+                'message': 'Debes proporcionar el parámetro "username"'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Buscar el usuario
+        try:
+            target_user = User.objects.get(username=username)
+        except User.DoesNotExist:
+            return Response({
+                'error': 'user_not_found',
+                'message': f'No se encontró ningún usuario con el nombre "{username}"'
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        # Obtener todos los archivos subidos por el usuario
+        # (tanto como propietario o como uploader)
+        archivos = FileTransfer.objects.filter(
+            Q(owner=target_user) | Q(uploader=target_user)
+        ).prefetch_related('access_list').order_by('-created_at').distinct()
+        
+        # Filtrar por tipo si se especifica
+        tipo = request.query_params.get('tipo', 'todos')
+        
+        # Extensiones de imagen comunes
+        extensiones_imagen = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.svg', '.ico', '.tiff', '.tif']
+        
+        if tipo == 'imagenes':
+            # Filtrar solo imágenes
+            archivos_filtrados = [
+                archivo for archivo in archivos 
+                if any(archivo.filename.lower().endswith(ext) for ext in extensiones_imagen)
+            ]
+            archivos = FileTransfer.objects.filter(id__in=[a.id for a in archivos_filtrados])
+        elif tipo == 'archivos':
+            # Filtrar solo archivos que NO son imágenes
+            archivos_filtrados = [
+                archivo for archivo in archivos 
+                if not any(archivo.filename.lower().endswith(ext) for ext in extensiones_imagen)
+            ]
+            archivos = FileTransfer.objects.filter(id__in=[a.id for a in archivos_filtrados])
+        
+        logger.info(f"Superusuario {request.user.username} buscó archivos del usuario {username}. Encontrados: {archivos.count()}")
+        
+        # Serializar y devolver
+        serializer = self.get_serializer(archivos, many=True)
+        return Response({
+            'usuario': username,
+            'tipo_filtro': tipo,
+            'total_archivos': archivos.count(),
+            'archivos': serializer.data
+        })
+
 
 class ShareLinkViewSet(viewsets.ModelViewSet):
     """
