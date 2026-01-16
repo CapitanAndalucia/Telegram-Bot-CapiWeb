@@ -2,6 +2,7 @@ import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ApiClientService } from '../../../../services/api-client.service';
+import { NavigationHistoryService } from '../../../../services/navigation-history.service';
 import { Routine, RoutineDay, RoutineExercise } from '../../../../models/workouts';
 
 @Component({
@@ -16,6 +17,7 @@ export class WeeklyPlanComponent implements OnInit {
     private api = inject(ApiClientService);
     private router = inject(Router);
     private route = inject(ActivatedRoute);
+    private navHistory = inject(NavigationHistoryService);
 
     routine = signal<Routine | null>(null);
     selectedDay = signal<RoutineDay | null>(null);
@@ -148,17 +150,17 @@ export class WeeklyPlanComponent implements OnInit {
     ];
 
     ngOnInit(): void {
-        const routineId = this.route.snapshot.paramMap.get('id');
-        if (routineId) {
-            this.loadRoutine(parseInt(routineId));
+        const routineSlug = this.route.snapshot.paramMap.get('slug');
+        if (routineSlug) {
+            this.loadRoutine(routineSlug);
         }
     }
 
-    loadRoutine(id: number): void {
+    loadRoutine(slug: string): void {
         this.loading.set(true);
         this.error.set(null);
 
-        this.api.getRoutine(id).subscribe({
+        this.api.getRoutine(slug).subscribe({
             next: (data: Routine) => {
                 this.routine.set(data);
                 // Select first day by default
@@ -230,17 +232,15 @@ export class WeeklyPlanComponent implements OnInit {
         const day = this.selectedDay();
         const routine = this.routine();
         if (routine && day) {
-            this.router.navigate(['/workouts/workout', routine.id, day.id]);
+            this.router.navigate(['/workouts/workout', routine.url_slug, day.url_slug]);
         }
     }
 
-    viewExerciseDetail(exerciseId: number): void {
-        const routineId = this.routine()?.id;
-        this.router.navigate(['/workouts/exercise', exerciseId], {
-            queryParams: {
-                previousUrl: routineId ? `/workouts/routine/${routineId}` : '/workouts'
-            }
-        });
+    viewExerciseDetail(exercise: RoutineExercise): void {
+        const routine = this.routine();
+        // Store previous URL in sessionStorage instead of query params
+        this.navHistory.setPreviousUrl(routine ? `/workouts/routine/${routine.url_slug}` : '/workouts');
+        this.router.navigate(['/workouts/exercise', exercise.url_slug]);
     }
 
     // --- Carousel Methods ---
@@ -276,9 +276,9 @@ export class WeeklyPlanComponent implements OnInit {
     // --- Edit Methods ---
 
     toggleEdit(): void {
-        const routineId = this.routine()?.id;
-        if (routineId) {
-            this.router.navigate(['/workouts/edit', routineId]);
+        const routine = this.routine();
+        if (routine && routine.url_slug) {
+            this.router.navigate(['/workouts/edit', routine.url_slug]);
         }
     }
 

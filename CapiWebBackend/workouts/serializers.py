@@ -27,11 +27,15 @@ class ExerciseSerializer(serializers.ModelSerializer):
 class RoutineExerciseVariantSerializer(serializers.ModelSerializer):
     """Lightweight serializer for variant exercises"""
     exercise_detail = ExerciseSerializer(source="exercise", read_only=True)
+    url_slug = serializers.CharField(read_only=True)
 
     class Meta:
         model = RoutineExercise
         fields = [
             "id",
+            "short_id",
+            "slug",
+            "url_slug",
             "exercise",
             "exercise_detail",
             "target_sets",
@@ -46,11 +50,15 @@ class RoutineExerciseVariantSerializer(serializers.ModelSerializer):
 class RoutineExerciseSerializer(serializers.ModelSerializer):
     exercise_detail = ExerciseSerializer(source="exercise", read_only=True)
     variants = RoutineExerciseVariantSerializer(many=True, read_only=True)
+    url_slug = serializers.CharField(read_only=True)
 
     class Meta:
         model = RoutineExercise
         fields = [
             "id",
+            "short_id",
+            "slug",
+            "url_slug",
             "routine_day",
             "exercise",
             "exercise_detail",
@@ -72,11 +80,15 @@ class RoutineDaySerializer(serializers.ModelSerializer):
     routine_exercises = RoutineExerciseSerializer(many=True, required=False)
     day_label = serializers.CharField(source="get_day_of_week_display", read_only=True)
     image_url = serializers.SerializerMethodField()
+    url_slug = serializers.CharField(read_only=True)
 
     class Meta:
         model = RoutineDay
         fields = [
             "id",
+            "short_id",
+            "slug",
+            "url_slug",
             "routine",
             "day_of_week",
             "day_label",
@@ -113,11 +125,12 @@ class RoutineDaySerializer(serializers.ModelSerializer):
 
 class RoutineSerializer(serializers.ModelSerializer):
     days = RoutineDaySerializer(many=True, required=False)
+    url_slug = serializers.CharField(read_only=True)
 
     class Meta:
         model = Routine
-        fields = ["id", "title", "goal", "created_at", "updated_at", "days"]
-        read_only_fields = ["created_at", "updated_at"]
+        fields = ["id", "short_id", "slug", "url_slug", "title", "goal", "created_at", "updated_at", "days"]
+        read_only_fields = ["created_at", "updated_at", "slug", "short_id"]
 
     def create(self, validated_data):
         days_data = validated_data.pop("days", [])
@@ -180,16 +193,32 @@ class RoutineExerciseDetailSerializer(serializers.ModelSerializer):
     exercise_detail = ExerciseSerializer(source="exercise", read_only=True)
     sets = ExerciseSetSerializer(many=True, read_only=True)
     routine_id = serializers.IntegerField(source="routine_day.routine.id", read_only=True)
+    routine_short_id = serializers.CharField(source="routine_day.routine.short_id", read_only=True)
+    routine_slug = serializers.CharField(source="routine_day.routine.slug", read_only=True)
+    routine_url_slug = serializers.CharField(source="routine_day.routine.url_slug", read_only=True)
     routine_day_id = serializers.IntegerField(source="routine_day.id", read_only=True)
+    routine_day_short_id = serializers.CharField(source="routine_day.short_id", read_only=True)
+    routine_day_slug = serializers.CharField(source="routine_day.slug", read_only=True)
+    routine_day_url_slug = serializers.CharField(source="routine_day.url_slug", read_only=True)
     day_label = serializers.CharField(source="routine_day.get_day_of_week_display", read_only=True)
     variants = RoutineExerciseVariantSerializer(many=True, read_only=True)
+    url_slug = serializers.CharField(read_only=True)
 
     class Meta:
         model = RoutineExercise
         fields = [
             "id",
+            "short_id",
+            "slug",
+            "url_slug",
             "routine_id",
+            "routine_short_id",
+            "routine_slug",
+            "routine_url_slug",
             "routine_day_id",
+            "routine_day_short_id",
+            "routine_day_slug",
+            "routine_day_url_slug",
             "day_label",
             "exercise",
             "exercise_detail",

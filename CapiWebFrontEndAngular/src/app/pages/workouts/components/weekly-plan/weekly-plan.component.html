@@ -89,7 +89,7 @@
     <!-- Exercise List -->
     <div class="flex flex-col gap-2 px-4 pb-4">
         @for (group of groupedExercises(); track group.parent.id) {
-        <div (click)="viewExerciseDetail(group.active.id)" (touchstart)="onTouchStart($event, group.parent.id)"
+        <div (click)="viewExerciseDetail(group.active)" (touchstart)="onTouchStart($event, group.parent.id)"
             (touchmove)="onTouchMove($event, group.parent.id)" (touchend)="onTouchEnd($event, group)"
             class="relative flex items-center gap-4 rounded-2xl bg-[#1a3324] p-3 shadow-sm border border-transparent hover:border-[#13ec6a]/30 transition-all cursor-pointer overflow-hidden select-none">
 
@@ -144,7 +144,7 @@
 
             <!-- Info Button -->
             <button class="shrink-0 text-slate-400 hover:text-[#13ec6a] transition-colors p-2 z-10"
-                (click)="$event.stopPropagation(); viewExerciseDetail(group.active.id)">
+                (click)="$event.stopPropagation(); viewExerciseDetail(group.active)">
                 <span class="material-symbols-outlined" style="font-size: 24px;">info</span>
             </button>
         </div>

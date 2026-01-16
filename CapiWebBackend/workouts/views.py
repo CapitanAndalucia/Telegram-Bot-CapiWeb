@@ -45,6 +45,26 @@ class RoutineViewSet(viewsets.ModelViewSet):
             "days__routine_exercises__exercise__media"
         )
 
+    def get_object(self):
+        """Support lookup by ID or short_id (from URL slug like 'f4E7kX-slug-here')."""
+        queryset = self.filter_queryset(self.get_queryset())
+        lookup_value = self.kwargs.get(self.lookup_field)
+        
+        # Try ID first if purely numeric
+        if lookup_value.isdigit():
+            obj = queryset.filter(pk=int(lookup_value)).first()
+        else:
+            # Extract short_id from combined format (first 8 chars before hyphen)
+            short_id = lookup_value.split('-')[0] if '-' in lookup_value else lookup_value
+            obj = queryset.filter(short_id=short_id).first()
+        
+        if obj is None:
+            from rest_framework.exceptions import NotFound
+            raise NotFound("Routine not found")
+        
+        self.check_object_permissions(self.request, obj)
+        return obj
+
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 
@@ -61,6 +81,24 @@ class RoutineDayViewSet(viewsets.ModelViewSet):
         return RoutineDay.objects.filter(
             routine__user=self.request.user
         ).prefetch_related("routine_exercises__exercise__media")
+
+    def get_object(self):
+        """Support lookup by ID or short_id (from URL slug like 'f4E7kX-slug-here')."""
+        queryset = self.filter_queryset(self.get_queryset())
+        lookup_value = self.kwargs.get(self.lookup_field)
+        
+        if lookup_value.isdigit():
+            obj = queryset.filter(pk=int(lookup_value)).first()
+        else:
+            short_id = lookup_value.split('-')[0] if '-' in lookup_value else lookup_value
+            obj = queryset.filter(short_id=short_id).first()
+        
+        if obj is None:
+            from rest_framework.exceptions import NotFound
+            raise NotFound("Routine day not found")
+        
+        self.check_object_permissions(self.request, obj)
+        return obj
 
     @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated, IsRoutineOwner])
     def upload_image(self, request, pk=None):
@@ -119,6 +157,24 @@ class RoutineExerciseViewSet(viewsets.ModelViewSet):
         return RoutineExercise.objects.filter(
             routine_day__routine__user=self.request.user
         ).prefetch_related("exercise__media", "sets")
+
+    def get_object(self):
+        """Support lookup by ID or short_id (from URL slug like 'f4E7kX-slug-here')."""
+        queryset = self.filter_queryset(self.get_queryset())
+        lookup_value = self.kwargs.get(self.lookup_field)
+        
+        if lookup_value.isdigit():
+            obj = queryset.filter(pk=int(lookup_value)).first()
+        else:
+            short_id = lookup_value.split('-')[0] if '-' in lookup_value else lookup_value
+            obj = queryset.filter(short_id=short_id).first()
+        
+        if obj is None:
+            from rest_framework.exceptions import NotFound
+            raise NotFound("Exercise not found")
+        
+        self.check_object_permissions(self.request, obj)
+        return obj
 
     @action(detail=True, methods=["get"], permission_classes=[IsAuthenticated, IsRoutineOwner])
     def progress(self, request, pk=None):

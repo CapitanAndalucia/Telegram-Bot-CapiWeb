@@ -7,17 +7,17 @@ export const workoutRoutes: Routes = [
         data: { animation: 'RoutinesList' }
     },
     {
-        path: 'routine/:id',
+        path: 'routine/:slug',
         loadComponent: () => import('./components/weekly-plan/weekly-plan.component').then(m => m.WeeklyPlanComponent),
         data: { animation: 'WeeklyPlan' }
     },
     {
-        path: 'workout/:routineId/:dayId',
+        path: 'workout/:routineSlug/:daySlug',
         loadComponent: () => import('./components/today-exercises/today-exercises.component').then(m => m.TodayExercisesComponent),
         data: { animation: 'TodayExercises' }
     },
     {
-        path: 'exercise/:id',
+        path: 'exercise/:slug',
         loadComponent: () => import('./components/exercise-detail/exercise-detail.component').then(m => m.ExerciseDetailComponent),
         data: { animation: 'ExerciseDetail' }
     },
@@ -27,7 +27,7 @@ export const workoutRoutes: Routes = [
         data: { animation: 'CreateRoutine' }
     },
     {
-        path: 'edit/:id',
+        path: 'edit/:slug',
         loadComponent: () => import('./components/create-routine/create-routine.component').then(m => m.CreateRoutineComponent),
         data: { animation: 'CreateRoutine' }
     },
@@ -43,17 +43,17 @@ export const workoutRoutes: Routes = [
     },
     // Edit Routes
     {
-        path: 'routine/:routineId/day/:dayId/edit',
+        path: 'routine/:routineSlug/day/:daySlug/edit',
         loadComponent: () => import('./components/configure-day/configure-day.component').then(m => m.ConfigureDayComponent),
         data: { animation: 'ConfigureDay' }
     },
     {
-        path: 'routine/:routineId/day/:dayId/add-exercise',
+        path: 'routine/:routineSlug/day/:daySlug/add-exercise',
         loadComponent: () => import('./components/add-exercise/add-exercise.component').then(m => m.AddExerciseComponent),
         data: { animation: 'AddExercise' }
     },
     {
-        path: 'routine/:routineId/day/:dayId/exercise/:exerciseId/edit',
+        path: 'routine/:routineSlug/day/:daySlug/exercise/:exerciseSlug/edit',
         loadComponent: () => import('./components/add-exercise/add-exercise.component').then(m => m.AddExerciseComponent),
         data: { animation: 'AddExercise' }
     },
@@ -63,3 +63,4 @@ export const workoutRoutes: Routes = [
         data: { animation: 'WorkoutProfile' }
     }
 ];
+

@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ApiClientService } from '../../../../services/api-client.service';
+import { NavigationHistoryService } from '../../../../services/navigation-history.service';
 import { PendingRoutine, PendingExercise } from '../create-routine/create-routine.component';
 
 interface ExerciseSuggestion {
@@ -24,6 +25,7 @@ export class AddExerciseComponent implements OnInit {
     private api = inject(ApiClientService);
     private router = inject(Router);
     private route = inject(ActivatedRoute);
+    private navHistory = inject(NavigationHistoryService);
 
     dayIndex = signal<number>(0);
     saving = signal<boolean>(false);
@@ -80,7 +82,9 @@ export class AddExerciseComponent implements OnInit {
     variantSearchQuery = signal<string>('');
 
     // Variant parent tracking (when coming from exercise-detail)
+    // Variant parent tracking (when coming from exercise-detail)
     variantParentId = signal<number | null>(null);
+    variantParentSlug = signal<string | null>(null);
     variantParentName = signal<string>('');
 
     // Toggle variant section visibility
@@ -223,24 +227,28 @@ export class AddExerciseComponent implements OnInit {
     editingRoutineId = signal<number | null>(null);
     editingDayId = signal<number | null>(null);
     editingExerciseId = signal<number | null>(null);
+    // Add slug signals for navigation
+    editingRoutineSlug = signal<string | null>(null);
+    editingDaySlug = signal<string | null>(null);
+    editingExerciseSlug = signal<string | null>(null);
 
     returnUrl = signal<string | null>(null);
 
     ngOnInit(): void {
         this.route.paramMap.subscribe(params => {
-            const routineId = params.get('routineId');
-            const dayId = params.get('dayId');
-            const exerciseId = params.get('exerciseId');
+            const routineSlug = params.get('routineSlug');
+            const daySlug = params.get('daySlug');
+            const exerciseSlug = params.get('exerciseSlug');
 
-            if (routineId && dayId) {
+            if (routineSlug && daySlug) {
                 this.isEditMode.set(true);
-                this.editingRoutineId.set(parseInt(routineId));
-                this.editingDayId.set(parseInt(dayId));
+                this.editingRoutineSlug.set(routineSlug);
+                this.editingDaySlug.set(daySlug);
 
-                if (exerciseId) {
+                if (exerciseSlug) {
                     this.isUpdateMode.set(true);
-                    this.editingExerciseId.set(parseInt(exerciseId));
-                    this.loadEditingExercise(parseInt(exerciseId));
+                    this.editingExerciseSlug.set(exerciseSlug);
+                    this.loadEditingExercise(exerciseSlug);
                 }
             } else {
                 const indexParam = params.get('dayIndex');
@@ -249,26 +257,34 @@ export class AddExerciseComponent implements OnInit {
             }
         });
 
-        // Check for variant parent and returnUrl query params
+        // Check for variant parent query params
         this.route.queryParamMap.subscribe(queryParams => {
             const parentId = queryParams.get('variantParentId');
             const parentName = queryParams.get('variantParentName');
-            const returnUrl = queryParams.get('returnUrl');
+            const parentSlug = queryParams.get('variantParentSlug');
 
             if (parentId) {
                 this.variantParentId.set(parseInt(parentId));
                 this.variantParentName.set(parentName || '');
-            }
-
-            if (returnUrl) {
-                this.returnUrl.set(returnUrl);
+                if (parentSlug) this.variantParentSlug.set(parentSlug);
             }
         });
+
+        // Read returnUrl from sessionStorage instead of query params
+        const storedReturnUrl = this.navHistory.peekReturnUrl();
+        if (storedReturnUrl) {
+            this.returnUrl.set(storedReturnUrl);
+        }
     }
 
-    loadEditingExercise(id: number): void {
-        this.api.getRoutineExercise(id).subscribe({
+    loadEditingExercise(idOrSlug: number | string): void {
+        this.api.getRoutineExercise(idOrSlug).subscribe({
             next: (data) => {
+                // Store IDs for API operations
+                this.editingExerciseId.set(data.id);
+                this.editingRoutineId.set(data.routine_id);
+                this.editingDayId.set(data.routine_day_id);
+
                 this.exerciseName.set(data.custom_name || data.exercise_detail.name); // Use custom name if available
                 this.sets.set(data.target_sets);
                 this.reps.set(data.target_reps);
@@ -314,7 +330,7 @@ export class AddExerciseComponent implements OnInit {
         }
 
         if (this.isEditMode()) {
-            this.router.navigate(['/workouts/routine', this.editingRoutineId(), 'day', this.editingDayId(), 'edit'], { replaceUrl: true });
+            this.router.navigate(['/workouts/routine', this.editingRoutineSlug(), 'day', this.editingDaySlug(), 'edit'], { replaceUrl: true });
         } else {
             this.router.navigate(['/workouts/create/day', this.dayIndex()]);
         }
@@ -339,7 +355,16 @@ export class AddExerciseComponent implements OnInit {
                     custom_name: this.exerciseName() // Save custom name
                 };
                 this.api.updateRoutineExercise(this.editingExerciseId()!, updateData).subscribe({
-                    next: () => {
+                    next: (updatedExercise: any) => {
+                        // FIX: Update return URL if slug changed and we are returning to the exercise detail
+                        if (updatedExercise && updatedExercise.url_slug) {
+                            const currentReturn = this.returnUrl();
+                            // Check if we are returning to an exercise detail view
+                            if (currentReturn && currentReturn.includes('/workouts/exercise/')) {
+                                this.returnUrl.set(`/workouts/exercise/${updatedExercise.url_slug}`);
+                            }
+                        }
+
                         // Upload images if any were added
                         this.uploadPendingImages().then(() => this.close());
                     },
@@ -377,11 +402,10 @@ export class AddExerciseComponent implements OnInit {
                         this.api.addExerciseVariant(parentId, variantData).subscribe({
                             next: () => {
                                 // Navigate back to the exercise detail
-                                this.router.navigate(['/workouts/exercise', parentId], {
-                                    queryParams: {
-                                        previousUrl: this.returnUrl() || '/workouts'
-                                    }
-                                });
+                                // Set previousUrl in sessionStorage for the exercise detail
+                                this.navHistory.setPreviousUrl(this.returnUrl() || '/workouts');
+                                const parentSlug = this.variantParentSlug() || parentId;
+                                this.router.navigate(['/workouts/exercise', parentSlug]);
                             },
                             error: (err) => {
                                 this.saving.set(false);

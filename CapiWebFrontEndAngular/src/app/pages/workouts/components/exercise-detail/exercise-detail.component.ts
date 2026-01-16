@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Location } from '@angular/common';
 import { ApiClientService } from '../../../../services/api-client.service';
+import { NavigationHistoryService } from '../../../../services/navigation-history.service';
 import { RoutineExercise, ExerciseProgressPoint } from '../../../../models/workouts';
 import { forkJoin } from 'rxjs';
 import { BaseChartDirective } from 'ng2-charts';
@@ -41,6 +42,7 @@ export class ExerciseDetailComponent implements OnInit {
     private router = inject(Router);
     private route = inject(ActivatedRoute);
     private location = inject(Location);
+    private navHistory = inject(NavigationHistoryService);
 
     exercise = signal<RoutineExercise | null>(null);
     exerciseFamily = signal<RoutineExercise | null>(null); // Parent with variants
@@ -205,8 +207,9 @@ export class ExerciseDetailComponent implements OnInit {
         const nextVariant = variants[index];
         if (nextVariant && nextVariant.id !== this.exercise()?.id) {
             // Load silently so the page doesn't blink
-            this.loadExercise(nextVariant.id, true);
-            this.location.replaceState(`/workouts/exercise/${nextVariant.id}`);
+            const slug = nextVariant.url_slug || nextVariant.id;
+            this.loadExercise(slug, true);
+            this.location.replaceState(`/workouts/exercise/${slug}`);
         }
     }
 
@@ -311,25 +314,26 @@ export class ExerciseDetailComponent implements OnInit {
     }
 
     ngOnInit(): void {
-        const exerciseId = this.route.snapshot.paramMap.get('id');
-        const previousUrl = this.route.snapshot.queryParamMap.get('previousUrl');
+        const exerciseSlug = this.route.snapshot.paramMap.get('slug');
 
+        // Read previous URL from sessionStorage instead of query params
+        const previousUrl = this.navHistory.peekPreviousUrl();
         if (previousUrl) {
             this.previousUrl.set(previousUrl);
         }
 
-        if (exerciseId) {
-            this.loadExercise(parseInt(exerciseId));
+        if (exerciseSlug) {
+            this.loadExercise(exerciseSlug);
         }
     }
 
-    loadExercise(id: number, silent: boolean = false): void {
+    loadExercise(idOrSlug: number | string, silent: boolean = false): void {
         if (!silent) {
             this.loading.set(true);
         }
         this.error.set(null);
 
-        this.api.getRoutineExercise(id).subscribe({
+        this.api.getRoutineExercise(idOrSlug).subscribe({
             next: (data: RoutineExercise) => {
                 this.exercise.set(data);
                 this.updateDisplayValues(data);
@@ -358,7 +362,7 @@ export class ExerciseDetailComponent implements OnInit {
                 }
 
                 // Load individual sets
-                this.loadSets(id);
+                this.loadSets(data.id);
                 if (!silent) {
                     this.loading.set(false);
                 }
@@ -656,21 +660,14 @@ export class ExerciseDetailComponent implements OnInit {
 
     toggleEdit(): void {
         const ex = this.exercise();
-        if (ex && ex.routine_id && ex.routine_day_id) {
-            const prevUrl = this.previousUrl();
-            const returnUrl = prevUrl
-                ? `/workouts/exercise/${ex.id}?previousUrl=${encodeURIComponent(prevUrl)}`
-                : `/workouts/exercise/${ex.id}`;
+        if (ex && ex.routine_url_slug && ex.routine_day_url_slug) {
+            // Store return URL in sessionStorage instead of query params
+            this.navHistory.setReturnUrl(`/workouts/exercise/${ex.url_slug}`);
+            // Keep previous URL for the return journey
 
             this.router.navigate(
-                ['/workouts/routine', ex.routine_id, 'day', ex.routine_day_id, 'exercise', ex.id, 'edit'],
-                {
-                    queryParams: {
-                        returnUrl: returnUrl,
-                        previousUrl: prevUrl // Keep this for consistency, though returnUrl is what matters for the way back
-                    },
-                    replaceUrl: true // Replace current history entry to avoid back button loop
-                }
+                ['/workouts/routine', ex.routine_url_slug, 'day', ex.routine_day_url_slug, 'exercise', ex.url_slug, 'edit'],
+                { replaceUrl: true }
             );
         }
     }
@@ -898,14 +895,15 @@ export class ExerciseDetailComponent implements OnInit {
 
     openAddExerciseForVariant(): void {
         const ex = this.exercise();
-        if (!ex?.routine_id || !ex?.routine_day_id) return;
+        if (!ex?.routine_url_slug || !ex?.routine_day_url_slug) return;
 
         this.closeVariantModal();
         // Navigate to add-exercise with variant parent info
-        this.router.navigate(['/workouts/routine', ex.routine_id, 'day', ex.routine_day_id, 'add-exercise'], {
+        this.router.navigate(['/workouts/routine', ex.routine_url_slug, 'day', ex.routine_day_url_slug, 'add-exercise'], {
             queryParams: {
                 variantParentId: ex.id,
-                variantParentName: ex.exercise_detail?.name
+                variantParentName: ex.exercise_detail?.name,
+                variantParentSlug: ex.url_slug
             }
         });
     }

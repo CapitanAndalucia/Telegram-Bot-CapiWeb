@@ -103,7 +103,7 @@ export class RoutinesListComponent implements OnInit {
     }
 
     openRoutine(routine: Routine): void {
-        this.router.navigate(['/workouts/routine', routine.id]);
+        this.router.navigate(['/workouts/routine', routine.url_slug]);
     }
 
     createNewRoutine(): void {

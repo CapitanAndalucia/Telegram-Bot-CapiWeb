@@ -2,6 +2,7 @@ import { Component, OnInit, inject, signal, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ApiClientService } from '../../../../services/api-client.service';
+import { NavigationHistoryService } from '../../../../services/navigation-history.service';
 import { Routine, RoutineDay, RoutineExercise } from '../../../../models/workouts';
 
 interface ExerciseGroup {
@@ -27,9 +28,10 @@ export class TodayExercisesComponent implements OnInit, OnDestroy {
     private api = inject(ApiClientService);
     private router = inject(Router);
     private route = inject(ActivatedRoute);
+    private navHistory = inject(NavigationHistoryService);
 
-    routineId = signal<number | null>(null);
-    dayId = signal<number | null>(null);
+    routineSlug = signal<string | null>(null);
+    daySlug = signal<string | null>(null);
     dayTitle = signal<string>('Workout');
 
     // Changed to hold groups
@@ -51,11 +53,11 @@ export class TodayExercisesComponent implements OnInit, OnDestroy {
     progressPercent = signal<number>(0);
 
     ngOnInit(): void {
-        const routineIdParam = this.route.snapshot.paramMap.get('routineId');
-        const dayIdParam = this.route.snapshot.paramMap.get('dayId');
+        const routineSlugParam = this.route.snapshot.paramMap.get('routineSlug');
+        const daySlugParam = this.route.snapshot.paramMap.get('daySlug');
 
-        if (routineIdParam) this.routineId.set(parseInt(routineIdParam));
-        if (dayIdParam) this.dayId.set(parseInt(dayIdParam));
+        if (routineSlugParam) this.routineSlug.set(routineSlugParam);
+        if (daySlugParam) this.daySlug.set(daySlugParam);
 
         this.loadExercises();
         this.startTimer();
@@ -69,17 +71,20 @@ export class TodayExercisesComponent implements OnInit, OnDestroy {
         this.loading.set(true);
         this.error.set(null);
 
-        const rId = this.routineId();
-        if (!rId) {
-            this.error.set('Routine ID not found');
+        const rSlug = this.routineSlug();
+        if (!rSlug) {
+            this.error.set('Routine slug not found');
             this.loading.set(false);
             return;
         }
 
-        this.api.getRoutine(rId).subscribe({
+        this.api.getRoutine(rSlug).subscribe({
             next: (routine: Routine) => {
-                const dId = this.dayId();
-                const day = routine.days?.find(d => d.id === dId);
+                const dSlug = this.daySlug();
+                // Match by short_id (robust) or exact url_slug
+                const day = routine.days?.find(d =>
+                    d.url_slug === dSlug || (d.short_id && dSlug?.startsWith(d.short_id + '-'))
+                );
 
                 if (day) {
                     this.dayTitle.set(day.title || day.day_label || 'Workout');
@@ -335,20 +340,18 @@ export class TodayExercisesComponent implements OnInit, OnDestroy {
     }
 
     goBack(): void {
-        const rId = this.routineId();
-        if (rId) {
-            this.router.navigate(['/workouts/routine', rId]);
+        const rSlug = this.routineSlug();
+        if (rSlug) {
+            this.router.navigate(['/workouts/routine', rSlug]);
         } else {
             this.router.navigate(['/workouts']);
         }
     }
 
     openExerciseDetail(exercise: RoutineExercise): void {
-        this.router.navigate(['/workouts/exercise', exercise.id], {
-            queryParams: {
-                previousUrl: '/workouts' // Current page
-            }
-        });
+        // Store previous URL in sessionStorage instead of query params
+        this.navHistory.setPreviousUrl('/workouts');
+        this.router.navigate(['/workouts/exercise', exercise.url_slug]);
     }
 
     finishWorkout(): void {

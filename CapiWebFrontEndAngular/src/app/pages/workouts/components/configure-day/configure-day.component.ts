@@ -63,6 +63,9 @@ export class ConfigureDayComponent implements OnInit {
     @ViewChild('dayImageInput') dayImageInput!: ElementRef<HTMLInputElement>;
 
     isEditMode = signal<boolean>(false);
+    editingRoutineSlug = signal<string | null>(null);
+    editingDaySlug = signal<string | null>(null);
+    // Keep numeric IDs for API calls (update/delete still need IDs)
     editingRoutineId = signal<number | null>(null);
     editingDayId = signal<number | null>(null);
 
@@ -85,14 +88,14 @@ export class ConfigureDayComponent implements OnInit {
 
     ngOnInit(): void {
         this.route.paramMap.subscribe(params => {
-            const routineId = params.get('routineId');
-            const dayId = params.get('dayId');
+            const routineSlug = params.get('routineSlug');
+            const daySlug = params.get('daySlug');
 
-            if (routineId && dayId) {
+            if (routineSlug && daySlug) {
                 this.isEditMode.set(true);
-                this.editingRoutineId.set(parseInt(routineId));
-                this.editingDayId.set(parseInt(dayId));
-                this.loadEditingDay(parseInt(routineId), parseInt(dayId));
+                this.editingRoutineSlug.set(routineSlug);
+                this.editingDaySlug.set(daySlug);
+                this.loadEditingDay(routineSlug, daySlug);
             } else {
                 // Create Mode
                 const indexParam = params.get('dayIndex');
@@ -103,16 +106,26 @@ export class ConfigureDayComponent implements OnInit {
         });
     }
 
-    loadEditingDay(routineId: number, dayId: number): void {
-        this.api.getRoutine(routineId).subscribe({
+    loadEditingDay(routineSlug: string, daySlug: string): void {
+        this.api.getRoutine(routineSlug).subscribe({
             next: (routine: Routine) => {
-                const day = routine.days.find(d => d.id === dayId);
+                // Match by short_id (robust) or exact url_slug
+                const day = routine.days.find(d =>
+                    d.url_slug === daySlug || (d.short_id && daySlug?.startsWith(d.short_id + '-'))
+                );
                 if (day) {
+                    // Store IDs for API calls
+                    this.editingRoutineId.set(routine.id);
+                    this.editingDayId.set(day.id);
+
                     this.dayName.set(day.day_label);
                     this.sessionFocus.set(day.title || '');
                     // Map exercises
                     const mapped: PendingExercise[] = (day.routine_exercises || []).map(ex => ({
                         id: ex.id, // Keep ID for updates/deletes
+                        slug: ex.slug, // Legacy
+                        short_id: ex.short_id,
+                        url_slug: ex.url_slug, // Navigation
                         name: ex.custom_name || ex.exercise_detail.name,
                         sets: ex.target_sets,
                         reps: ex.target_reps,
@@ -160,14 +173,14 @@ export class ConfigureDayComponent implements OnInit {
     }
 
     editExercise(exercise: PendingExercise): void {
-        if (this.isEditMode() && exercise.id) {
-            this.router.navigate(['/workouts/routine', this.editingRoutineId(), 'day', this.editingDayId(), 'exercise', exercise.id, 'edit']);
+        if (this.isEditMode() && exercise.url_slug) {
+            this.router.navigate(['/workouts/routine', this.editingRoutineSlug(), 'day', this.editingDaySlug(), 'exercise', exercise.url_slug, 'edit']);
         }
     }
 
     addExercise(): void {
         if (this.isEditMode()) {
-            this.router.navigate(['/workouts/routine', this.editingRoutineId(), 'day', this.editingDayId(), 'add-exercise']);
+            this.router.navigate(['/workouts/routine', this.editingRoutineSlug(), 'day', this.editingDaySlug(), 'add-exercise']);
         } else {
             this.saveToPending();
             this.router.navigate(['/workouts/create/day', this.dayIndex(), 'add-exercise']);
@@ -295,8 +308,8 @@ export class ConfigureDayComponent implements OnInit {
 
     finishEdit(): void {
         this.saving.set(false);
-        // Go back to Routine Edit (Hub)
-        this.router.navigate(['/workouts/edit', this.editingRoutineId()]);
+        // Go back to Routine Edit (Hub) using slug
+        this.router.navigate(['/workouts/edit', this.editingRoutineSlug()]);
     }
 
     createFullRoutine(routine: PendingRoutine): void {
@@ -348,7 +361,7 @@ export class ConfigureDayComponent implements OnInit {
 
     goBack(): void {
         if (this.isEditMode()) {
-            this.router.navigate(['/workouts/edit', this.editingRoutineId()]);
+            this.router.navigate(['/workouts/edit', this.editingRoutineSlug()]);
         } else {
             const dayIdx = this.dayIndex();
             if (dayIdx > 0) {

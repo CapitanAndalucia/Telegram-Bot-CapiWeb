@@ -558,20 +558,20 @@ export class ApiClientService {
         return this.request('/workouts/routines/', 'GET');
     }
 
-    getRoutine(id: number): Observable<any> {
-        return this.request(`/workouts/routines/${id}/`, 'GET');
+    getRoutine(idOrSlug: number | string): Observable<any> {
+        return this.request(`/workouts/routines/${idOrSlug}/`, 'GET');
     }
 
     createRoutine(data: any): Observable<any> {
         return this.request('/workouts/routines/', 'POST', { data });
     }
 
-    updateRoutine(id: number, data: any): Observable<any> {
-        return this.request(`/workouts/routines/${id}/`, 'PATCH', { data });
+    updateRoutine(idOrSlug: number | string, data: any): Observable<any> {
+        return this.request(`/workouts/routines/${idOrSlug}/`, 'PATCH', { data });
     }
 
-    deleteRoutine(id: number): Observable<any> {
-        return this.request(`/workouts/routines/${id}/`, 'DELETE');
+    deleteRoutine(idOrSlug: number | string): Observable<any> {
+        return this.request(`/workouts/routines/${idOrSlug}/`, 'DELETE');
     }
 
     // ---- Routine Days ---------------------------------------------------------
@@ -600,12 +600,12 @@ export class ApiClientService {
         return this.request(`/workouts/routine-exercises/${id}/`, 'DELETE');
     }
 
-    getRoutineExercise(id: number): Observable<any> {
-        return this.request(`/workouts/routine-exercises/${id}/`, 'GET');
+    getRoutineExercise(idOrSlug: number | string): Observable<any> {
+        return this.request(`/workouts/routine-exercises/${idOrSlug}/`, 'GET');
     }
 
-    getRoutineExerciseProgress(id: number): Observable<any> {
-        return this.request(`/workouts/routine-exercises/${id}/progress/`, 'GET');
+    getRoutineExerciseProgress(idOrSlug: number | string): Observable<any> {
+        return this.request(`/workouts/routine-exercises/${idOrSlug}/progress/`, 'GET');
     }
 
     /**

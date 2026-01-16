@@ -17,6 +17,9 @@ export interface Exercise {
 
 export interface RoutineExercise {
     id: number;
+    short_id: string;
+    slug: string;
+    url_slug: string;
     exercise: number;
     exercise_detail: Exercise;
     order: number;
@@ -31,7 +34,13 @@ export interface RoutineExercise {
     sets?: ExerciseSet[];
     day_label?: string;
     routine_id?: number;
+    routine_short_id?: string;
+    routine_slug?: string;
+    routine_url_slug?: string;
     routine_day_id?: number;
+    routine_day_short_id?: string;
+    routine_day_slug?: string;
+    routine_day_url_slug?: string;
     // Variant support
     variant_of?: number | null;
     is_active_variant?: boolean;
@@ -40,6 +49,9 @@ export interface RoutineExercise {
 
 export interface RoutineDay {
     id: number;
+    short_id: string;
+    slug: string;
+    url_slug: string;
     day_of_week: number;
     day_label: string;
     title?: string;
@@ -50,6 +62,9 @@ export interface RoutineDay {
 
 export interface Routine {
     id: number;
+    short_id: string;
+    slug: string;
+    url_slug: string;
     title: string;
     goal?: string;
     created_at: string;

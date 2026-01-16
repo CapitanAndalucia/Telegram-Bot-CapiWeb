@@ -12,6 +12,7 @@ interface DayOption {
     full: string;
     selected: boolean;
     routineDayId?: number; // For Edit Mode
+    routineDaySlug?: string; // For Edit Mode Navigation
 }
 
 export interface PendingRoutine {
@@ -30,6 +31,9 @@ export interface PendingRoutineDay {
 
 export interface PendingExercise {
     id?: number;
+    slug?: string;
+    url_slug?: string;
+    short_id?: string;
     name: string;
     sets: number;
     reps: number;
@@ -78,18 +82,18 @@ export class CreateRoutineComponent implements OnInit {
     showDeleteRoutineModal = signal<boolean>(false);
 
     ngOnInit(): void {
-        const idParam = this.route.snapshot.paramMap.get('id');
-        if (idParam) {
+        const slugParam = this.route.snapshot.paramMap.get('slug');
+        if (slugParam) {
             this.isEditMode.set(true);
-            this.editingRoutineId.set(parseInt(idParam));
-            this.loadRoutine(parseInt(idParam));
+            this.loadRoutine(slugParam);
         }
     }
 
-    loadRoutine(id: number): void {
-        this.api.getRoutine(id).subscribe({
+    loadRoutine(slugOrId: string | number): void {
+        this.api.getRoutine(slugOrId).subscribe({
             next: (data: Routine) => {
                 this.editingRoutine.set(data);
+                this.editingRoutineId.set(data.id);
                 this.routineName.set(data.title);
                 this.routineGoal.set(data.goal || '');
                 this.routineDescription.set(data.goal || ''); // Map Goal to Description for UI
@@ -107,7 +111,8 @@ export class CreateRoutineComponent implements OnInit {
                     return {
                         ...d,
                         selected: !!match,
-                        routineDayId: match?.id
+                        routineDayId: match?.id,
+                        routineDaySlug: match?.url_slug
                     };
                 });
                 this.days.set(updated);
@@ -163,9 +168,10 @@ export class CreateRoutineComponent implements OnInit {
     }
 
     goBack(): void {
-        if (this.isEditMode() && this.editingRoutineId()) {
+        const routine = this.editingRoutine();
+        if (this.isEditMode() && routine) {
             // Go back to the routine's weekly plan view
-            this.router.navigate(['/workouts/routine', this.editingRoutineId()]);
+            this.router.navigate(['/workouts/routine', routine.url_slug]);
         } else {
             this.router.navigate(['/workouts']);
         }
@@ -264,8 +270,9 @@ export class CreateRoutineComponent implements OnInit {
     }
 
     editDayDetails(day: DayOption): void {
-        if (this.isEditMode() && day.routineDayId && this.editingRoutineId()) {
-            this.router.navigate(['/workouts/routine', this.editingRoutineId(), 'day', day.routineDayId, 'edit']);
+        const routine = this.editingRoutine();
+        if (this.isEditMode() && day.routineDayId && routine && day.routineDaySlug) {
+            this.router.navigate(['/workouts/routine', routine.url_slug, 'day', day.routineDaySlug, 'edit']);
         }
     }
 
