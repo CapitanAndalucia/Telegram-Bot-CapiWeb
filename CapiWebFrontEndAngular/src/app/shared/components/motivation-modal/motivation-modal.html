@@ -1,0 +1,40 @@
+<div class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm transition-opacity duration-300"
+    *ngIf="state$ | async as state" [class.opacity-0]="!state.isOpen" [class.pointer-events-none]="!state.isOpen"
+    [class.opacity-100]="state.isOpen" [class.pointer-events-auto]="state.isOpen">
+
+    <div class="bg-gray-900 rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl transform transition-all duration-300 border border-gray-700/50"
+        *ngIf="state.image" [class.scale-95]="!state.isOpen" [class.scale-100]="state.isOpen">
+
+        <!-- Image -->
+        <div class="relative aspect-[4/5] w-full bg-gray-800">
+            <img [src]="state.image.image" [alt]="state.image.description"
+                class="object-cover w-full h-full animate-fade-in">
+            <div class="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/40 to-transparent"></div>
+
+            <!-- Description Overlay -->
+            <div class="absolute bottom-0 left-0 right-0 p-6 text-center">
+                <span
+                    class="inline-block px-3 py-1 mb-3 text-xs font-medium tracking-wider text-blue-300 uppercase bg-blue-900/30 rounded-full border border-blue-500/30 backdrop-blur-md">
+                    {{ state.image.group_display || 'Motivación' }}
+                </span>
+                <p class="text-white text-xl font-medium leading-relaxed drop-shadow-lg font-outfit">
+                    "{{ state.image.description }}"
+                </p>
+            </div>
+        </div>
+
+        <!-- Footer/Action -->
+        <div class="p-4 bg-gray-900 border-t border-gray-800">
+            <button (click)="close()"
+                class="w-full py-3.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold rounded-xl transition-all shadow-lg shadow-blue-900/30 active:scale-[0.98] flex items-center justify-center gap-2 group">
+                <span>Continuar</span>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 transition-transform group-hover:translate-x-1"
+                    viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd"
+                        d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z"
+                        clip-rule="evenodd" />
+                </svg>
+            </button>
+        </div>
+    </div>
+</div>

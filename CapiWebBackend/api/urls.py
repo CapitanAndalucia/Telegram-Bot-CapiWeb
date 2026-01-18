@@ -30,7 +30,10 @@ from .google_auth_views import (
 from social.views import FriendViewSet
 from transfers.views import FileTransferViewSet, FolderViewSet, ShareLinkViewSet
 from notifications.views import NotificationViewSet
-from workouts.views import RoutineViewSet, RoutineExerciseViewSet, ExerciseSetViewSet, ExerciseViewSet, RoutineDayViewSet
+from workouts.views import (
+    RoutineViewSet, RoutineExerciseViewSet, ExerciseSetViewSet, 
+    ExerciseViewSet, RoutineDayViewSet, MotivationalImageViewSet
+)
 
 router = DefaultRouter()
 router.register(r'tickets', TicketViewSet, basename='ticket')
@@ -48,6 +51,7 @@ router.register(r'workouts/routine-days', RoutineDayViewSet, basename='workout-r
 router.register(r'workouts/routine-exercises', RoutineExerciseViewSet, basename='workout-routine-exercise')
 router.register(r'workouts/sets', ExerciseSetViewSet, basename='workout-set')
 router.register(r'workouts/exercises', ExerciseViewSet, basename='workout-exercise')
+router.register(r'workouts/motivational-images', MotivationalImageViewSet, basename='motivational-image')
 
 
 urlpatterns = [

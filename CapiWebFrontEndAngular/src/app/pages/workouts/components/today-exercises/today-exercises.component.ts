@@ -4,6 +4,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { ApiClientService } from '../../../../services/api-client.service';
 import { NavigationHistoryService } from '../../../../services/navigation-history.service';
 import { Routine, RoutineDay, RoutineExercise } from '../../../../models/workouts';
+import { MotivationService } from '../../../../services/motivation';
 
 interface ExerciseGroup {
     parent: RoutineExercise;
@@ -29,6 +30,7 @@ export class TodayExercisesComponent implements OnInit, OnDestroy {
     private router = inject(Router);
     private route = inject(ActivatedRoute);
     private navHistory = inject(NavigationHistoryService);
+    private motivationService = inject(MotivationService);
 
     routineSlug = signal<string | null>(null);
     daySlug = signal<string | null>(null);
@@ -51,6 +53,7 @@ export class TodayExercisesComponent implements OnInit, OnDestroy {
     completedCount = signal<number>(0);
     totalCount = signal<number>(0);
     progressPercent = signal<number>(0);
+    private hasShownCompletionMotivation = false;
 
     ngOnInit(): void {
         const routineSlugParam = this.route.snapshot.paramMap.get('routineSlug');
@@ -158,7 +161,13 @@ export class TodayExercisesComponent implements OnInit, OnDestroy {
         const total = exercises.length;
         this.completedCount.set(completed);
         this.totalCount.set(total);
-        this.progressPercent.set(total > 0 ? Math.round((completed / total) * 100) : 0);
+        const progress = total > 0 ? Math.round((completed / total) * 100) : 0;
+        this.progressPercent.set(progress);
+
+        if (progress >= 50 && !this.hasShownCompletionMotivation) {
+            this.hasShownCompletionMotivation = true;
+            this.motivationService.checkRoutineCompletion();
+        }
     }
 
     toggleExercise(group: ExerciseGroup): void {

@@ -297,6 +297,7 @@ def check_auth_view(request):
         'user_id': user.id,
         'email': user.email,
         'is_staff': user.is_staff,
+        'is_superuser': user.is_superuser,
         'profile_picture_url': profile_picture_url,
         'has_google': has_google,
         'google_email': google_email,

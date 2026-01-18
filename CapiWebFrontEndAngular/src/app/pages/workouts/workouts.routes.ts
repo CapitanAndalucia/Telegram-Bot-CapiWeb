@@ -1,4 +1,5 @@
 import { Routes } from '@angular/router';
+import { superUserGuard } from '../../guards/superuser.guard';
 
 export const workoutRoutes: Routes = [
     {
@@ -56,6 +57,24 @@ export const workoutRoutes: Routes = [
         path: 'routine/:routineSlug/day/:daySlug/exercise/:exerciseSlug/edit',
         loadComponent: () => import('./components/add-exercise/add-exercise.component').then(m => m.AddExerciseComponent),
         data: { animation: 'AddExercise' }
+    },
+    {
+        path: 'motivation',
+        canActivate: [superUserGuard],
+        children: [
+            {
+                path: '',
+                loadComponent: () => import('./motivation-admin/motivation-admin.component').then(m => m.MotivationAdminComponent)
+            },
+            {
+                path: 'new',
+                loadComponent: () => import('./motivation-admin/motivation-form/motivation-form.component').then(m => m.MotivationFormComponent)
+            },
+            {
+                path: 'edit/:id',
+                loadComponent: () => import('./motivation-admin/motivation-form/motivation-form.component').then(m => m.MotivationFormComponent)
+            }
+        ]
     },
     {
         path: 'profile',

@@ -26,6 +26,7 @@ export class RoutinesListComponent implements OnInit {
     loading = signal<boolean>(true);
     error = signal<string | null>(null);
     selectedFilter = signal<string>('all');
+    isAdmin = signal<boolean>(false);
 
     // Filter options
     filters = [
@@ -44,6 +45,18 @@ export class RoutinesListComponent implements OnInit {
 
     ngOnInit(): void {
         this.loadRoutines();
+        this.checkAdminStatus();
+    }
+
+    async checkAdminStatus() {
+        try {
+            const user = await this.api.checkAuth();
+            if (user && user.is_superuser) {
+                this.isAdmin.set(true);
+            }
+        } catch (e) {
+            // Ignore
+        }
     }
 
     loadRoutines(): void {

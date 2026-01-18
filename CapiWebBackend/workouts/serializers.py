@@ -1,5 +1,8 @@
 from rest_framework import serializers
-from .models import Exercise, ExerciseMedia, Routine, RoutineDay, RoutineExercise, ExerciseSet
+from .models import (
+    Exercise, ExerciseMedia, Routine, RoutineDay, RoutineExercise, ExerciseSet,
+    MotivationalImage, UserMotivationHistory
+)
 
 
 class ExerciseMediaSerializer(serializers.ModelSerializer):
@@ -236,9 +239,42 @@ class RoutineExerciseDetailSerializer(serializers.ModelSerializer):
             "variants",
         ]
 
+class MotivationalImageSerializer(serializers.ModelSerializer):
+    """Serializer for motivational images with full details"""
+    group_display = serializers.CharField(source='get_group_display', read_only=True)
+    
+    class Meta:
+        model = MotivationalImage
+        fields = [
+            'id',
+            'image',
+            'description',
+            'group',
+            'group_display',
+            'created_at',
+            'updated_at',
+            'is_active',
+            'order',
+        ]
+        read_only_fields = ['created_at', 'updated_at']
 
 
-
+class MotivationalImageListSerializer(serializers.ModelSerializer):
+    """Lightweight serializer for list views"""
+    group_display = serializers.CharField(source='get_group_display', read_only=True)
+    
+    class Meta:
+        model = MotivationalImage
+        fields = [
+            'id',
+            'image',
+            'description',
+            'group',
+            'group_display',
+            'created_at',
+            'is_active',
+            'order',
+        ]
 
 
 

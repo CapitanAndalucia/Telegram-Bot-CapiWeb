@@ -387,7 +387,144 @@ class ExerciseViewSet(viewsets.ModelViewSet):
 
 
 
+class IsSuperUser(permissions.BasePermission):
+    """Permission class to restrict access to superusers only"""
+    def has_permission(self, request, view):
+        return request.user and request.user.is_superuser
 
 
-
+class MotivationalImageViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for managing motivational images.
+    - List, Create, Update, Delete: Admin only
+    - get_next: Get next image based on smart rotation
+    - mark_shown: Mark an image as shown for a user
+    """
+    permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+    
+    def get_queryset(self):
+        from .models import MotivationalImage
+        return MotivationalImage.objects.all().order_by('group', 'order', '-created_at')
+    
+    def get_serializer_class(self):
+        from .serializers import MotivationalImageSerializer, MotivationalImageListSerializer
+        if self.action == 'list':
+            return MotivationalImageListSerializer
+        return MotivationalImageSerializer
+    
+    def get_permissions(self):
+        """Admin endpoints require superuser, get_next/mark_shown require auth"""
+        if self.action in ['create', 'update', 'partial_update', 'destroy', 'list', 'retrieve']:
+            return [IsAuthenticated(), IsSuperUser()]
+        return [IsAuthenticated()]
+    
+    @action(detail=False, methods=['post'])
+    def get_next(self, request):
+        """
+        Get the next motivational image for a user based on smart rotation.
+        
+        Request body:
+        {
+            "group": "welcome" | "daily_first" | "routine_complete" | "user_return"
+        }
+        
+        Algorithm:
+        1. Get all active images for the group
+        2. Check user's history for this group
+        3. If cycle incomplete, return random unseen image
+        4. If cycle complete, reset and avoid showing last image immediately
+        """
+        import random
+        from .models import MotivationalImage, UserMotivationHistory
+        from .serializers import MotivationalImageSerializer
+        
+        group = request.data.get('group')
+        if not group:
+            return Response({'error': 'group is required'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Get all active images for this group
+        available_images = list(
+            MotivationalImage.objects.filter(group=group, is_active=True)
+                .order_by('order', '-created_at')
+        )
+        
+        if not available_images:
+            return Response({'message': 'No images available for this group'}, status=status.HTTP_404_NOT_FOUND)
+        
+        # Get or create user history for this group
+        history, created = UserMotivationHistory.objects.get_or_create(
+            user=request.user,
+            group=group,
+            defaults={'shown_images_cycle': [], 'cycle_count': 0}
+        )
+        
+        available_ids = [img.id for img in available_images]
+        shown_ids = history.shown_images_cycle or []
+        
+        # Case 1: First time or cycle incomplete - show unseen image
+        unseen_images = [img for img in available_images if img.id not in shown_ids]
+        
+        if unseen_images:
+            # Randomly select from unseen images
+            selected_image = random.choice(unseen_images)
+        else:
+            # Case 2: Cycle complete - reset and avoid last image
+            history.cycle_count += 1
+            history.shown_images_cycle = []
+            history.save()
+            
+            # Try to avoid showing the last image immediately
+            if history.last_image_shown and len(available_images) > 1:
+                candidate_images = [img for img in available_images if img.id != history.last_image_shown.id]
+                selected_image = random.choice(candidate_images) if candidate_images else available_images[0]
+            else:
+                selected_image = random.choice(available_images)
+        
+        # Return the selected image (don't mark as shown yet - that's done via mark_shown)
+        serializer = MotivationalImageSerializer(selected_image, context={'request': request})
+        return Response(serializer.data)
+    
+    @action(detail=False, methods=['post'])
+    def mark_shown(self, request):
+        """
+        Mark an image as shown for the user.
+        
+        Request body:
+        {
+            "image_id": 123,
+            "group": "welcome"
+        }
+        """
+        from .models import MotivationalImage, UserMotivationHistory
+        
+        image_id = request.data.get('image_id')
+        group = request.data.get('group')
+        
+        if not image_id or not group:
+            return Response(
+                {'error': 'image_id and group are required'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            image = MotivationalImage.objects.get(id=image_id, group=group)
+        except MotivationalImage.DoesNotExist:
+            return Response({'error': 'Image not found'}, status=status.HTTP_404_NOT_FOUND)
+        
+        # Update user history
+        history, created = UserMotivationHistory.objects.get_or_create(
+            user=request.user,
+            group=group,
+            defaults={'shown_images_cycle': [], 'cycle_count': 0}
+        )
+        
+        # Add to shown images if not already there
+        if image_id not in history.shown_images_cycle:
+            history.shown_images_cycle.append(image_id)
+        
+        history.last_image_shown = image
+        history.save()
+        
+        return Response({'message': 'Image marked as shown', 'cycle_count': history.cycle_count})
 

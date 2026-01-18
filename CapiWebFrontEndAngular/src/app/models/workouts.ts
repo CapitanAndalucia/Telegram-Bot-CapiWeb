@@ -98,3 +98,13 @@ export interface ExerciseProgressPoint {
 
 
 
+export interface MotivationalImage {
+    id: number;
+    image: string;
+    description: string;
+    group: 'welcome' | 'daily_first' | 'routine_complete' | 'user_return';
+    group_display?: string;
+    created_at: string;
+    is_active: boolean;
+    order: number;
+}

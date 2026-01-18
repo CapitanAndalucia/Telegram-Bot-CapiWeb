@@ -241,6 +241,65 @@ class ExerciseSet(models.Model):
         return f"Set {self.reps}x{self.weight}kg - {self.routine_exercise}"
 
 
+class MotivationalImage(models.Model):
+    """
+    Motivational images to display to users at specific moments.
+    """
+    GRUPO_CHOICES = [
+        ('welcome', 'Bienvenida del Usuario'),
+        ('daily_first', 'Primera Vez del Día'),
+        ('routine_complete', 'Finalización de la Rutina'),
+        ('user_return', 'Vuelta del Usuario'),
+    ]
+    
+    image = models.ImageField(upload_to='motivational/')
+    description = models.TextField(help_text="Descripción opcional de la imagen")
+    group = models.CharField(max_length=20, choices=GRUPO_CHOICES, db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    is_active = models.BooleanField(default=True, help_text="Desactivar temporalmente sin eliminar")
+    order = models.IntegerField(default=0, help_text="Orden manual (menor primero)")
+    
+    class Meta:
+        ordering = ['group', 'order', '-created_at']
+        indexes = [
+            models.Index(fields=['group', 'is_active']),
+        ]
+    
+    def __str__(self):
+        return f"{self.get_group_display()} - {self.description[:50]}"
 
 
+class UserMotivationHistory(models.Model):
+    """
+    Tracks which motivational images have been shown to each user
+    to implement smart rotation and avoid repetition.
+    """
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='motivation_history')
+    group = models.CharField(max_length=20, db_index=True)
+    last_image_shown = models.ForeignKey(
+        MotivationalImage, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        help_text="Última imagen mostrada para evitar repetición inmediata"
+    )
+    last_shown_at = models.DateTimeField(auto_now=True)
+    shown_images_cycle = models.JSONField(
+        default=list,
+        help_text="IDs de imágenes mostradas en el ciclo actual"
+    )
+    cycle_count = models.IntegerField(
+        default=0,
+        help_text="Número de ciclos completados"
+    )
+    
+    class Meta:
+        unique_together = [['user', 'group']]
+        indexes = [
+            models.Index(fields=['user', 'group']),
+        ]
+    
+    def __str__(self):
+        return f"{self.user.username} - {self.group}"
 

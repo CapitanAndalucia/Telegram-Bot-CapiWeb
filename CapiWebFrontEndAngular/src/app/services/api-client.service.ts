@@ -604,6 +604,37 @@ export class ApiClientService {
         return this.request(`/workouts/routine-exercises/${idOrSlug}/`, 'GET');
     }
 
+    // ---- Motivational Images ----------------------------------------------------
+    getMotivationalImages(): Observable<any[]> {
+        return this.request('/workouts/motivational-images/', 'GET');
+    }
+
+    createMotivationalImage(data: FormData): Observable<any> {
+        // Use request options to handle FormData correctly
+        return this.request('/workouts/motivational-images/', 'POST', { data });
+    }
+
+    updateMotivationalImage(id: number, data: any): Observable<any> {
+        // Can handle both JSON patch or FormData
+        return this.request(`/workouts/motivational-images/${id}/`, 'PATCH', { data });
+    }
+
+    deleteMotivationalImage(id: number): Observable<any> {
+        return this.request(`/workouts/motivational-images/${id}/`, 'DELETE');
+    }
+
+    getNextMotivationalImage(group: string): Observable<any> {
+        return this.request('/workouts/motivational-images/get_next/', 'POST', {
+            data: { group }
+        });
+    }
+
+    markMotivationalImageAsShown(imageId: number, group: string): Observable<any> {
+        return this.request('/workouts/motivational-images/mark_shown/', 'POST', {
+            data: { image_id: imageId, group }
+        });
+    }
+
     getRoutineExerciseProgress(idOrSlug: number | string): Observable<any> {
         return this.request(`/workouts/routine-exercises/${idOrSlug}/progress/`, 'GET');
     }
