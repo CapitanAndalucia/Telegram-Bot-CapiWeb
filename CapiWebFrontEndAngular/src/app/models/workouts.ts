@@ -55,6 +55,8 @@ export interface RoutineDay {
     day_of_week: number;
     day_label: string;
     title?: string;
+    image?: string;
+    image_url?: string;
     order: number;
     is_completed: boolean;
     routine_exercises: RoutineExercise[];
@@ -67,6 +69,8 @@ export interface Routine {
     url_slug: string;
     title: string;
     goal?: string;
+    image?: string;
+    image_url?: string;
     created_at: string;
     updated_at: string;
     days: RoutineDay[];

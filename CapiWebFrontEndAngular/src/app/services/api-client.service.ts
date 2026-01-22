@@ -698,6 +698,16 @@ export class ApiClientService {
     }
 
     // ---- Routine Day Images ---------------------------------------------------
+    uploadRoutineImage(routineIdOrSlug: number | string, imageFile: File): Observable<any> {
+        const formData = new FormData();
+        formData.append('image', imageFile);
+        return this.http.patch(
+            `${this.baseUrl}/workouts/routines/${routineIdOrSlug}/`,
+            formData,
+            { withCredentials: true }
+        ).pipe(catchError(this.handleError));
+    }
+
     uploadRoutineDayImage(dayId: number, imageFile: File): Observable<any> {
         const formData = new FormData();
         formData.append('image', imageFile);

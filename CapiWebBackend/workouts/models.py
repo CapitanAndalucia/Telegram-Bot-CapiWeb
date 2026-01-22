@@ -91,6 +91,7 @@ class Routine(models.Model):
     short_id = models.CharField(max_length=8, unique=True, blank=True)
     slug = models.SlugField(max_length=150, blank=True)
     goal = models.TextField(blank=True)
+    image = models.ImageField(upload_to="workouts/routines/", blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

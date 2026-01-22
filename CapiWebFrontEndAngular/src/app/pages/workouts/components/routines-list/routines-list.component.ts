@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal, computed, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { ApiClientService } from '../../../../services/api-client.service';
@@ -16,7 +16,8 @@ interface RoutineCategory {
     imports: [CommonModule],
     templateUrl: './routines-list.component.html',
     styleUrls: [],
-    styles: [`:host { display: block; }`]
+    styles: [`:host { display: block; }`],
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class RoutinesListComponent implements OnInit {
     private api = inject(ApiClientService);
@@ -82,7 +83,8 @@ export class RoutinesListComponent implements OnInit {
         this.selectedFilter.set(filterId);
     }
 
-    filteredRoutines(): Routine[] {
+    // Computed filtered routines - cached and only recalculated when dependencies change
+    filteredRoutines = computed(() => {
         const filter = this.selectedFilter();
         const allRoutines = this.routines();
 
@@ -92,13 +94,20 @@ export class RoutinesListComponent implements OnInit {
             const goal = routine.goal?.toLowerCase() || '';
             return goal.includes(filter);
         });
-    }
+    });
 
-    getRoutineImage(index: number): string {
-        return this.routineImages[index % this.routineImages.length];
-    }
+    // Cached category lookup - computed once when routines change
+    private routineCategoriesCache = computed(() => {
+        const map = new Map<number, RoutineCategory>();
+        this.routines().forEach(routine => {
+            if (routine.id) {
+                map.set(routine.id, this.computeRoutineCategory(routine));
+            }
+        });
+        return map;
+    });
 
-    getRoutineCategory(routine: Routine): RoutineCategory {
+    private computeRoutineCategory(routine: Routine): RoutineCategory {
         const goal = routine.goal?.toLowerCase() || '';
         if (goal.includes('strength') || goal.includes('bulking') || goal.includes('fuerza')) {
             return { name: 'Fuerza', icon: 'fitness_center', color: 'text-[#13ec6a]' };
@@ -108,6 +117,21 @@ export class RoutinesListComponent implements OnInit {
             return { name: 'Flexibilidad', icon: 'self_improvement', color: 'text-pink-400' };
         }
         return { name: 'Entrenamiento', icon: 'fitness_center', color: 'text-[#13ec6a]' };
+    }
+
+    // Returns custom image if available, otherwise fallback to default
+    getRoutineImage(routine: Routine, index: number): string {
+        return routine.image_url || this.routineImages[index % this.routineImages.length];
+    }
+
+    // Use cached category lookup - O(1) instead of recalculating each render
+    getRoutineCategory(routine: Routine): RoutineCategory {
+        if (!routine.id) return this.computeRoutineCategory(routine);
+        return this.routineCategoriesCache().get(routine.id) || this.computeRoutineCategory(routine);
+    }
+
+    trackByRoutineId(index: number, routine: Routine): number {
+        return routine.id || index;
     }
 
     getDaysPerWeek(routine: Routine): string {

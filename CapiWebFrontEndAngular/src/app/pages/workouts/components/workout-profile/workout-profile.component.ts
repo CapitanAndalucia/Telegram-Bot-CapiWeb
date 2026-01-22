@@ -1,4 +1,4 @@
-import { Component, inject, signal, computed } from '@angular/core';
+import { Component, inject, signal, computed, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule, Location } from '@angular/common';
 import { Router } from '@angular/router';
 import { ApiClientService } from '../../../../services/api-client.service';
@@ -8,12 +8,14 @@ import { ApiClientService } from '../../../../services/api-client.service';
     standalone: true,
     imports: [CommonModule],
     templateUrl: './workout-profile.component.html',
-    styleUrls: ['./workout-profile.component.css']
+    styleUrls: ['./workout-profile.component.css'],
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class WorkoutProfileComponent {
     private router = inject(Router);
     private location = inject(Location);
     private api = inject(ApiClientService);
+    private cdr = inject(ChangeDetectorRef);
 
     // User data signals
     user = signal<any>(null);
@@ -32,8 +34,7 @@ export class WorkoutProfileComponent {
 
     ngOnInit(): void {
         this.loadUserData();
-        this.loadStats();
-        this.loadPersonalRecords();
+        this.loadRoutineData(); // Single API call for stats + personal records
     }
 
     loadUserData(): void {
@@ -45,27 +46,27 @@ export class WorkoutProfileComponent {
                 this.user.set(userData);
             }
             this.loading.set(false);
+            this.cdr.markForCheck();
         }).catch((err: any) => {
             console.error('Error loading user:', err);
             this.loading.set(false);
+            this.cdr.markForCheck();
         });
     }
 
-    loadStats(): void {
-        // Load all routines to calculate total workouts and streak
+    // Combined method: Single API call for both stats and personal records
+    loadRoutineData(): void {
         this.api.listRoutines().subscribe({
             next: (response: any) => {
-                // Handle paginated or direct array response
                 const routines = Array.isArray(response) ? response : (response?.results || []);
 
+                // Calculate stats
                 let totalCompletedDays = 0;
                 let currentStreakDays = 0;
 
-                // Get the most recent routine for streak calculation
                 if (routines && routines.length > 0) {
-                    const latestRoutine = routines[0]; // Assuming sorted by recent
+                    const latestRoutine = routines[0];
 
-                    // Count completed days across all routines
                     routines.forEach((routine: any) => {
                         if (routine.days) {
                             routine.days.forEach((day: any) => {
@@ -76,45 +77,15 @@ export class WorkoutProfileComponent {
                         }
                     });
 
-                    // Streak calculation based on weekly completion
                     currentStreakDays = this.calculateStreak(latestRoutine);
                 }
 
                 this.totalWorkouts.set(totalCompletedDays);
                 this.currentStreak.set(currentStreakDays);
-            },
-            error: (err: any) => {
-                console.error('Error loading routines for stats:', err);
-            }
-        });
-    }
 
-    calculateStreak(routine: any): number {
-        // Simplified streak calculation
-        // In a full implementation, you would:
-        // 1. Get all exercise sets grouped by week
-        // 2. Check if each week met the required days
-        // 3. Count consecutive weeks that met the requirement
+                // Calculate personal records
+                const exerciseMaxWeights = new Map<string, { name: string; weight: number; icon: string }>();
 
-        if (!routine?.days) return 0;
-
-        const completedDaysThisWeek = routine.days.filter((d: any) => d.is_completed).length;
-        const requiredDays = routine.days.length;
-
-        // If user completed all required days this week, streak continues
-        // This is a placeholder - real logic would need historical data
-        return completedDaysThisWeek >= requiredDays ? completedDaysThisWeek : 0;
-    }
-
-    loadPersonalRecords(): void {
-        // Load all routines and their exercises to find max weights
-        this.api.listRoutines().subscribe({
-            next: (response: any) => {
-                // Handle paginated or direct array response
-                const routines = Array.isArray(response) ? response : (response?.results || []);
-                const exerciseMaxWeights: Map<string, { name: string; weight: number; icon: string }> = new Map();
-
-                // Iterate through all routines, days, and exercises
                 routines.forEach((routine: any) => {
                     if (routine.days) {
                         routine.days.forEach((day: any) => {
@@ -137,7 +108,6 @@ export class WorkoutProfileComponent {
                     }
                 });
 
-                // Convert to array and sort by weight descending, take top 3
                 const records = Array.from(exerciseMaxWeights.values())
                     .sort((a, b) => b.weight - a.weight)
                     .slice(0, 3)
@@ -147,17 +117,27 @@ export class WorkoutProfileComponent {
                         value: record.weight,
                         unit: 'kg',
                         icon: record.icon,
-                        hasChart: index === 2 // Last one gets the chart
+                        hasChart: index === 2
                     }));
 
                 this.personalRecords.set(records.length > 0 ? records : [
                     { id: 1, name: 'Sin datos', value: 0, unit: 'kg', icon: 'fitness_center' }
                 ]);
+
+                this.cdr.markForCheck();
             },
             error: (err: any) => {
-                console.error('Error loading personal records:', err);
+                console.error('Error loading routine data:', err);
+                this.cdr.markForCheck();
             }
         });
+    }
+
+    calculateStreak(routine: any): number {
+        if (!routine?.days) return 0;
+        const completedDaysThisWeek = routine.days.filter((d: any) => d.is_completed).length;
+        const requiredDays = routine.days.length;
+        return completedDaysThisWeek >= requiredDays ? completedDaysThisWeek : 0;
     }
 
     // Computed values

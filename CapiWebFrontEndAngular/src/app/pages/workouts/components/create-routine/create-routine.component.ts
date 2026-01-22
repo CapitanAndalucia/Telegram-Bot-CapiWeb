@@ -66,6 +66,11 @@ export class CreateRoutineComponent implements OnInit {
     saving = signal<boolean>(false);
     error = signal<string | null>(null);
 
+    // Image handling
+    routineImage = signal<File | null>(null);
+    routineImagePreview = signal<string | null>(null);
+    existingImageUrl = signal<string | null>(null);
+
     days = signal<DayOption[]>([
         { id: 0, short: 'Lun', full: 'Lunes', selected: false },
         { id: 1, short: 'Mar', full: 'Martes', selected: false },
@@ -97,6 +102,11 @@ export class CreateRoutineComponent implements OnInit {
                 this.routineName.set(data.title);
                 this.routineGoal.set(data.goal || '');
                 this.routineDescription.set(data.goal || ''); // Map Goal to Description for UI
+
+                // Load existing image if any
+                if (data.image_url) {
+                    this.existingImageUrl.set(data.image_url);
+                }
 
                 // Map Days
                 const currentDays = this.days();
@@ -218,8 +228,25 @@ export class CreateRoutineComponent implements OnInit {
             };
             this.api.updateRoutine(routineId, data).subscribe({
                 next: () => {
-                    this.saving.set(false);
-                    this.router.navigate(['/workouts']);
+                    // If there's a new image to upload, do it after the main update
+                    const imageFile = this.routineImage();
+                    if (imageFile) {
+                        this.api.uploadRoutineImage(routineId, imageFile).subscribe({
+                            next: () => {
+                                this.saving.set(false);
+                                this.router.navigate(['/workouts']);
+                            },
+                            error: (err) => {
+                                this.saving.set(false);
+                                console.error('Error uploading image', err);
+                                // Still navigate even if image failed
+                                this.router.navigate(['/workouts']);
+                            }
+                        });
+                    } else {
+                        this.saving.set(false);
+                        this.router.navigate(['/workouts']);
+                    }
                 },
                 error: (err) => {
                     this.saving.set(false);
@@ -284,5 +311,36 @@ export class CreateRoutineComponent implements OnInit {
     updateDescription(event: Event): void {
         const textarea = event.target as HTMLTextAreaElement;
         this.routineDescription.set(textarea.value);
+    }
+
+    // Image handling
+    onImageSelected(event: Event): void {
+        const input = event.target as HTMLInputElement;
+        if (input.files && input.files[0]) {
+            const file = input.files[0];
+            this.routineImage.set(file);
+
+            // Create preview URL
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                this.routineImagePreview.set(e.target?.result as string);
+            };
+            reader.readAsDataURL(file);
+        }
+    }
+
+    removeImage(): void {
+        this.routineImage.set(null);
+        this.routineImagePreview.set(null);
+        this.existingImageUrl.set(null);
+    }
+
+    getCurrentImageUrl(): string | null {
+        return this.routineImagePreview() || this.existingImageUrl();
+    }
+
+    triggerImageUpload(): void {
+        const input = document.getElementById('routine-image-input') as HTMLInputElement;
+        input?.click();
     }
 }

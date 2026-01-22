@@ -129,11 +129,23 @@ class RoutineDaySerializer(serializers.ModelSerializer):
 class RoutineSerializer(serializers.ModelSerializer):
     days = RoutineDaySerializer(many=True, required=False)
     url_slug = serializers.CharField(read_only=True)
+    image_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Routine
-        fields = ["id", "short_id", "slug", "url_slug", "title", "goal", "created_at", "updated_at", "days"]
+        fields = ["id", "short_id", "slug", "url_slug", "title", "goal", "image", "image_url", "created_at", "updated_at", "days"]
         read_only_fields = ["created_at", "updated_at", "slug", "short_id"]
+        extra_kwargs = {
+            'image': {'write_only': True, 'required': False}
+        }
+
+    def get_image_url(self, obj):
+        if obj.image:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.image.url)
+            return obj.image.url
+        return None
 
     def create(self, validated_data):
         days_data = validated_data.pop("days", [])

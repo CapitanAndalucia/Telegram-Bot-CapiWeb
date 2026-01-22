@@ -1,21 +1,26 @@
 <section class="bg-white border border-gray-200 rounded-2xl p-4">
   <h2 class="m-0 mb-2 font-bold text-lg">Semana</h2>
   <div class="grid grid-cols-[repeat(auto-fit,minmax(120px,1fr))] gap-3">
+    @for (dayNumber of daysOrder; track dayNumber) {
+    @let day = getDay(dayNumber);
     <div
-      class="rounded-2xl p-3 cursor-pointer border border-transparent transition-all duration-100 hover:-translate-y-0.5 hover:border-cyan-400 bg-[#0b1224] text-white"
-      *ngFor="let dayNumber of daysOrder" [ngClass]="{
-        'bg-slate-100 text-slate-900': !findDay(dayNumber),
-        'border-emerald-500 shadow-[0_0_0_1px_rgba(16,185,129,0.2)]': findDay(dayNumber)?.is_completed
-      }" (click)="handleSelect(findDay(dayNumber))">
+      class="rounded-2xl p-3 cursor-pointer border border-transparent transition-all duration-100 hover:-translate-y-0.5 hover:border-cyan-400"
+      [ngClass]="{
+          'bg-[#0b1224] text-white': day,
+          'bg-slate-100 text-slate-900': !day,
+          'border-emerald-500 shadow-[0_0_0_1px_rgba(16,185,129,0.2)]': day?.is_completed
+        }" (click)="handleSelect(day)">
       <div class="flex justify-between items-center font-bold">
-        {{ findDay(dayNumber)?.day_label || 'Sin asignar' }}
-        <span class="bg-emerald-500 text-white rounded-full px-2 py-0.5 text-xs"
-          *ngIf="findDay(dayNumber)?.is_completed">✓</span>
+        {{ day?.day_label || 'Sin asignar' }}
+        @if (day?.is_completed) {
+        <span class="bg-emerald-500 text-white rounded-full px-2 py-0.5 text-xs">✓</span>
+        }
       </div>
-      <p class="mt-1 mb-1.5 text-sm">{{ findDay(dayNumber)?.title || 'Añade ejercicios' }}</p>
-      <small *ngIf="findDay(dayNumber)?.routine_exercises" class="opacity-80">
-        {{ findDay(dayNumber)?.routine_exercises?.length || 0 }} ejercicios
-      </small>
+      <p class="mt-1 mb-1.5 text-sm">{{ day?.title || 'Añade ejercicios' }}</p>
+      @if (day?.routine_exercises) {
+      <small class="opacity-80">{{ day?.routine_exercises?.length || 0 }} ejercicios</small>
+      }
     </div>
+    }
   </div>
 </section>

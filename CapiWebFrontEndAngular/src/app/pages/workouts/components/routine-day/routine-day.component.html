@@ -12,27 +12,32 @@
   </div>
 
   <div class="flex flex-col gap-3 mt-4">
+    @for (item of day.routine_exercises; track item.id || $index) {
     <article
       class="grid grid-cols-[auto_1fr_auto] items-center gap-3 p-3 border border-gray-200 rounded-2xl cursor-pointer bg-slate-50 hover:bg-slate-100 transition-colors"
-      *ngFor="let item of day.routine_exercises" (click)="handleOpen(item)">
+      (click)="handleOpen(item)">
       <div class="size-14 rounded-xl overflow-hidden bg-slate-900 flex items-center justify-center shrink-0">
-        <ng-container *ngIf="item?.exercise_detail?.media?.[0] as media">
-          <img [src]="media.file" alt="preview" class="w-full h-full object-cover" />
-        </ng-container>
-        <div class="text-[#13ec6a] flex items-center justify-center" *ngIf="!item?.exercise_detail?.media?.length">
+        @if (item?.exercise_detail?.media?.[0]; as media) {
+        <img [src]="media.file" alt="preview" class="w-full h-full object-cover" />
+        } @else {
+        <div class="text-[#13ec6a] flex items-center justify-center">
           @if (item.icon && item.icon.includes('/')) {
           <img [src]="item.icon" class="w-8 h-8 object-contain filter-green">
           } @else {
           <span class="material-symbols-outlined" style="font-size: 28px;">{{ item.icon || 'fitness_center' }}</span>
           }
         </div>
+        }
       </div>
       <div class="min-w-0">
         <p class="font-bold m-0 truncate">{{ item?.custom_name || item?.exercise_detail?.name || 'Ejercicio sin nombre'
           }}</p>
-        <small class="text-gray-500" *ngIf="item">{{ item.target_sets }} x {{ item.target_reps }} reps</small>
+        @if (item) {
+        <small class="text-gray-500">{{ item.target_sets }} x {{ item.target_reps }} reps</small>
+        }
       </div>
       <div class="text-2xl text-slate-400">›</div>
     </article>
+    }
   </div>
 </section>

@@ -41,7 +41,7 @@
             (click)="openRoutine(routine)">
             <!-- Background Image -->
             <div class="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110"
-                [style.background-image]="'url(' + getRoutineImage(i) + ')'">
+                [style.background-image]="'url(' + getRoutineImage(routine, i) + ')'">
             </div>
             <!-- Gradient Overlay -->
             <div class="absolute inset-0 bg-gradient-to-t from-[#102217] via-[#102217]/40 to-transparent opacity-90">

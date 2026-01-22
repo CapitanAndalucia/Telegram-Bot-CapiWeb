@@ -39,6 +39,7 @@ class IsRoutineOwner(permissions.BasePermission):
 class RoutineViewSet(viewsets.ModelViewSet):
     serializer_class = RoutineSerializer
     permission_classes = [IsAuthenticated, IsRoutineOwner]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
 
     def get_queryset(self):
         return Routine.objects.filter(user=self.request.user).prefetch_related(
