@@ -2,6 +2,7 @@ import { Component, OnInit, inject, signal, computed, ChangeDetectionStrategy } 
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { ApiClientService } from '../../../../services/api-client.service';
+import { MotivationService } from '../../../../services/motivation';
 import { Routine } from '../../../../models/workouts';
 
 interface RoutineCategory {
@@ -22,6 +23,7 @@ interface RoutineCategory {
 export class RoutinesListComponent implements OnInit {
     private api = inject(ApiClientService);
     private router = inject(Router);
+    private motivationService = inject(MotivationService);
 
     routines = signal<Routine[]>([]);
     loading = signal<boolean>(true);
@@ -47,6 +49,8 @@ export class RoutinesListComponent implements OnInit {
     ngOnInit(): void {
         this.loadRoutines();
         this.checkAdminStatus();
+        // Check for motivation opportunities (Welcome / User Return / Daily)
+        this.motivationService.checkAppStartConditions();
     }
 
     async checkAdminStatus() {

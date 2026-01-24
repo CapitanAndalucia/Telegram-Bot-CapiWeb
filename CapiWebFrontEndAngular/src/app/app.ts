@@ -17,8 +17,7 @@ export class App implements OnInit {
   private motivationService = inject(MotivationService);
 
   ngOnInit() {
-    // Check for motivation opportunities (Welcome / User Return / Daily)
-    this.motivationService.checkAppStartConditions();
+    // Motivation checks are now handled by the Workouts module directly
   }
 
   prepareRoute(outlet: RouterOutlet) {

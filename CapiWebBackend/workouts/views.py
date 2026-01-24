@@ -451,7 +451,7 @@ class MotivationalImageViewSet(viewsets.ModelViewSet):
         )
         
         if not available_images:
-            return Response({'message': 'No images available for this group'}, status=status.HTTP_404_NOT_FOUND)
+            return Response(status=status.HTTP_204_NO_CONTENT)
         
         # Get or create user history for this group
         history, created = UserMotivationHistory.objects.get_or_create(

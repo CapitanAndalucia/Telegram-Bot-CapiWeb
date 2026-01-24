@@ -23,6 +23,14 @@ export class MotivationService {
    * Checks conditions and triggers modal if appropriate.
    */
   async checkAppStartConditions(): Promise<void> {
+    // First, verify user is authenticated before calling protected endpoints
+    try {
+      await this.apiClient.checkAuth();
+    } catch {
+      // User not authenticated, skip motivation checks silently
+      return;
+    }
+
     // 1. Check Welcome (First time ever)
     const welcomeShown = localStorage.getItem(this.KEYS.WELCOME_SHOWN);
     if (!welcomeShown) {
@@ -94,8 +102,8 @@ export class MotivationService {
         this.modalState.next({ isOpen: true, image: response });
         return true;
       }
-    } catch (error) {
-      console.warn(`No motivation found for group ${group} or error fetching`, error);
+    } catch {
+      // No images available for this group - silently ignore
     }
     return false;
   }
