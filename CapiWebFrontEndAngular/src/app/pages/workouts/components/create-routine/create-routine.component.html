@@ -47,44 +47,6 @@
                 </div>
             </div>
 
-            <!-- Routine Image (moved here for better visibility) -->
-            <div class="flex flex-col gap-3">
-                <label class="text-base font-medium leading-normal ml-1">
-                    Imagen de la rutina <span class="text-[#9cacba] font-normal text-sm ml-1">(Opcional)</span>
-                </label>
-                <input type="file" id="routine-image-input" accept="image/*" (change)="onImageSelected($event)"
-                    class="hidden" />
-
-                @if (getCurrentImageUrl()) {
-                <!-- Image Preview -->
-                <div class="relative w-full h-40 rounded-2xl overflow-hidden border border-[#3d5a4c]">
-                    <img [src]="getCurrentImageUrl()" alt="Preview" class="w-full h-full object-cover" />
-                    <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
-                    <div class="absolute bottom-3 right-3 flex gap-2">
-                        <button (click)="triggerImageUpload()" type="button"
-                            class="flex items-center gap-2 px-4 py-2 rounded-full bg-white/20 backdrop-blur-sm text-white text-sm font-medium hover:bg-white/30 transition-colors">
-                            <span class="material-symbols-outlined" style="font-size: 18px;">edit</span>
-                            Cambiar
-                        </button>
-                        <button (click)="removeImage()" type="button"
-                            class="flex items-center justify-center w-10 h-10 rounded-full bg-red-500/80 text-white hover:bg-red-500 transition-colors">
-                            <span class="material-symbols-outlined" style="font-size: 20px;">delete</span>
-                        </button>
-                    </div>
-                </div>
-                } @else {
-                <!-- Upload Button -->
-                <button (click)="triggerImageUpload()" type="button"
-                    class="flex flex-col items-center justify-center w-full h-32 rounded-2xl border-2 border-dashed border-[#3d5a4c] bg-[#1d3627]/50 hover:border-[#13ec6a] hover:bg-[#1d3627] transition-all cursor-pointer group">
-                    <span
-                        class="material-symbols-outlined text-[#9cacba] group-hover:text-[#13ec6a] transition-colors mb-2"
-                        style="font-size: 36px;">add_photo_alternate</span>
-                    <span class="text-[#9cacba] group-hover:text-white transition-colors font-medium">Añadir
-                        imagen</span>
-                </button>
-                }
-            </div>
-
             <!-- Day Selection -->
             <div class="flex flex-col gap-4">
                 <label class="text-base font-medium leading-normal ml-1">Selecciona los días de entrenamiento</label>
@@ -119,6 +81,45 @@
                 }
             </div>
 
+            <!-- Routine Image -->
+            <div class="flex flex-col gap-3">
+                <label class="text-base font-medium leading-normal ml-1">
+                    Imagen de la rutina <span class="text-[#9cacba] font-normal text-sm ml-1">(Opcional)</span>
+                </label>
+                <input type="file" id="routine-image-input" accept="image/*" (change)="onImageSelected($event)"
+                    class="hidden" />
+
+                @if (getCurrentImageUrl()) {
+                <!-- Image Preview -->
+                <div class="relative w-full h-48 rounded-2xl overflow-hidden border border-[#3d5a4c]">
+                    <img [src]="getCurrentImageUrl()" alt="Preview" class="w-full h-full object-cover" />
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
+                    <div class="absolute bottom-3 right-3 flex gap-2">
+                        <button (click)="triggerImageUpload()" type="button"
+                            class="flex items-center gap-2 px-4 py-2 rounded-full bg-white/20 backdrop-blur-sm text-white text-sm font-medium hover:bg-white/30 transition-colors">
+                            <span class="material-symbols-outlined" style="font-size: 18px;">edit</span>
+                            Cambiar
+                        </button>
+                        <button (click)="removeImage()" type="button"
+                            class="flex items-center justify-center w-10 h-10 rounded-full bg-red-500/80 text-white hover:bg-red-500 transition-colors">
+                            <span class="material-symbols-outlined" style="font-size: 20px;">delete</span>
+                        </button>
+                    </div>
+                </div>
+                } @else {
+                <!-- Upload Button -->
+                <button (click)="triggerImageUpload()" type="button"
+                    class="flex flex-col items-center justify-center w-full h-40 rounded-2xl border-2 border-dashed border-[#3d5a4c] bg-[#1d3627]/50 hover:border-[#13ec6a] hover:bg-[#1d3627] transition-all cursor-pointer group">
+                    <span
+                        class="material-symbols-outlined text-[#9cacba] group-hover:text-[#13ec6a] transition-colors mb-2"
+                        style="font-size: 40px;">add_photo_alternate</span>
+                    <span class="text-[#9cacba] group-hover:text-white transition-colors font-medium">Añadir
+                        imagen</span>
+                    <span class="text-xs text-[#9cacba]/70 mt-1">Toca para seleccionar</span>
+                </button>
+                }
+            </div>
+
             <!-- Description -->
             <div class="flex flex-col gap-3">
                 <label class="text-base font-medium leading-normal ml-1" for="routine-desc">
@@ -126,7 +127,7 @@
                 </label>
                 <textarea id="routine-desc" [value]="routineDescription()" (input)="updateDescription($event)"
                     placeholder="Describe brevemente tus objetivos..."
-                    class="flex w-full min-h-[100px] resize-none rounded-3xl border border-[#3d5a4c] bg-[#1d3627] p-6 text-base font-normal text-white placeholder:text-[#9cacba] focus:border-[#13ec6a] focus:ring-1 focus:ring-[#13ec6a] focus:outline-none transition-all">
+                    class="flex w-full min-h-[120px] resize-none rounded-3xl border border-[#3d5a4c] bg-[#1d3627] p-6 text-base font-normal text-white placeholder:text-[#9cacba] focus:border-[#13ec6a] focus:ring-1 focus:ring-[#13ec6a] focus:outline-none transition-all">
                 </textarea>
             </div>
         </div>

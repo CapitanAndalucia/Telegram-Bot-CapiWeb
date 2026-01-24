@@ -77,6 +77,9 @@ class RoutineExerciseSerializer(serializers.ModelSerializer):
             "is_active_variant",
             "variants",
         ]
+        extra_kwargs = {
+            'routine_day': {'read_only': True}  # Assigned in create(), not from request
+        }
 
 
 class RoutineDaySerializer(serializers.ModelSerializer):
@@ -103,7 +106,8 @@ class RoutineDaySerializer(serializers.ModelSerializer):
             "routine_exercises",
         ]
         extra_kwargs = {
-            'image': {'write_only': True, 'required': False}
+            'image': {'write_only': True, 'required': False},
+            'routine': {'read_only': True}  # Assigned in create(), not from request
         }
 
     def get_image_url(self, obj):

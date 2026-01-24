@@ -235,6 +235,14 @@ export class AddExerciseComponent implements OnInit {
     returnUrl = signal<string | null>(null);
 
     ngOnInit(): void {
+        // Preload image icons to ensure instant display in picker
+        this.iconOptions.forEach(icon => {
+            if (icon.includes('/') || icon.includes('.')) {
+                const img = new Image();
+                img.src = icon;
+            }
+        });
+
         this.route.paramMap.subscribe(params => {
             const routineSlug = params.get('routineSlug');
             const daySlug = params.get('daySlug');
