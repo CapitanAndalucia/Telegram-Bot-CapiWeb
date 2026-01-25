@@ -207,16 +207,24 @@ export class WeeklyPlanComponent implements OnInit {
     }
 
     getExerciseType(exercise: RoutineExercise): string {
+        // Check cardio flag first
+        if (exercise.is_cardio) {
+            return 'Cardio';
+        }
         const name = exercise.exercise_detail?.name?.toLowerCase() || '';
         if (name.includes('squat') || name.includes('deadlift') || name.includes('press') || name.includes('bench')) {
             return 'Compound';
         } else if (name.includes('dips') || name.includes('pull up') || name.includes('push')) {
             return 'Bodyweight';
         }
-        return 'Isolation';
+        return 'Fuerza';
     }
 
     getExerciseIcon(exercise: RoutineExercise): string {
+        // Check cardio flag first
+        if (exercise.is_cardio) {
+            return 'directions_run';
+        }
         const name = exercise.exercise_detail?.name?.toLowerCase() || '';
         if (name.includes('dips') || name.includes('pull')) return 'accessibility_new';
         if (name.includes('cable')) return 'cable';

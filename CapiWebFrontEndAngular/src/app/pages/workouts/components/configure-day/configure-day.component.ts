@@ -130,7 +130,12 @@ export class ConfigureDayComponent implements OnInit {
                         sets: ex.target_sets,
                         reps: ex.target_reps,
                         weight: ex.target_weight,
-                        notes: ex.note
+                        notes: ex.note,
+                        // Cardio fields
+                        isCardio: ex.is_cardio,
+                        duration: ex.target_duration_minutes,
+                        distance: ex.target_distance_km,
+                        resistance: ex.target_resistance
                     }));
                     this.exercises.set(mapped);
                     // Image TODO: Need to fetch or show existing image. 
@@ -334,11 +339,17 @@ export class ConfigureDayComponent implements OnInit {
                         target_reps: ex.reps,
                         target_weight: ex.weight,
                         rest_seconds: 60,
-                        note: ex.notes || ''
+                        note: ex.notes || '',
+                        // Cardio fields
+                        is_cardio: ex.isCardio || false,
+                        target_duration_minutes: ex.duration || 0,
+                        target_distance_km: ex.distance || 0,
+                        target_resistance: ex.resistance || 0
                     }))
             }))
         };
 
+        console.log('Creating routine with data:', JSON.stringify(routineData, null, 2));
         this.api.createRoutine(routineData).subscribe({
             next: (createdRoutine) => {
                 // Clear session storage

@@ -120,9 +120,15 @@
                                 <span class="px-2 py-0.5 rounded-md bg-white/10 text-xs font-medium text-gray-300">
                                     {{ getExerciseType(version) }}
                                 </span>
+                                @if (version.is_cardio) {
+                                <p class="text-[#13ec6a]/70 text-sm font-medium">
+                                    {{ version.target_duration_minutes }} min • {{ version.target_distance_km }} km
+                                </p>
+                                } @else {
                                 <p class="text-[#13ec6a]/70 text-sm font-medium">
                                     {{ version.target_sets }} series • {{ version.target_reps }} reps
                                 </p>
+                                }
                             </div>
                         </div>
                     </div>

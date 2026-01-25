@@ -45,6 +45,11 @@ export interface RoutineExercise {
     variant_of?: number | null;
     is_active_variant?: boolean;
     variants?: RoutineExercise[];
+    // Cardio support
+    is_cardio?: boolean;
+    target_duration_minutes?: number;
+    target_distance_km?: number;
+    target_resistance?: number;
 }
 
 export interface RoutineDay {

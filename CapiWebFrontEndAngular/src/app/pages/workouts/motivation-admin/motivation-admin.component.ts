@@ -13,7 +13,7 @@ import { firstValueFrom } from 'rxjs';
     <div class="fixed inset-0 w-full flex flex-col overflow-hidden bg-[#102217] font-workout text-white antialiased">
     <!-- Header -->
       <header class="shrink-0 z-40 bg-[#102217]/90 backdrop-blur-md border-b border-white/5 px-6 py-4 flex items-center gap-4">
-        <a routerLink="/workouts" class="flex items-center justify-center w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 text-white transition-colors">
+        <a routerLink="/workouts/admin" class="flex items-center justify-center w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 text-white transition-colors">
             <span class="material-symbols-outlined">arrow_back</span>
         </a>
         <h1 class="text-2xl font-bold tracking-tight">Admin Motivación</h1>
@@ -96,10 +96,10 @@ import { firstValueFrom } from 'rxjs';
                     <span class="material-symbols-outlined" style="font-size: 26px;">fitness_center</span>
                     <span class="text-[10px] font-medium">Rutinas</span>
                 </a>
-                 <button class="flex flex-col items-center justify-center w-16 h-full gap-1 text-[#13ec6a]">
+                 <a routerLink="/workouts/admin" class="flex flex-col items-center justify-center w-16 h-full gap-1 text-[#13ec6a]">
                     <span class="material-symbols-outlined" style="font-size: 26px;">admin_panel_settings</span>
                     <span class="text-[10px] font-bold">Admin</span>
-                </button>
+                </a>
                 <button
                     class="flex flex-col items-center justify-center w-16 h-full gap-1 text-gray-500 hover:text-gray-300">
                     <span class="material-symbols-outlined" style="font-size: 26px;">monitoring</span>
@@ -131,8 +131,10 @@ export class MotivationAdminComponent implements OnInit {
   async loadImages() {
     this.loading.set(true);
     try {
-      const data = await firstValueFrom(this.api.getMotivationalImages()) as MotivationalImage[];
-      this.images.set(data);
+      const response: any = await firstValueFrom(this.api.getMotivationalImages());
+      // Handle pagination (results array) or direct array
+      const data = Array.isArray(response) ? response : (response.results || []);
+      this.images.set(data as MotivationalImage[]);
     } catch (e) {
       console.error('Error loading images', e);
     } finally {

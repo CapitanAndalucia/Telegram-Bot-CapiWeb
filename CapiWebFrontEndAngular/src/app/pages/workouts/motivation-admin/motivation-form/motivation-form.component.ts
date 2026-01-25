@@ -13,7 +13,7 @@ import { firstValueFrom } from 'rxjs';
     <div class="fixed inset-0 w-full flex flex-col overflow-hidden bg-[#102217] font-workout text-white antialiased">
       <!-- Header -->
       <header class="shrink-0 z-40 bg-[#102217]/90 backdrop-blur-md border-b border-white/5 px-6 py-4 flex items-center gap-4">
-        <a routerLink="/workouts/motivation" class="flex items-center justify-center w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 text-white transition-colors">
+        <a routerLink="/workouts/admin/motivation" class="flex items-center justify-center w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 text-white transition-colors">
             <span class="material-symbols-outlined">arrow_back</span>
         </a>
         <h1 class="text-2xl font-bold tracking-tight">{{ isEditing() ? 'Editar' : 'Nueva' }} Motivación</h1>
@@ -117,7 +117,7 @@ import { firstValueFrom } from 'rxjs';
 
                 <!-- Action Buttons -->
                 <div class="pt-4 flex justify-end gap-3 pb-20">
-                    <a routerLink="/workouts/motivation" class="px-6 py-3.5 rounded-full border border-white/10 text-gray-300 hover:bg-white/5 hover:text-white transition-colors font-bold text-sm">
+                    <a routerLink="/workouts/admin/motivation" class="px-6 py-3.5 rounded-full border border-white/10 text-gray-300 hover:bg-white/5 hover:text-white transition-colors font-bold text-sm">
                         Cancelar
                     </a>
                     <button type="submit" [disabled]="form.invalid || submitting()" class="px-8 py-3.5 bg-[#13ec6a] hover:bg-[#0fb650] text-[#102217] rounded-full font-bold text-sm shadow-[0_0_20px_rgba(19,236,106,0.3)] disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none transition-all transform active:scale-95">
@@ -195,7 +195,7 @@ export class MotivationFormComponent implements OnInit {
             }
         } catch (e) {
             console.error(e);
-            this.router.navigate(['/workouts/motivation']);
+            this.router.navigate(['/workouts/admin/motivation']);
         }
     }
 
@@ -231,7 +231,7 @@ export class MotivationFormComponent implements OnInit {
                 await firstValueFrom(this.api.createMotivationalImage(formData));
             }
 
-            this.router.navigate(['/workouts/motivation']);
+            this.router.navigate(['/workouts/admin/motivation']);
         } catch (e) {
             console.error(e);
             alert('Error saving motivation');

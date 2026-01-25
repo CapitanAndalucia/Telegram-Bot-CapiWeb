@@ -59,20 +59,33 @@ export const workoutRoutes: Routes = [
         data: { animation: 'AddExercise' }
     },
     {
-        path: 'motivation',
+        path: 'admin',
         canActivate: [superUserGuard],
         children: [
             {
                 path: '',
-                loadComponent: () => import('./motivation-admin/motivation-admin.component').then(m => m.MotivationAdminComponent)
+                loadComponent: () => import('./workout-admin-dashboard/workout-admin-dashboard.component').then(m => m.WorkoutAdminDashboardComponent)
             },
             {
-                path: 'new',
-                loadComponent: () => import('./motivation-admin/motivation-form/motivation-form.component').then(m => m.MotivationFormComponent)
+                path: 'motivation',
+                children: [
+                    {
+                        path: '',
+                        loadComponent: () => import('./motivation-admin/motivation-admin.component').then(m => m.MotivationAdminComponent)
+                    },
+                    {
+                        path: 'new',
+                        loadComponent: () => import('./motivation-admin/motivation-form/motivation-form.component').then(m => m.MotivationFormComponent)
+                    },
+                    {
+                        path: 'edit/:id',
+                        loadComponent: () => import('./motivation-admin/motivation-form/motivation-form.component').then(m => m.MotivationFormComponent)
+                    }
+                ]
             },
             {
-                path: 'edit/:id',
-                loadComponent: () => import('./motivation-admin/motivation-form/motivation-form.component').then(m => m.MotivationFormComponent)
+                path: 'exercises',
+                loadComponent: () => import('./components/exercises-admin/exercises-admin.component').then(m => m.ExercisesAdminComponent)
             }
         ]
     },

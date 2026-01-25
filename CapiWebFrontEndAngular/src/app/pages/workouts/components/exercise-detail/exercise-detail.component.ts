@@ -56,6 +56,8 @@ export class ExerciseDetailComponent implements OnInit {
     targetReps = signal<string>('8-10');
     targetWeight = signal<number>(0);
     currentMaxWeight = signal<number>(0);
+    lastCardioDistance = signal<number>(0);
+    lastCardioDuration = signal<number>(0);
     progressPercent = signal<number>(0);
 
     // History items
@@ -68,6 +70,7 @@ export class ExerciseDetailComponent implements OnInit {
     // --- Modals State ---
     showTargetModal = signal<boolean>(false);
     showLogModal = signal<boolean>(false);
+    showTipModal = signal<boolean>(false);
 
     // --- Editing State (Name) ---
     isEditing = signal<boolean>(false);
@@ -75,16 +78,25 @@ export class ExerciseDetailComponent implements OnInit {
     editName = signal<string>('');
 
     // --- Inputs for Modals ---
-    // Target Edit
+    // Target Edit - Strength
     newTargetSets = signal<number>(0);
     newTargetReps = signal<string>('');
     newTargetWeight = signal<number>(0);
+    // Target Edit - Cardio
+    newTargetDuration = signal<number>(0);
+    newTargetDistance = signal<number>(0);
+    newTargetResistance = signal<number>(0);
 
-    // Log Set
+
+    // Log Set - Strength
     logWeight = signal<number>(0);
     logReps = signal<number>(0);
     logSets = signal<number>(1);
     logRir = signal<number | null>(null);
+    // Log Set - Cardio
+    logDuration = signal<number>(0);
+    logDistance = signal<number>(0);
+    logResistance = signal<number>(0);
 
     // --- Variant State ---
     variants = signal<any[]>([]);
@@ -237,6 +249,8 @@ export class ExerciseDetailComponent implements OnInit {
     // Chart data computed from history
     weightChartData = computed<ChartConfiguration['data']>(() => {
         const history = this.recentHistory();
+        const isCardio = this.exercise()?.is_cardio || false;
+
         if (history.length === 0) {
             return { labels: [], datasets: [] };
         }
@@ -246,43 +260,92 @@ export class ExerciseDetailComponent implements OnInit {
             new Date(a.date).getTime() - new Date(b.date).getTime()
         );
 
-        // Extract labels and data
+        // Extract labels
         const labels = sorted.map(item => this.formatChartDate(item.date));
-        const weights = sorted.map(item => item.weight);
 
-        return {
-            labels,
-            datasets: [{
-                data: weights,
-                label: 'Peso (kg)',
-                borderColor: '#13ec6a',
-                backgroundColor: 'rgba(19, 236, 106, 0.15)',
-                pointBackgroundColor: '#13ec6a',
-                pointBorderColor: '#102217',
-                pointBorderWidth: 2,
-                pointRadius: 5,
-                pointHoverRadius: 7,
-                tension: 0.4,
-                fill: true
-            }]
-        };
+        if (isCardio) {
+            // For cardio: two datasets - distance (green) and resistance (orange)
+            const distances = sorted.map(item => +(item.distance_km || 0));
+            const resistances = sorted.map(item => +(item.resistance || 0));
+
+            return {
+                labels,
+                datasets: [
+                    {
+                        data: distances,
+                        label: 'Distancia (km)',
+                        borderColor: '#13ec6a',
+                        backgroundColor: 'rgba(19, 236, 106, 0.15)',
+                        pointBackgroundColor: '#13ec6a',
+                        pointBorderColor: '#102217',
+                        pointBorderWidth: 2,
+                        pointRadius: 5,
+                        pointHoverRadius: 7,
+                        tension: 0.4,
+                        fill: true,
+                        yAxisID: 'y'
+                    },
+                    {
+                        data: resistances,
+                        label: 'Resistencia',
+                        borderColor: '#f97316',
+                        backgroundColor: 'rgba(249, 115, 22, 0.15)',
+                        pointBackgroundColor: '#f97316',
+                        pointBorderColor: '#102217',
+                        pointBorderWidth: 2,
+                        pointRadius: 5,
+                        pointHoverRadius: 7,
+                        tension: 0.4,
+                        fill: false,
+                        yAxisID: 'y1'
+                    }
+                ]
+            };
+        } else {
+            // For strength: single dataset for weight
+            const weights = sorted.map(item => item.weight);
+
+            return {
+                labels,
+                datasets: [{
+                    data: weights,
+                    label: 'Peso (kg)',
+                    borderColor: '#13ec6a',
+                    backgroundColor: 'rgba(19, 236, 106, 0.15)',
+                    pointBackgroundColor: '#13ec6a',
+                    pointBorderColor: '#102217',
+                    pointBorderWidth: 2,
+                    pointRadius: 5,
+                    pointHoverRadius: 7,
+                    tension: 0.4,
+                    fill: true
+                }]
+            };
+        }
     });
 
     chartOptions: ChartConfiguration['options'] = {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
-            legend: { display: false },
+            legend: { display: true, position: 'top', labels: { color: '#64748b', font: { size: 10 } } },
             tooltip: {
                 backgroundColor: '#1d3627',
                 titleColor: '#fff',
-                bodyColor: '#13ec6a',
+                bodyColor: '#fff',
                 borderColor: '#13ec6a',
                 borderWidth: 1,
                 padding: 12,
-                displayColors: false,
+                displayColors: true,
                 callbacks: {
-                    label: (context) => `${context.parsed.y} kg`
+                    label: (context) => {
+                        const label = context.dataset.label || '';
+                        let unit = '';
+                        if (label.includes('km')) unit = 'km';
+                        else if (label.includes('Resistencia')) unit = '';
+                        else unit = 'kg';
+                        return `${label}: ${context.parsed.y}${unit ? ' ' + unit : ''}`;
+                    }
                 }
             }
         },
@@ -293,10 +356,20 @@ export class ExerciseDetailComponent implements OnInit {
                 border: { display: false }
             },
             y: {
+                type: 'linear',
+                position: 'left',
                 grid: { color: 'rgba(255,255,255,0.05)' },
-                ticks: { color: '#64748b', font: { size: 11 } },
+                ticks: { color: '#13ec6a', font: { size: 11 } },
                 border: { display: false },
                 beginAtZero: false
+            },
+            y1: {
+                type: 'linear',
+                position: 'right',
+                grid: { display: false },
+                ticks: { color: '#f97316', font: { size: 11 } },
+                border: { display: false },
+                beginAtZero: true
             }
         },
         interaction: {
@@ -418,31 +491,42 @@ export class ExerciseDetailComponent implements OnInit {
                 // Group sets by date descending
                 const sorted = setsArray.sort((a, b) => new Date(b.performed_at).getTime() - new Date(a.performed_at).getTime());
 
-                // Group consecutive sets with same date, weight, reps
+                // Group consecutive sets with same date, weight, reps (for strength) or just by date (for cardio)
+                const isCardio = this.exercise()?.is_cardio || false;
                 const groupedHistory: any[] = [];
+
                 setsArray.forEach(set => {
                     const date = new Date(set.performed_at).toDateString();
                     const lastGroup = groupedHistory[groupedHistory.length - 1];
 
-                    const isSameGroup = lastGroup &&
-                        new Date(lastGroup.date).toDateString() === date &&
-                        lastGroup.weight === set.weight &&
-                        lastGroup.reps === set.reps &&
-                        lastGroup.rir === set.rir;
+                    let isSameGroup = false;
+                    if (!isCardio) {
+                        // For strength, group by same date, weight, reps
+                        isSameGroup = lastGroup &&
+                            new Date(lastGroup.date).toDateString() === date &&
+                            lastGroup.weight === set.weight &&
+                            lastGroup.reps === set.reps &&
+                            lastGroup.rir === set.rir;
+                    }
+                    // For cardio, don't group - each session is separate
 
-                    if (isSameGroup) {
+                    if (isSameGroup && !isCardio) {
                         lastGroup.setsCount++;
                         lastGroup.ids.push(set.id);
                     } else {
                         groupedHistory.push({
-                            id: set.id, // Keep one ID for track (though effectively represents the group)
-                            ids: [set.id], // All IDs in this group
+                            id: set.id,
+                            ids: [set.id],
                             date: set.performed_at,
                             weight: set.weight,
-                            exerciseIcon: this.exercise()?.icon || 'fitness_center',
+                            exerciseIcon: this.exercise()?.icon || (isCardio ? 'directions_run' : 'fitness_center'),
                             reps: set.reps,
                             rir: set.rir,
-                            setsCount: 1
+                            setsCount: 1,
+                            // Cardio fields
+                            duration_minutes: set.duration_minutes || 0,
+                            distance_km: set.distance_km || 0,
+                            resistance: set.resistance || 0
                         });
                     }
                 });
@@ -451,25 +535,49 @@ export class ExerciseDetailComponent implements OnInit {
 
                 // Calculate progress stats from sets
                 if (groupedHistory.length > 0) {
-                    const maxWeight = Math.max(...groupedHistory.map((s: any) => s.weight || 0));
-                    this.currentMaxWeight.set(maxWeight);
+                    if (isCardio) {
+                        // Cardio stats - use last recorded values
+                        const lastSession = groupedHistory[0]; // Most recent
+                        this.lastCardioDistance.set(lastSession.distance_km || 0);
+                        this.lastCardioDuration.set(lastSession.duration_minutes || 0);
 
-                    // Calculate progress percentage (compare first to last entry chronologically)
-                    const sortedByDate = [...groupedHistory].sort((a, b) =>
-                        new Date(a.date).getTime() - new Date(b.date).getTime()
-                    );
-                    const firstWeight = sortedByDate[0].weight || 0;
-                    const lastWeight = sortedByDate[sortedByDate.length - 1].weight || 0;
+                        // Calculate progress based on distance
+                        const sortedByDate = [...groupedHistory].sort((a, b) =>
+                            new Date(a.date).getTime() - new Date(b.date).getTime()
+                        );
+                        const firstDistance = sortedByDate[0].distance_km || 0;
+                        const lastDistance = sortedByDate[sortedByDate.length - 1].distance_km || 0;
 
-                    if (firstWeight > 0) {
-                        const percent = Math.round(((lastWeight - firstWeight) / firstWeight) * 100);
-                        this.progressPercent.set(percent);
+                        if (firstDistance > 0) {
+                            const percent = Math.round(((lastDistance - firstDistance) / firstDistance) * 100);
+                            this.progressPercent.set(percent);
+                        } else {
+                            this.progressPercent.set(0);
+                        }
                     } else {
-                        this.progressPercent.set(0);
+                        // Strength stats
+                        const maxWeight = Math.max(...groupedHistory.map((s: any) => s.weight || 0));
+                        this.currentMaxWeight.set(maxWeight);
+
+                        // Calculate progress percentage (compare first to last entry chronologically)
+                        const sortedByDate = [...groupedHistory].sort((a, b) =>
+                            new Date(a.date).getTime() - new Date(b.date).getTime()
+                        );
+                        const firstWeight = sortedByDate[0].weight || 0;
+                        const lastWeight = sortedByDate[sortedByDate.length - 1].weight || 0;
+
+                        if (firstWeight > 0) {
+                            const percent = Math.round(((lastWeight - firstWeight) / firstWeight) * 100);
+                            this.progressPercent.set(percent);
+                        } else {
+                            this.progressPercent.set(0);
+                        }
                     }
                 } else {
                     // Reset stats if no history for this variant
                     this.currentMaxWeight.set(0);
+                    this.lastCardioDistance.set(0);
+                    this.lastCardioDuration.set(0);
                     this.progressPercent.set(0);
                 }
 
@@ -534,9 +642,17 @@ export class ExerciseDetailComponent implements OnInit {
     editTarget(): void {
         const ex = this.exercise();
         if (ex) {
-            this.newTargetSets.set(ex.target_sets);
-            this.newTargetReps.set(ex.target_reps.toString());
-            this.newTargetWeight.set(ex.target_weight);
+            if (ex.is_cardio) {
+                // Initialize cardio fields
+                this.newTargetDuration.set(ex.target_duration_minutes || 0);
+                this.newTargetDistance.set(ex.target_distance_km || 0);
+                this.newTargetResistance.set(ex.target_resistance || 0);
+            } else {
+                // Initialize strength fields
+                this.newTargetSets.set(ex.target_sets);
+                this.newTargetReps.set(ex.target_reps.toString());
+                this.newTargetWeight.set(ex.target_weight);
+            }
             this.showTargetModal.set(true);
         }
     }
@@ -550,11 +666,21 @@ export class ExerciseDetailComponent implements OnInit {
         if (!ex) return;
 
         this.isSaving.set(true);
-        const data = {
-            target_sets: this.newTargetSets(),
-            target_reps: this.newTargetReps(),
-            target_weight: this.newTargetWeight()
-        };
+        let data: any;
+
+        if (ex.is_cardio) {
+            data = {
+                target_duration_minutes: this.newTargetDuration(),
+                target_distance_km: this.newTargetDistance(),
+                target_resistance: this.newTargetResistance()
+            };
+        } else {
+            data = {
+                target_sets: this.newTargetSets(),
+                target_reps: this.newTargetReps(),
+                target_weight: this.newTargetWeight()
+            };
+        }
 
         this.api.updateRoutineExercise(ex.id, data).subscribe({
             next: (updated) => {
@@ -595,13 +721,21 @@ export class ExerciseDetailComponent implements OnInit {
     // --- Log Set ---
 
     logNewSet(): void {
-        // Pre-fill with targets?
-        this.logWeight.set(this.targetWeight());
-        // Parse reps if range
-        const reps = parseInt(this.targetReps().split('-')[0]) || 0;
-        this.logReps.set(reps);
-        this.logSets.set(this.targetSets());
-        this.logRir.set(null);
+        const ex = this.exercise();
+        if (ex?.is_cardio) {
+            // Initialize cardio values from exercise targets (ensure they're numbers)
+            this.logDuration.set(+(ex.target_duration_minutes || 0));
+            this.logDistance.set(+(ex.target_distance_km || 0));
+            this.logResistance.set(+(ex.target_resistance || 0));
+        } else {
+            // Pre-fill with strength targets
+            this.logWeight.set(this.targetWeight());
+            // Parse reps if range
+            const reps = parseInt(this.targetReps().split('-')[0]) || 0;
+            this.logReps.set(reps);
+            this.logSets.set(this.targetSets());
+            this.logRir.set(null);
+        }
         this.showLogModal.set(true);
     }
 
@@ -628,16 +762,27 @@ export class ExerciseDetailComponent implements OnInit {
         if (!ex) return;
 
         this.isSaving.set(true);
-        const requests = [];
+        const formData = new FormData();
+        formData.append('routine_exercise', ex.id.toString());
 
-        for (let i = 0; i < this.logSets(); i++) {
-            const formData = new FormData();
-            formData.append('routine_exercise', ex.id.toString());
+        if (ex.is_cardio) {
+            // Cardio data - save a single session
+            formData.append('duration_minutes', this.logDuration().toString());
+            formData.append('distance_km', this.logDistance().toString());
+            formData.append('resistance', this.logResistance().toString());
+        } else {
+            // Strength data - save multiple sets if needed
             formData.append('weight', this.logWeight().toString());
             formData.append('reps', this.logReps().toString());
             if (this.logRir() !== null) {
                 formData.append('rir', this.logRir()!.toString());
             }
+        }
+
+        // For cardio, we save a single session; for strength, we may save multiple sets
+        const requests = [];
+        const count = ex.is_cardio ? 1 : this.logSets();
+        for (let i = 0; i < count; i++) {
             requests.push(this.api.createExerciseSet(formData));
         }
 

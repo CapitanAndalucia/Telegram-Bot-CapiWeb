@@ -40,6 +40,11 @@ export interface PendingExercise {
     weight: number;
     notes?: string;
     icon?: string;
+    // Cardio fields
+    isCardio?: boolean;
+    duration?: number;
+    distance?: number;
+    resistance?: number;
 }
 
 @Component({

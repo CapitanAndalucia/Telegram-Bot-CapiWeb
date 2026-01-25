@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ApiClientService } from '../../../../services/api-client.service';
+import { firstValueFrom } from 'rxjs';
 import { NavigationHistoryService } from '../../../../services/navigation-history.service';
 import { PendingRoutine, PendingExercise } from '../create-routine/create-routine.component';
 
@@ -60,20 +61,55 @@ export class AddExerciseComponent implements OnInit {
     categoryOptions = ['Pecho', 'Espalda', 'Hombros', 'Brazos', 'Piernas', 'Core', 'Cardio', 'Cuerpo Completo'];
     equipmentOptions = ['Barra', 'Mancuernas', 'Peso Corporal', 'Cable', 'Máquina', 'Kettlebell', 'Bandas'];
 
-    // Common exercises suggestions
-    suggestions: ExerciseSuggestion[] = [
-        { id: 1, name: 'Sentadilla con Barra', category: 'Piernas', equipment: 'Barra', icon: 'fitness_center' },
-        { id: 2, name: 'Peso Muerto Rumano', category: 'Piernas', equipment: 'Barra', icon: 'fitness_center' },
-        { id: 3, name: 'Zancadas', category: 'Piernas', equipment: 'Peso Corporal', icon: 'directions_run' },
-        { id: 4, name: 'Press de Banca', category: 'Pecho', equipment: 'Barra', icon: 'fitness_center' },
-        { id: 5, name: 'Dominadas', category: 'Espalda', equipment: 'Peso Corporal', icon: 'accessibility_new' },
-        { id: 6, name: 'Press Militar', category: 'Hombros', equipment: 'Barra', icon: 'fitness_center' },
-        { id: 7, name: 'Curl de Bíceps', category: 'Brazos', equipment: 'Mancuernas', icon: 'fitness_center' },
-        { id: 8, name: 'Extensiones de Tríceps', category: 'Brazos', equipment: 'Cable', icon: 'fitness_center' }
-    ];
+    // Common exercises suggestions (Fetched from API)
+    suggestions: ExerciseSuggestion[] = [];
 
     quickReps = [6, 8, 10, 12, 15];
     quickWeightIncrements = [2.5, 5, 10];
+
+    // Cardio exercise support
+    isCardio = signal<boolean>(false);
+    duration = signal<number>(0);     // Minutes
+    distance = signal<number>(0);     // Km
+    resistance = signal<number>(0);   // 1-20
+
+    quickDurations = [10, 15, 20, 30, 45];
+    quickDistances = [1, 2, 3, 5, 10];
+
+    toggleCardio(): void {
+        this.isCardio.update(v => !v);
+    }
+
+    updateDuration(event: Event): void {
+        const input = event.target as HTMLInputElement;
+        this.duration.set(parseInt(input.value) || 0);
+    }
+
+    setQuickDuration(value: number): void {
+        this.duration.set(value);
+    }
+
+    updateDistance(event: Event): void {
+        const input = event.target as HTMLInputElement;
+        this.distance.set(parseFloat(input.value) || 0);
+    }
+
+    setQuickDistance(value: number): void {
+        this.distance.set(value);
+    }
+
+    updateResistance(event: Event): void {
+        const input = event.target as HTMLInputElement;
+        this.resistance.set(parseInt(input.value) || 0);
+    }
+
+    incrementResistance(): void {
+        this.resistance.update(v => Math.min(v + 1, 20));
+    }
+
+    decrementResistance(): void {
+        this.resistance.update(v => Math.max(v - 1, 0));
+    }
 
     // Variant support
     variants = signal<PendingExercise[]>([]);
@@ -81,7 +117,6 @@ export class AddExerciseComponent implements OnInit {
     showVariantPicker = signal<boolean>(false);
     variantSearchQuery = signal<string>('');
 
-    // Variant parent tracking (when coming from exercise-detail)
     // Variant parent tracking (when coming from exercise-detail)
     variantParentId = signal<number | null>(null);
     variantParentSlug = signal<string | null>(null);
@@ -128,6 +163,12 @@ export class AddExerciseComponent implements OnInit {
         this.variants.update(v => v.filter((_, i) => i !== index));
     }
 
+    openCreateExerciseForVariant(): void {
+        this.closeVariantPicker();
+        // The form underneath is already set up for creating an exercise
+        // When saved, it will detect variantParentId and create it as a variant
+    }
+
 
 
     updateExerciseName(event: Event): void {
@@ -144,19 +185,35 @@ export class AddExerciseComponent implements OnInit {
         this.selectedCategory.set(suggestion.category);
         this.selectedEquipment.set(suggestion.equipment);
         this.selectedIcon.set(suggestion.icon);
+
+        // Also set default sets/reps if available (needs extending ExerciseSuggestion interface if we want typesafety, but 'any' works for now)
+        if ((suggestion as any).original) {
+            const orig = (suggestion as any).original;
+            this.sets.set(orig.default_sets || 3);
+            this.reps.set(orig.default_reps || 10);
+            this.weight.set(orig.default_weight || 0);
+        }
     }
 
     filteredSuggestions(): ExerciseSuggestion[] {
         const query = this.exerciseName().toLowerCase();
-        if (!query) return this.suggestions.slice(0, 5);
+        if (!query) return this.suggestions;
         return this.suggestions.filter(s =>
             s.name.toLowerCase().includes(query) ||
             s.category.toLowerCase().includes(query)
-        ).slice(0, 5);
+        );
     }
 
     canSave(): boolean {
-        return this.exerciseName().trim().length > 0 && this.sets() > 0 && this.reps() > 0;
+        if (this.exerciseName().trim().length === 0) return false;
+
+        if (this.isCardio()) {
+            // For cardio, at least duration should be set
+            return this.duration() > 0;
+        } else {
+            // For strength, sets and reps are required
+            return this.sets() > 0 && this.reps() > 0;
+        }
     }
 
     // Icon Picker
@@ -234,7 +291,7 @@ export class AddExerciseComponent implements OnInit {
 
     returnUrl = signal<string | null>(null);
 
-    ngOnInit(): void {
+    async ngOnInit(): Promise<void> {
         // Preload image icons to ensure instant display in picker
         this.iconOptions.forEach(icon => {
             if (icon.includes('/') || icon.includes('.')) {
@@ -242,6 +299,8 @@ export class AddExerciseComponent implements OnInit {
                 img.src = icon;
             }
         });
+
+        await this.loadSuggestions();
 
         this.route.paramMap.subscribe(params => {
             const routineSlug = params.get('routineSlug');
@@ -257,6 +316,9 @@ export class AddExerciseComponent implements OnInit {
                     this.isUpdateMode.set(true);
                     this.editingExerciseSlug.set(exerciseSlug);
                     this.loadEditingExercise(exerciseSlug);
+                } else {
+                    // Adding new exercise to existing day - load day to get its ID
+                    this.loadDayInfo(routineSlug, daySlug);
                 }
             } else {
                 const indexParam = params.get('dayIndex');
@@ -285,6 +347,55 @@ export class AddExerciseComponent implements OnInit {
         }
     }
 
+    async loadSuggestions() {
+        try {
+            const response: any = await firstValueFrom(this.api.getExerciseLibrary(false));
+            const exercises = Array.isArray(response) ? response : (response.results || []);
+
+            this.suggestions = exercises.map((ex: any) => ({
+                id: ex.id,
+                name: ex.name,
+                category: this.extractCategory(ex.description) || 'Cuerpo Completo',
+                equipment: this.extractEquipment(ex.description) || 'Peso Corporal',
+                icon: ex.icon || 'fitness_center',
+                original: ex
+            }));
+        } catch (e) {
+            console.error('Error loading suggestions', e);
+        }
+    }
+
+    extractCategory(desc: string): string | null {
+        if (desc && desc.includes(' - ')) {
+            return desc.split(' - ')[0];
+        }
+        return null;
+    }
+
+    extractEquipment(desc: string): string | null {
+        if (desc && desc.includes(' - ')) {
+            const parts = desc.split(' - ');
+            return parts.length > 1 ? parts[1] : null;
+        }
+        return null;
+    }
+
+    loadDayInfo(routineSlug: string, daySlug: string): void {
+        this.api.getRoutine(routineSlug).subscribe({
+            next: (routine: any) => {
+                // Find the day by url_slug or short_id prefix
+                const day = routine.days?.find((d: any) =>
+                    d.url_slug === daySlug || (d.short_id && daySlug?.startsWith(d.short_id + '-'))
+                );
+                if (day) {
+                    this.editingRoutineId.set(routine.id);
+                    this.editingDayId.set(day.id);
+                }
+            },
+            error: (err) => console.error('Error loading day info', err)
+        });
+    }
+
     loadEditingExercise(idOrSlug: number | string): void {
         this.api.getRoutineExercise(idOrSlug).subscribe({
             next: (data) => {
@@ -306,6 +417,13 @@ export class AddExerciseComponent implements OnInit {
                     const match = this.suggestions.find(s => s.name === data.exercise_detail.name);
                     this.selectedIcon.set(match?.icon || 'fitness_center');
                 }
+
+                // Load cardio fields
+                this.isCardio.set(data.is_cardio || false);
+                this.duration.set(data.target_duration_minutes || 0);
+                this.distance.set(data.target_distance_km || 0);
+                this.resistance.set(data.target_resistance || 0);
+                console.log('Loaded exercise - isCardio:', data.is_cardio, 'duration:', data.target_duration_minutes);
 
                 if (data.variants && data.variants.length > 0) {
                     const mappedVariants: PendingExercise[] = data.variants.map((v: any) => ({
@@ -332,6 +450,8 @@ export class AddExerciseComponent implements OnInit {
     close(): void {
         const returnUrl = this.returnUrl();
         if (returnUrl) {
+            // Clear the return URL from sessionStorage to prevent stale URLs
+            this.navHistory.clear();
             // Use replaceUrl to avoid creating duplicate history entries
             this.router.navigateByUrl(returnUrl, { replaceUrl: true });
             return;
@@ -360,8 +480,14 @@ export class AddExerciseComponent implements OnInit {
                     target_weight: this.weight(),
                     note: this.notes(),
                     icon: this.selectedIcon(),
-                    custom_name: this.exerciseName() // Save custom name
+                    custom_name: this.exerciseName(),
+                    // Cardio fields
+                    is_cardio: this.isCardio(),
+                    target_duration_minutes: this.duration(),
+                    target_distance_km: this.distance(),
+                    target_resistance: this.resistance()
                 };
+                console.log('Updating exercise with data:', JSON.stringify(updateData, null, 2));
                 this.api.updateRoutineExercise(this.editingExerciseId()!, updateData).subscribe({
                     next: (updatedExercise: any) => {
                         // FIX: Update return URL if slug changed and we are returning to the exercise detail
@@ -432,7 +558,12 @@ export class AddExerciseComponent implements OnInit {
                             target_weight: this.weight(),
                             note: this.notes(),
                             order: 999,
-                            icon: this.selectedIcon() // Save the selected icon
+                            icon: this.selectedIcon(),
+                            // Cardio fields
+                            is_cardio: this.isCardio(),
+                            target_duration_minutes: this.duration(),
+                            target_distance_km: this.distance(),
+                            target_resistance: this.resistance()
                         };
                         console.log('Creating routine exercise with data:', routineExerciseData);
                         this.api.createRoutineExercise(routineExerciseData).subscribe({

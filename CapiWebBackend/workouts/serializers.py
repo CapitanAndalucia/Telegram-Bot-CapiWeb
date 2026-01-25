@@ -23,8 +23,14 @@ class ExerciseSerializer(serializers.ModelSerializer):
             "default_sets",
             "default_reps",
             "default_weight",
+            "icon",
             "media",
         ]
+        extra_kwargs = {
+            # routine_day not required for nested creation (set in parent serializer's create())
+            # but writable for direct creation via POST /routine-exercises/
+            'routine_day': {'required': False}
+        }
 
 
 class RoutineExerciseVariantSerializer(serializers.ModelSerializer):
@@ -48,6 +54,11 @@ class RoutineExerciseVariantSerializer(serializers.ModelSerializer):
             "icon",
             "custom_name",
         ]
+        extra_kwargs = {
+            # routine_day not required for nested creation (set in parent serializer's create())
+            # but writable for direct creation via POST /routine-exercises/
+            'routine_day': {'required': False}
+        }
 
 
 class RoutineExerciseSerializer(serializers.ModelSerializer):
@@ -76,9 +87,16 @@ class RoutineExerciseSerializer(serializers.ModelSerializer):
             "variant_of",
             "is_active_variant",
             "variants",
+            # Cardio fields
+            "is_cardio",
+            "target_duration_minutes",
+            "target_distance_km",
+            "target_resistance",
         ]
         extra_kwargs = {
-            'routine_day': {'read_only': True}  # Assigned in create(), not from request
+            # routine_day not required for nested creation (set in parent serializer's create())
+            # but writable for direct creation via POST /routine-exercises/
+            'routine_day': {'required': False}
         }
 
 
@@ -105,6 +123,11 @@ class RoutineDaySerializer(serializers.ModelSerializer):
             "is_completed",
             "routine_exercises",
         ]
+        extra_kwargs = {
+            # routine_day not required for nested creation (set in parent serializer's create())
+            # but writable for direct creation via POST /routine-exercises/
+            'routine_day': {'required': False}
+        }
         extra_kwargs = {
             'image': {'write_only': True, 'required': False},
             'routine': {'read_only': True}  # Assigned in create(), not from request
@@ -201,10 +224,18 @@ class ExerciseSetSerializer(serializers.ModelSerializer):
             "routine_exercise",
             "reps",
             "weight",
+            "duration_minutes",
+            "distance_km",
+            "resistance",
             "note",
             "media",
             "performed_at",
         ]
+        extra_kwargs = {
+            # routine_day not required for nested creation (set in parent serializer's create())
+            # but writable for direct creation via POST /routine-exercises/
+            'routine_day': {'required': False}
+        }
         read_only_fields = ["performed_at"]
 
 
@@ -253,7 +284,17 @@ class RoutineExerciseDetailSerializer(serializers.ModelSerializer):
             "variant_of",
             "is_active_variant",
             "variants",
+            # Cardio fields
+            "is_cardio",
+            "target_duration_minutes",
+            "target_distance_km",
+            "target_resistance",
         ]
+        extra_kwargs = {
+            # routine_day not required for nested creation (set in parent serializer's create())
+            # but writable for direct creation via POST /routine-exercises/
+            'routine_day': {'required': False}
+        }
 
 class MotivationalImageSerializer(serializers.ModelSerializer):
     """Serializer for motivational images with full details"""
@@ -272,6 +313,11 @@ class MotivationalImageSerializer(serializers.ModelSerializer):
             'is_active',
             'order',
         ]
+        extra_kwargs = {
+            # routine_day not required for nested creation (set in parent serializer's create())
+            # but writable for direct creation via POST /routine-exercises/
+            'routine_day': {'required': False}
+        }
         read_only_fields = ['created_at', 'updated_at']
 
 
@@ -291,6 +337,11 @@ class MotivationalImageListSerializer(serializers.ModelSerializer):
             'is_active',
             'order',
         ]
+        extra_kwargs = {
+            # routine_day not required for nested creation (set in parent serializer's create())
+            # but writable for direct creation via POST /routine-exercises/
+            'routine_day': {'required': False}
+        }
 
 
 

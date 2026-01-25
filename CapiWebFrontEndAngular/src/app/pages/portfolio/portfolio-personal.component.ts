@@ -69,7 +69,6 @@ export class PortfolioPersonalComponent implements OnInit {
                 } else {
                     this.projects = Object.values(data) as Project[];
                 }
-                console.log(this.projects);
             },
             error: (err) => {
                 console.error('Error fetching projects', err);
@@ -87,7 +86,6 @@ export class PortfolioPersonalComponent implements OnInit {
                 } else {
                     this.technologies = Object.values(data) as Technology[];
                 }
-                console.log('Technologies:', this.technologies);
             },
             error: (err) => {
                 console.error('Error fetching technologies', err);

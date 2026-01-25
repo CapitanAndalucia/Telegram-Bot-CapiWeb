@@ -60,6 +60,8 @@ class Exercise(models.Model):
     default_sets = models.PositiveSmallIntegerField(default=3)
     default_reps = models.PositiveSmallIntegerField(default=10)
     default_weight = models.DecimalField(max_digits=6, decimal_places=2, default=0)
+    icon = models.CharField(max_length=50, blank=True, default='fitness_center')
+    is_custom = models.BooleanField(default=False, help_text="True if created by user via get_or_create, False if template")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -195,6 +197,12 @@ class RoutineExercise(models.Model):
         null=True, blank=True
     )
     is_active_variant = models.BooleanField(default=True)
+    
+    # Cardio exercise support
+    is_cardio = models.BooleanField(default=False, help_text="Whether this is a cardio exercise")
+    target_duration_minutes = models.PositiveSmallIntegerField(default=0, help_text="Target duration in minutes")
+    target_distance_km = models.DecimalField(max_digits=6, decimal_places=2, default=0, help_text="Target distance in km")
+    target_resistance = models.PositiveSmallIntegerField(default=0, help_text="Resistance/force level (1-20)")
 
     class Meta:
         ordering = ["order", "id"]
@@ -229,8 +237,14 @@ class ExerciseSet(models.Model):
         RoutineExercise, on_delete=models.CASCADE, related_name="sets"
     )
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="exercise_sets")
+    # Strength fields
     reps = models.PositiveSmallIntegerField(default=0)
     weight = models.DecimalField(max_digits=6, decimal_places=2, default=0)
+    # Cardio fields
+    duration_minutes = models.PositiveIntegerField(default=0, help_text="Duration in minutes for cardio")
+    distance_km = models.DecimalField(max_digits=6, decimal_places=2, default=0, help_text="Distance in km for cardio")
+    resistance = models.PositiveIntegerField(default=0, help_text="Resistance level for cardio")
+    # Common fields
     note = models.CharField(max_length=255, blank=True)
     media = models.FileField(upload_to="workouts/sets/", blank=True, null=True)
     performed_at = models.DateTimeField(auto_now_add=True)

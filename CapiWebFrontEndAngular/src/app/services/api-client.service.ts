@@ -697,6 +697,18 @@ export class ApiClientService {
         return this.request(`/workouts/exercises/${id}/`, 'PATCH', { data });
     }
 
+    getExerciseLibrary(isCustom?: boolean): Observable<any> {
+        const params: Record<string, any> = {};
+        if (isCustom !== undefined) {
+            params['is_custom'] = isCustom.toString();
+        }
+        return this.request('/workouts/exercises/', 'GET', { params });
+    }
+
+    deleteExercise(id: number): Observable<any> {
+        return this.request(`/workouts/exercises/${id}/`, 'DELETE');
+    }
+
     // ---- Routine Day Images ---------------------------------------------------
     uploadRoutineImage(routineIdOrSlug: number | string, imageFile: File): Observable<any> {
         const formData = new FormData();

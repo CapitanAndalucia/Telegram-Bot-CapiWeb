@@ -1,3 +1,5 @@
+import logging
+import random
 from django.db.models import Sum, Avg, Max, Count
 from django.db.models.functions import TruncDate
 from rest_framework import permissions, viewsets, status
@@ -6,7 +8,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 
-from .models import Routine, RoutineDay, RoutineExercise, ExerciseSet, Exercise, ExerciseMedia
+from .models import Routine, RoutineDay, RoutineExercise, ExerciseSet, Exercise, ExerciseMedia, MotivationalImage, UserMotivationHistory
 from .serializers import (
     RoutineSerializer,
     RoutineExerciseDetailSerializer,
@@ -17,6 +19,8 @@ from .serializers import (
     RoutineExerciseSerializer,
 )
 from .image_utils import optimize_exercise_image, optimize_day_image
+
+logger = logging.getLogger(__name__)
 
 
 class IsRoutineOwner(permissions.BasePermission):
@@ -42,12 +46,15 @@ class RoutineViewSet(viewsets.ModelViewSet):
     parser_classes = [MultiPartParser, FormParser, JSONParser]
 
     def get_queryset(self):
-        return Routine.objects.filter(user=self.request.user).prefetch_related(
+        user = self.request.user
+        logger.info(f"RoutineViewSet.get_queryset solicitado por usuario: {user}")
+        return Routine.objects.filter(user=user).prefetch_related(
             "days__routine_exercises__exercise__media"
         )
 
     def get_object(self):
         """Support lookup by ID or short_id (from URL slug like 'f4E7kX-slug-here')."""
+        logger.info(f"RoutineViewSet.get_object solicitado. búsqueda: {self.kwargs.get(self.lookup_field)}")
         queryset = self.filter_queryset(self.get_queryset())
         lookup_value = self.kwargs.get(self.lookup_field)
         
@@ -67,6 +74,7 @@ class RoutineViewSet(viewsets.ModelViewSet):
         return obj
 
     def perform_create(self, serializer):
+        logger.info(f"Creando nueva rutina para usuario: {self.request.user}")
         serializer.save(user=self.request.user)
 
 
@@ -79,12 +87,15 @@ class RoutineDayViewSet(viewsets.ModelViewSet):
     parser_classes = [MultiPartParser, FormParser, JSONParser]
 
     def get_queryset(self):
+        user = self.request.user
+        logger.info(f"RoutineDayViewSet.get_queryset solicitado por usuario: {user}")
         return RoutineDay.objects.filter(
-            routine__user=self.request.user
+            routine__user=user
         ).prefetch_related("routine_exercises__exercise__media")
 
     def get_object(self):
         """Support lookup by ID or short_id (from URL slug like 'f4E7kX-slug-here')."""
+        logger.info(f"RoutineDayViewSet.get_object solicitado. búsqueda: {self.kwargs.get(self.lookup_field)}")
         queryset = self.filter_queryset(self.get_queryset())
         lookup_value = self.kwargs.get(self.lookup_field)
         
@@ -107,6 +118,7 @@ class RoutineDayViewSet(viewsets.ModelViewSet):
         Sube y optimiza una imagen para un día de rutina.
         """
         day = self.get_object()
+        logger.info(f"Uploading image for RoutineDay {day.id} ({day.title})")
         
         if 'image' not in request.FILES:
             return Response({'error': 'No se proporcionó imagen'}, status=status.HTTP_400_BAD_REQUEST)
@@ -136,6 +148,7 @@ class RoutineDayViewSet(viewsets.ModelViewSet):
         Elimina la imagen de un día de rutina.
         """
         day = self.get_object()
+        logger.warning(f"Eliminando imagen para RoutineDay {day.id}")
         
         if day.image:
             day.image.delete(save=False)
@@ -155,12 +168,15 @@ class RoutineExerciseViewSet(viewsets.ModelViewSet):
         return RoutineExerciseDetailSerializer
 
     def get_queryset(self):
+        user = self.request.user
+        logger.info(f"RoutineExerciseViewSet.get_queryset solicitado por usuario: {user}")
         return RoutineExercise.objects.filter(
-            routine_day__routine__user=self.request.user
+            routine_day__routine__user=user
         ).prefetch_related("exercise__media", "sets")
 
     def get_object(self):
         """Support lookup by ID or short_id (from URL slug like 'f4E7kX-slug-here')."""
+        logger.info(f"RoutineExerciseViewSet.get_object solicitado. búsqueda: {self.kwargs.get(self.lookup_field)}")
         queryset = self.filter_queryset(self.get_queryset())
         lookup_value = self.kwargs.get(self.lookup_field)
         
@@ -183,6 +199,7 @@ class RoutineExerciseViewSet(viewsets.ModelViewSet):
         Devuelve datos agregados para la gráfica de progreso del ejercicio.
         """
         exercise = self.get_object()
+        logger.info(f"RoutineExerciseViewSet.progress solicitado para ejercicio {exercise.id} ({exercise.custom_name or 'unnamed'})")
         sets = ExerciseSet.objects.filter(routine_exercise=exercise, user=request.user)
         points = (
             sets.annotate(day=TruncDate("performed_at"))
@@ -208,14 +225,16 @@ class RoutineExerciseViewSet(viewsets.ModelViewSet):
         
         exercise_id = request.data.get('exercise')
         if not exercise_id:
+            logger.warning("add_variant falló: Falta ID de ejercicio")
             return Response({'error': 'Se requiere un ejercicio'}, status=status.HTTP_400_BAD_REQUEST)
         
         try:
             exercise = Exercise.objects.get(id=exercise_id)
         except Exercise.DoesNotExist:
+            logger.warning(f"add_variant falló: Ejercicio {exercise_id} no encontrado")
             return Response({'error': 'Ejercicio no encontrado'}, status=status.HTTP_404_NOT_FOUND)
         
-        # Create variant linked to parent
+        logger.info(f"Añadiendo variante ejercicio {exercise.name} a ejercicio de rutina {parent_exercise.id}")
         variant = RoutineExercise.objects.create(
             routine_day=parent_exercise.routine_day,
             exercise=exercise,
@@ -238,6 +257,7 @@ class RoutineExerciseViewSet(viewsets.ModelViewSet):
         All other variants of the same parent become inactive.
         """
         exercise = self.get_object()
+        logger.info(f"Estableciendo variante activa: {exercise.id} ({exercise.custom_name or 'No Name'})")
         
         # Find the parent - could be self if this is the parent, or variant_of if it's a variant
         if exercise.variant_of:
@@ -264,11 +284,14 @@ class ExerciseSetViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, IsRoutineOwner]
 
     def get_queryset(self):
-        queryset = ExerciseSet.objects.filter(user=self.request.user).select_related(
+        user = self.request.user
+        logger.info(f"ExerciseSetViewSet.get_queryset called by user: {user}")
+        queryset = ExerciseSet.objects.filter(user=user).select_related(
             "routine_exercise__routine_day__routine"
         )
         routine_exercise = self.request.query_params.get('routine_exercise', None)
         if routine_exercise:
+            logger.info(f"Filtrando series por routine_exercise: {routine_exercise}")
             queryset = queryset.filter(routine_exercise_id=routine_exercise)
         return queryset
 
@@ -276,9 +299,13 @@ class ExerciseSetViewSet(viewsets.ModelViewSet):
         routine_exercise = serializer.validated_data.get("routine_exercise")
         if routine_exercise.routine_day.routine.user != self.request.user:
             from rest_framework.exceptions import PermissionDenied
-
+            logger.warning(f"Permiso denegado creando serie: Usuario {self.request.user} intentó añadir a rutina de {routine_exercise.routine_day.routine.user}")
             raise PermissionDenied("No puedes registrar series para esta rutina.")
+        
+        logger.info(f"Creando serie para ejercicio {routine_exercise.id} por usuario {self.request.user}")
         serializer.save(user=self.request.user)
+
+
 
 
 class ExerciseViewSet(viewsets.ModelViewSet):
@@ -301,12 +328,41 @@ class ExerciseViewSet(viewsets.ModelViewSet):
         return [IsAuthenticated()]
 
     def get_queryset(self):
+        # Log entry for debugging/monitoring
+        user = self.request.user if hasattr(self.request, 'user') else 'Anonymous'
+        logger.info(f"ExerciseViewSet.get_queryset solicitado por usuario: {user}")
+
         queryset = Exercise.objects.all().prefetch_related("media")
+        
         # Permitir búsqueda por nombre
         name = self.request.query_params.get('name', None)
         if name:
+            logger.info(f"Filtrando ejercicios por name: {name}")
             queryset = queryset.filter(name__icontains=name)
+        
+        # Filter by is_custom
+        is_custom = self.request.query_params.get('is_custom', None)
+        if is_custom is not None:
+            is_custom_bool = is_custom.lower() == 'true'
+            logger.info(f"Filtrando ejercicios por is_custom: {is_custom_bool}")
+            queryset = queryset.filter(is_custom=is_custom_bool)
+        
         return queryset
+
+    def perform_create(self, serializer):
+        user = self.request.user
+        logger.info(f"Creando nuevo ejercicio por usuario: {user}")
+        serializer.save()
+
+    def perform_update(self, serializer):
+        user = self.request.user
+        logger.info(f"Actualizando ejercicio {serializer.instance.id} ({serializer.instance.name}) por usuario: {user}")
+        serializer.save()
+
+    def perform_destroy(self, instance):
+        user = self.request.user
+        logger.warning(f"Eliminando ejercicio {instance.id} ({instance.name}) por usuario: {user}")
+        instance.delete()
 
     @action(detail=False, methods=['post'], permission_classes=[permissions.IsAdminUser])
     def get_or_create(self, request):
@@ -314,6 +370,7 @@ class ExerciseViewSet(viewsets.ModelViewSet):
         Obtiene un ejercicio existente por nombre o lo crea si no existe.
         """
         name = request.data.get('name', '').strip()
+        logger.info(f"ExerciseViewSet.get_or_create solicitado para nombre: '{name}'")
         if not name:
             return Response({'error': 'El nombre es requerido'}, status=400)
         
@@ -325,6 +382,8 @@ class ExerciseViewSet(viewsets.ModelViewSet):
                 'default_sets': request.data.get('default_sets', 3),
                 'default_reps': request.data.get('default_reps', 10),
                 'default_weight': request.data.get('default_weight', 0),
+                'icon': request.data.get('icon', 'fitness_center'),
+                'is_custom': request.data.get('is_custom', True),  # Default to True, but allow override
             }
         )
         
@@ -340,6 +399,7 @@ class ExerciseViewSet(viewsets.ModelViewSet):
         Sube y optimiza múltiples imágenes para un ejercicio.
         """
         exercise = self.get_object()
+        logger.info(f"ExerciseViewSet.upload_images solicitado para ejercicio {exercise.id} ({exercise.name}). Archivos: {len(request.FILES.getlist('images'))}")
         
         images = request.FILES.getlist('images')
         if not images:
@@ -377,6 +437,7 @@ class ExerciseViewSet(viewsets.ModelViewSet):
         Elimina una imagen específica de un ejercicio.
         """
         exercise = self.get_object()
+        logger.info(f"ExerciseViewSet.delete_image solicitado para ejercicio {exercise.id}, media_id {media_id}")
         
         try:
             media = ExerciseMedia.objects.get(id=media_id, exercise=exercise)
@@ -420,27 +481,13 @@ class MotivationalImageViewSet(viewsets.ModelViewSet):
             return [IsAuthenticated(), IsSuperUser()]
         return [IsAuthenticated()]
     
+
     @action(detail=False, methods=['post'])
     def get_next(self, request):
-        """
-        Get the next motivational image for a user based on smart rotation.
-        
-        Request body:
-        {
-            "group": "welcome" | "daily_first" | "routine_complete" | "user_return"
-        }
-        
-        Algorithm:
-        1. Get all active images for the group
-        2. Check user's history for this group
-        3. If cycle incomplete, return random unseen image
-        4. If cycle complete, reset and avoid showing last image immediately
-        """
-        import random
-        from .models import MotivationalImage, UserMotivationHistory
-        from .serializers import MotivationalImageSerializer
-        
+        # ... existing naming ...
         group = request.data.get('group')
+        logger.info(f"MotivationalImage: get_next solicitado para grupo '{group}' por usuario {request.user}")
+        
         if not group:
             return Response({'error': 'group is required'}, status=status.HTTP_400_BAD_REQUEST)
         
@@ -501,6 +548,7 @@ class MotivationalImageViewSet(viewsets.ModelViewSet):
         
         image_id = request.data.get('image_id')
         group = request.data.get('group')
+        logger.info(f"MotivationalImage: mark_shown solicitado para imagen {image_id} grupo '{group}' por usuario {request.user}")
         
         if not image_id or not group:
             return Response(
