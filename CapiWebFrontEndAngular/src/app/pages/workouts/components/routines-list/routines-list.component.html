@@ -49,7 +49,7 @@
             <!-- Content -->
             <div class="absolute inset-0 p-6 flex flex-col justify-end">
                 <div class="flex items-start justify-between">
-                    <div class="flex flex-col gap-2">
+                    <div class="flex flex-col gap-2 flex-1 min-w-0 pr-4">
                         <!-- Category Badge -->
                         <span
                             class="inline-flex items-center px-3 py-1 rounded-full bg-white/10 backdrop-blur-sm border border-white/10 text-xs font-bold w-fit"
@@ -59,7 +59,9 @@
                             {{ getRoutineCategory(routine).name }}
                         </span>
                         <!-- Title -->
-                        <h2 class="text-3xl font-bold text-white leading-none tracking-tight">{{ routine.title }}</h2>
+                        <h2
+                            class="text-3xl font-bold text-white leading-none tracking-tight line-clamp-2 text-ellipsis overflow-hidden">
+                            {{ routine.title }}</h2>
                         <!-- Days Info -->
                         <p class="text-gray-300 font-medium text-sm flex items-center gap-1">
                             <span class="material-symbols-outlined" style="font-size: 18px;">calendar_today</span>
@@ -68,7 +70,7 @@
                     </div>
                     <!-- Play Button -->
                     <button
-                        class="flex items-center justify-center w-12 h-12 rounded-full shadow-[0_0_15px_rgba(19,236,106,0.4)] hover:shadow-[0_0_25px_rgba(19,236,106,0.6)] transition-all active:scale-95"
+                        class="flex shrink-0 items-center justify-center w-12 h-12 rounded-full shadow-[0_0_15px_rgba(19,236,106,0.4)] hover:shadow-[0_0_25px_rgba(19,236,106,0.6)] transition-all active:scale-95"
                         [class]="i === 0 ? 'bg-[#13ec6a] text-[#102217]' : 'bg-white text-[#102217] hover:bg-[#13ec6a]'"
                         (click)="openRoutine(routine); $event.stopPropagation()">
                         <span class="material-symbols-outlined"

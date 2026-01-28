@@ -487,7 +487,7 @@ export class AddExerciseComponent implements OnInit {
                 this.duration.set(data.target_duration_minutes || 0);
                 this.distance.set(data.target_distance_km || 0);
                 this.resistance.set(data.target_resistance || 0);
-                console.log('Loaded exercise - isCardio:', data.is_cardio, 'duration:', data.target_duration_minutes);
+
 
                 if (data.variants && data.variants.length > 0) {
                     const mappedVariants: PendingExercise[] = data.variants.map((v: any) => ({
@@ -568,7 +568,7 @@ export class AddExerciseComponent implements OnInit {
                     target_distance_km: this.distance(),
                     target_resistance: this.resistance()
                 };
-                console.log('Updating exercise with data:', JSON.stringify(updateData, null, 2));
+
                 this.api.updateRoutineExercise(this.editingExerciseId()!, updateData).subscribe({
                     next: (updatedExercise: any) => {
                         // FIX: Update return URL if slug changed and we are returning to the exercise detail
@@ -604,7 +604,7 @@ export class AddExerciseComponent implements OnInit {
                     const dayId = this.editingDayId();
                     const parentId = this.variantParentId();
 
-                    console.log('Create exercise - exerciseId:', exerciseId, 'dayId:', dayId, 'parentId:', parentId);
+
 
                     // If we have a variant parent, add as variant instead of new exercise
                     if (parentId && exerciseId) {
@@ -652,7 +652,7 @@ export class AddExerciseComponent implements OnInit {
                             target_distance_km: this.distance(),
                             target_resistance: this.resistance()
                         };
-                        console.log('Creating routine exercise with data:', routineExerciseData);
+
                         this.api.createRoutineExercise(routineExerciseData).subscribe({
                             next: () => this.close(),
                             error: (err) => {

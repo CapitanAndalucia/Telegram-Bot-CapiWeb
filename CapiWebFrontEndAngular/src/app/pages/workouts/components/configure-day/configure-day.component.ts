@@ -349,7 +349,7 @@ export class ConfigureDayComponent implements OnInit {
             }))
         };
 
-        console.log('Creating routine with data:', JSON.stringify(routineData, null, 2));
+
         this.api.createRoutine(routineData).subscribe({
             next: (createdRoutine) => {
                 // Clear session storage
