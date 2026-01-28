@@ -168,10 +168,27 @@ export class WeeklyPlanComponent implements OnInit {
         this.api.getRoutine(slug).subscribe({
             next: (data: Routine) => {
                 this.routine.set(data);
-                // Select first day by default
-                if (data.days && data.days.length > 0) {
-                    this.selectedDay.set(data.days[0]);
+
+                // Select day from query param or default to first
+                const daySlug = this.route.snapshot.queryParamMap.get('day');
+                let dayToSelect = null;
+
+                if (daySlug && data.days) {
+                    dayToSelect = data.days.find(d => d.url_slug === daySlug);
                 }
+
+                if (!dayToSelect && data.days && data.days.length > 0) {
+                    dayToSelect = data.days[0];
+                }
+
+                if (dayToSelect) {
+                    this.selectedDay.set(dayToSelect);
+                    // Ensure URL is in sync if falling back to default
+                    if (!daySlug) {
+                        this.updateUrlForDay(dayToSelect);
+                    }
+                }
+
                 this.loading.set(false);
             },
             error: (err) => {
@@ -188,6 +205,17 @@ export class WeeklyPlanComponent implements OnInit {
 
     selectDay(day: RoutineDay): void {
         this.selectedDay.set(day);
+        this.updateUrlForDay(day);
+    }
+
+    private updateUrlForDay(day: RoutineDay): void {
+        // Update URL without reloading to persist state in history
+        this.router.navigate([], {
+            relativeTo: this.route,
+            queryParams: { day: day.url_slug },
+            queryParamsHandling: 'merge',
+            replaceUrl: true
+        });
     }
 
     isToday(day: RoutineDay): boolean {
@@ -251,8 +279,18 @@ export class WeeklyPlanComponent implements OnInit {
 
     viewExerciseDetail(exercise: RoutineExercise): void {
         const routine = this.routine();
+        const day = this.selectedDay();
+
+        let prevUrl = '/workouts';
+        if (routine) {
+            prevUrl = `/workouts/routine/${routine.url_slug}`;
+            if (day) {
+                prevUrl += `?day=${day.url_slug}`;
+            }
+        }
+
         // Store previous URL in sessionStorage instead of query params
-        this.navHistory.setPreviousUrl(routine ? `/workouts/routine/${routine.url_slug}` : '/workouts');
+        this.navHistory.setPreviousUrl(prevUrl);
         this.router.navigate(['/workouts/exercise', exercise.url_slug]);
     }
 
