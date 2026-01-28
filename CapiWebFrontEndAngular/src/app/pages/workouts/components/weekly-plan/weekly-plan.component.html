@@ -28,143 +28,145 @@
     </div>
     }
 
-    @if (!loading() && routine()) {
-    <!-- Horizontal Calendar / Day Carousel -->
-    <div class="mt-4 flex w-full flex-col">
-        <div class="flex overflow-x-auto pb-4 pt-2 px-4 gap-4 snap-x snap-mandatory no-scrollbar">
-            @for (day of routine()!.days; track day.id; let i = $index) {
-            <!-- Day Card -->
-            <div (click)="selectDay(day)"
-                class="snap-center shrink-0 flex w-[85vw] max-w-[320px] flex-col gap-3 rounded-xl p-3 shadow-sm cursor-pointer transition-all"
-                [class]="selectedDay()?.id === day.id 
-                            ? 'bg-[#1a3324] ring-2 ring-[#13ec6a] shadow-lg' 
-                            : 'bg-[#1a3324] opacity-80 scale-95'">
+    <div class="flex-1 overflow-y-auto pb-24">
+        @if (!loading() && routine()) {
+        <!-- Horizontal Calendar / Day Carousel -->
+        <div class="mt-4 flex w-full flex-col">
+            <div class="flex overflow-x-auto pb-4 pt-2 px-4 gap-4 snap-x snap-mandatory no-scrollbar">
+                @for (day of routine()!.days; track day.id; let i = $index) {
+                <!-- Day Card -->
+                <div (click)="selectDay(day)"
+                    class="snap-center shrink-0 flex w-[85vw] max-w-[320px] flex-col gap-3 rounded-xl p-3 shadow-sm cursor-pointer transition-all"
+                    [class]="selectedDay()?.id === day.id 
+                                ? 'bg-[#1a3324] ring-2 ring-[#13ec6a] shadow-lg' 
+                                : 'bg-[#1a3324] opacity-80 scale-95'">
 
-                <!-- Today Badge -->
-                @if (isToday(day)) {
-                <div class="absolute top-0 right-0 p-3 z-10">
-                    <span
-                        class="px-3 py-1 bg-[#13ec6a] text-[#102217] text-xs font-bold rounded-full uppercase tracking-wider">Hoy</span>
+                    <!-- Today Badge -->
+                    @if (isToday(day)) {
+                    <div class="absolute top-0 right-0 p-3 z-10">
+                        <span
+                            class="px-3 py-1 bg-[#13ec6a] text-[#102217] text-xs font-bold rounded-full uppercase tracking-wider">Hoy</span>
+                    </div>
+                    }
+
+                    <!-- Day Image -->
+                    <div class="w-full bg-center bg-no-repeat aspect-[16/9] bg-cover rounded-lg relative overflow-hidden"
+                        [style.background-image]="'url(' + getDayImage(i) + ')'">
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                    </div>
+
+                    <!-- Day Info -->
+                    <div class="px-1 pb-1">
+                        <div class="flex items-center justify-between mb-1">
+                            <p class="text-xl font-bold leading-normal">{{ day.day_label }} • {{ day.title }}</p>
+                        </div>
+                        <div class="flex items-center gap-3 text-sm font-medium"
+                            [class]="selectedDay()?.id === day.id ? 'text-[#13ec6a]/80' : 'text-gray-400'">
+                            <span class="flex items-center gap-1">
+                                <span class="material-symbols-outlined" style="font-size: 18px;">schedule</span>
+                                {{ getDuration(day) }}
+                            </span>
+                            <span class="flex items-center gap-1">
+                                <span class="material-symbols-outlined" style="font-size: 18px;">
+                                    {{ getIntensity(day) === 'High' ? 'local_fire_department' : 'bolt' }}
+                                </span>
+                                {{ getIntensity(day) }}
+                            </span>
+                        </div>
+                    </div>
                 </div>
                 }
+            </div>
+        </div>
 
-                <!-- Day Image -->
-                <div class="w-full bg-center bg-no-repeat aspect-[16/9] bg-cover rounded-lg relative overflow-hidden"
-                    [style.background-image]="'url(' + getDayImage(i) + ')'">
-                    <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+        <!-- Section Header -->
+        <div class="mt-4 px-4 pb-2">
+            <h3 class="text-xl font-bold leading-tight tracking-tight">Vista Previa del Entrenamiento</h3>
+            <p class="text-sm text-gray-400 mt-1">
+                {{ selectedDay()?.routine_exercises?.length || 0 }} ejercicios • 3 series cada uno
+            </p>
+        </div>
+
+        <!-- Exercise List -->
+        <div class="flex flex-col gap-2 px-4 pb-4">
+            @for (group of groupedExercises(); track group.parent.id) {
+            <div (click)="viewExerciseDetail(group.active)" (touchstart)="onTouchStart($event, group.parent.id)"
+                (touchmove)="onTouchMove($event, group.parent.id)" (touchend)="onTouchEnd($event, group)"
+                class="relative flex items-center gap-4 rounded-2xl bg-[#1a3324] p-3 shadow-sm border border-transparent hover:border-[#13ec6a]/30 transition-all cursor-pointer overflow-hidden select-none">
+
+                <!-- Content Wrapper (Carousel) -->
+                <div class="flex flex-col flex-1 min-w-0 overflow-hidden">
+                    <!-- Carousel Track -->
+                    <div class="flex transition-transform will-change-transform" [style.transform]="getTransform(group)"
+                        [class.duration-300]="!isSwiping(group.parent.id)"
+                        [class.ease-out]="!isSwiping(group.parent.id)" style="width: 100%;">
+
+                        @for (version of group.versions; track version.id) {
+                        <div class="w-full shrink-0 flex items-center gap-4">
+                            <!-- Exercise Icon -->
+                            <div
+                                class="flex items-center justify-center rounded-xl bg-[#13ec6a]/20 shrink-0 size-14 border border-[#13ec6a]/20">
+                                <span class="material-symbols-outlined text-[#13ec6a]" style="font-size: 24px;">
+                                    {{ getExerciseIcon(version) }}
+                                </span>
+                            </div>
+                            <!-- Exercise Info -->
+                            <div class="flex flex-col justify-center flex-1 min-w-0">
+                                <div class="flex items-center gap-2">
+                                    <h4 class="m-0 text-base font-bold leading-tight truncate text-white">
+                                        {{ group.active.custom_name || group.active.exercise_detail.name }}
+                                    </h4>
+                                </div>
+                                <div class="flex items-center gap-2 mt-0.5">
+                                    <span class="px-2 py-0.5 rounded-md bg-white/10 text-xs font-medium text-gray-300">
+                                        {{ getExerciseType(version) }}
+                                    </span>
+                                    @if (version.is_cardio) {
+                                    <p class="text-[#13ec6a]/70 text-sm font-medium">
+                                        {{ version.target_duration_minutes }} min • {{ version.target_distance_km }} km
+                                    </p>
+                                    } @else {
+                                    <p class="text-[#13ec6a]/70 text-sm font-medium">
+                                        {{ version.target_sets }} series • {{ version.target_reps }} reps
+                                    </p>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                        }
+                    </div>
+
+                    <!-- Static Variant Indicator Dots -->
+                    @if (group.hasVariants) {
+                    <div class="flex gap-1 mt-2 pl-[4.5rem]">
+                        @for (v of group.versions; track v.id) {
+                        <div class="h-1 rounded-full transition-all duration-300" [class.w-4]="v.id === group.active.id"
+                            [class.bg-[#13ec6a]]="v.id === group.active.id" [class.w-1]="v.id !== group.active.id"
+                            [class.bg-white/20]="v.id !== group.active.id">
+                        </div>
+                        }
+                    </div>
+                    }
                 </div>
 
-                <!-- Day Info -->
-                <div class="px-1 pb-1">
-                    <div class="flex items-center justify-between mb-1">
-                        <p class="text-xl font-bold leading-normal">{{ day.day_label }} • {{ day.title }}</p>
-                    </div>
-                    <div class="flex items-center gap-3 text-sm font-medium"
-                        [class]="selectedDay()?.id === day.id ? 'text-[#13ec6a]/80' : 'text-gray-400'">
-                        <span class="flex items-center gap-1">
-                            <span class="material-symbols-outlined" style="font-size: 18px;">schedule</span>
-                            {{ getDuration(day) }}
-                        </span>
-                        <span class="flex items-center gap-1">
-                            <span class="material-symbols-outlined" style="font-size: 18px;">
-                                {{ getIntensity(day) === 'High' ? 'local_fire_department' : 'bolt' }}
-                            </span>
-                            {{ getIntensity(day) }}
-                        </span>
-                    </div>
-                </div>
+                <!-- Info Button -->
+                <button class="shrink-0 text-slate-400 hover:text-[#13ec6a] transition-colors p-2 z-10"
+                    (click)="$event.stopPropagation(); viewExerciseDetail(group.active)">
+                    <span class="material-symbols-outlined" style="font-size: 24px;">info</span>
+                </button>
+            </div>
+            }
+
+            <!-- Empty State -->
+            @if ((selectedDay()?.routine_exercises?.length || 0) === 0) {
+            <div class="flex flex-col items-center py-8 gap-2 text-slate-400">
+                <span class="material-symbols-outlined" style="font-size: 48px;">fitness_center</span>
+                <p>Sin ejercicios para este día</p>
             </div>
             }
         </div>
-    </div>
-
-    <!-- Section Header -->
-    <div class="mt-4 px-4 pb-2">
-        <h3 class="text-xl font-bold leading-tight tracking-tight">Vista Previa del Entrenamiento</h3>
-        <p class="text-sm text-gray-400 mt-1">
-            {{ selectedDay()?.routine_exercises?.length || 0 }} ejercicios • 3 series cada uno
-        </p>
-    </div>
-
-    <!-- Exercise List -->
-    <div class="flex flex-col gap-2 px-4 pb-4">
-        @for (group of groupedExercises(); track group.parent.id) {
-        <div (click)="viewExerciseDetail(group.active)" (touchstart)="onTouchStart($event, group.parent.id)"
-            (touchmove)="onTouchMove($event, group.parent.id)" (touchend)="onTouchEnd($event, group)"
-            class="relative flex items-center gap-4 rounded-2xl bg-[#1a3324] p-3 shadow-sm border border-transparent hover:border-[#13ec6a]/30 transition-all cursor-pointer overflow-hidden select-none">
-
-            <!-- Content Wrapper (Carousel) -->
-            <div class="flex flex-col flex-1 min-w-0 overflow-hidden">
-                <!-- Carousel Track -->
-                <div class="flex transition-transform will-change-transform" [style.transform]="getTransform(group)"
-                    [class.duration-300]="!isSwiping(group.parent.id)" [class.ease-out]="!isSwiping(group.parent.id)"
-                    style="width: 100%;">
-
-                    @for (version of group.versions; track version.id) {
-                    <div class="w-full shrink-0 flex items-center gap-4">
-                        <!-- Exercise Icon -->
-                        <div
-                            class="flex items-center justify-center rounded-xl bg-[#13ec6a]/20 shrink-0 size-14 border border-[#13ec6a]/20">
-                            <span class="material-symbols-outlined text-[#13ec6a]" style="font-size: 24px;">
-                                {{ getExerciseIcon(version) }}
-                            </span>
-                        </div>
-                        <!-- Exercise Info -->
-                        <div class="flex flex-col justify-center flex-1 min-w-0">
-                            <div class="flex items-center gap-2">
-                                <h4 class="m-0 text-base font-bold leading-tight truncate text-white">
-                                    {{ group.active.custom_name || group.active.exercise_detail.name }}
-                                </h4>
-                            </div>
-                            <div class="flex items-center gap-2 mt-0.5">
-                                <span class="px-2 py-0.5 rounded-md bg-white/10 text-xs font-medium text-gray-300">
-                                    {{ getExerciseType(version) }}
-                                </span>
-                                @if (version.is_cardio) {
-                                <p class="text-[#13ec6a]/70 text-sm font-medium">
-                                    {{ version.target_duration_minutes }} min • {{ version.target_distance_km }} km
-                                </p>
-                                } @else {
-                                <p class="text-[#13ec6a]/70 text-sm font-medium">
-                                    {{ version.target_sets }} series • {{ version.target_reps }} reps
-                                </p>
-                                }
-                            </div>
-                        </div>
-                    </div>
-                    }
-                </div>
-
-                <!-- Static Variant Indicator Dots -->
-                @if (group.hasVariants) {
-                <div class="flex gap-1 mt-2 pl-[4.5rem]">
-                    @for (v of group.versions; track v.id) {
-                    <div class="h-1 rounded-full transition-all duration-300" [class.w-4]="v.id === group.active.id"
-                        [class.bg-[#13ec6a]]="v.id === group.active.id" [class.w-1]="v.id !== group.active.id"
-                        [class.bg-white/20]="v.id !== group.active.id">
-                    </div>
-                    }
-                </div>
-                }
-            </div>
-
-            <!-- Info Button -->
-            <button class="shrink-0 text-slate-400 hover:text-[#13ec6a] transition-colors p-2 z-10"
-                (click)="$event.stopPropagation(); viewExerciseDetail(group.active)">
-                <span class="material-symbols-outlined" style="font-size: 24px;">info</span>
-            </button>
-        </div>
-        }
-
-        <!-- Empty State -->
-        @if ((selectedDay()?.routine_exercises?.length || 0) === 0) {
-        <div class="flex flex-col items-center py-8 gap-2 text-slate-400">
-            <span class="material-symbols-outlined" style="font-size: 48px;">fitness_center</span>
-            <p>Sin ejercicios para este día</p>
-        </div>
         }
     </div>
-    }
 
     <!-- Sticky Bottom Action -->
     <div
