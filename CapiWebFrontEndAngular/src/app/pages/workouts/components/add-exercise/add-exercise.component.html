@@ -15,11 +15,9 @@
                 Añadir Ejercicio
                 }
             </h2>
-            <button (click)="save()" [disabled]="!canSave()"
-                class="flex h-10 px-4 items-center justify-center rounded-full font-semibold transition-colors"
-                [class]="canSave() ? 'text-[#13ec6a] hover:text-[#0fb650]' : 'text-[#9cacba] cursor-not-allowed'">
-                {{ isUpdateMode() ? 'Actualizar' : 'Guardar' }}
-            </button>
+            <!-- Buttons removed as requested -->
+            <div class="w-10"></div> <!-- Spacer to center title -->
+
         </div>
 
         <!-- Variant mode indicator -->
@@ -301,6 +299,8 @@
         <div class="h-px w-full bg-[#3d5a4c]"></div>
 
         <!-- Variant Section -->
+        <!-- Variant Section (Hidden if creating a variant) -->
+        @if (!variantParentId()) {
         <div>
             <button (click)="toggleVariantSection()" class="w-full flex items-center justify-between py-3 text-left">
                 <div class="flex items-center gap-2">
@@ -354,6 +354,7 @@
             }
         </div>
         }
+        }
     </main>
 
     <!-- Sticky Footer Action -->
@@ -363,9 +364,16 @@
             class="pointer-events-auto flex w-full h-14 items-center justify-center gap-2 rounded-full text-lg font-bold shadow-[0_4px_20px_rgba(19,236,106,0.3)] transition-all active:scale-[0.98]"
             [class]="canSave() ? 'bg-[#13ec6a] text-[#102217] hover:bg-[#0fb650]' : 'bg-[#1d3627] text-[#9cacba] cursor-not-allowed'">
             <span class="material-symbols-outlined">{{ isUpdateMode() ? 'save' : 'add_circle' }}</span>
-            {{ isUpdateMode() ? 'Guardar y Salir' : 'Añadir a la Rutina' }}
+            {{ variantParentId() ? 'Guardar ejercicio alternativo' : (isUpdateMode() ? 'Guardar y Salir' : 'Añadir a la
+            Rutina') }}
         </button>
     </div>
+
+    <!-- Modals -->
+    <app-confirm-modal [isOpen]="showDeleteVariantModal()" title="¿Eliminar variante?"
+        message="Esta acción no se puede deshacer. ¿Seguro que quieres eliminar esta variante?" confirmText="Eliminar"
+        cancelText="Cancelar" (confirm)="confirmDeleteVariant()" (cancel)="cancelDeleteVariant()">
+    </app-confirm-modal>
 
     <!-- Icon Picker Modal -->
     @if (showIconPicker()) {

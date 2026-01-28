@@ -52,6 +52,10 @@ export class AddExerciseComponent implements OnInit {
     @ViewChild('exerciseImagesInput') exerciseImagesInput!: ElementRef<HTMLInputElement>;
     exerciseImages = signal<{ file: File; preview: string }[]>([]);
 
+    // Delete Modal state
+    showDeleteVariantModal = signal<boolean>(false);
+    variantToDeleteIndex = signal<number | null>(null);
+
     // Options
     iconOptions = [
         'fitness_center', 'accessibility_new', 'directions_run', 'self_improvement',
@@ -161,13 +165,72 @@ export class AddExerciseComponent implements OnInit {
     }
 
     removeVariant(index: number): void {
-        this.variants.update(v => v.filter((_, i) => i !== index));
+        this.variantToDeleteIndex.set(index);
+        this.showDeleteVariantModal.set(true);
+    }
+
+    cancelDeleteVariant(): void {
+        this.showDeleteVariantModal.set(false);
+        this.variantToDeleteIndex.set(null);
+    }
+
+    confirmDeleteVariant(): void {
+        const index = this.variantToDeleteIndex();
+        if (index === null) return;
+
+        const variant = this.variants()[index];
+        if (variant.variantId) {
+            // Delete from API
+            this.api.deleteRoutineExercise(variant.variantId).subscribe({
+                next: () => {
+                    this.variants.update(v => v.filter((_, i) => i !== index));
+                    this.cancelDeleteVariant();
+                },
+                error: (err) => {
+                    console.error('Error deleting variant', err);
+                    this.cancelDeleteVariant();
+                }
+            });
+        } else {
+            // Just remove from list (local only)
+            this.variants.update(v => v.filter((_, i) => i !== index));
+            this.cancelDeleteVariant();
+        }
     }
 
     openCreateExerciseForVariant(): void {
         this.closeVariantPicker();
-        // The form underneath is already set up for creating an exercise
-        // When saved, it will detect variantParentId and create it as a variant
+
+        // We use editingExerciseId because we are adding a variant to the ROUTINE EXERCISE, not the library exercise directly
+        let parentId = this.editingExerciseId();
+        let parentName = this.exerciseName();
+        let parentSlug = this.editingExerciseSlug();
+
+        if (!parentId) {
+            console.error("Cannot create variant without a parent exercise ID");
+            return;
+        }
+
+        // Set state for "Creating Variant"
+        this.variantParentId.set(parentId);
+        this.variantParentName.set(parentName);
+        if (parentSlug) this.variantParentSlug.set(parentSlug);
+
+        // Reset form for new exercise
+        this.exerciseName.set('');
+        // Keep category/equipment as defaults from parent
+
+        // Reset ID tracking to force creation behavior
+        this.isUpdateMode.set(false);
+        this.editingExerciseId.set(null);
+        this.editingExerciseSlug.set(null);
+
+        // Clear images
+        this.exerciseImages.set([]);
+        this.existingImages.set([]);
+
+        // Scroll to top
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
 
@@ -429,6 +492,7 @@ export class AddExerciseComponent implements OnInit {
                 if (data.variants && data.variants.length > 0) {
                     const mappedVariants: PendingExercise[] = data.variants.map((v: any) => ({
                         id: v.exercise_detail.id, // ID of the Exercise (Library)
+                        variantId: v.id, // ID of the RoutineExercise variant
                         name: v.exercise_detail.name,
                         sets: v.target_sets,
                         reps: v.target_reps,
@@ -475,6 +539,10 @@ export class AddExerciseComponent implements OnInit {
         } else {
             this.router.navigate(['/workouts/create/day', this.dayIndex()]);
         }
+    }
+
+    goToCreate(): void {
+        this.router.navigate(['/workouts/routine', this.editingRoutineSlug(), 'day', this.editingDaySlug(), 'add']);
     }
 
     save(): void {
@@ -540,24 +608,30 @@ export class AddExerciseComponent implements OnInit {
 
                     // If we have a variant parent, add as variant instead of new exercise
                     if (parentId && exerciseId) {
-                        const variantData = {
-                            exercise: exerciseId,
-                            target_sets: this.sets(),
-                            target_reps: this.reps(),
-                            target_weight: this.weight()
-                        };
-                        this.api.addExerciseVariant(parentId, variantData).subscribe({
-                            next: () => {
-                                // Navigate back to the exercise detail
-                                // Set previousUrl in sessionStorage for the exercise detail
-                                this.navHistory.setPreviousUrl(this.returnUrl() || '/workouts');
-                                const parentSlug = this.variantParentSlug() || parentId;
-                                this.router.navigate(['/workouts/exercise', parentSlug]);
-                            },
-                            error: (err) => {
-                                this.saving.set(false);
-                                console.error('Error adding variant', err);
-                            }
+                        // Set baseExerciseId so images are uploaded to the correct exercise (the newly created library exercise)
+                        this.baseExerciseId.set(exerciseId);
+
+                        // Upload images first, then add as variant
+                        this.uploadPendingImages().then(() => {
+                            const variantData = {
+                                exercise: exerciseId,
+                                target_sets: this.sets(),
+                                target_reps: this.reps(),
+                                target_weight: this.weight()
+                            };
+                            this.api.addExerciseVariant(parentId, variantData).subscribe({
+                                next: () => {
+                                    // Navigate back to the exercise detail
+                                    // Set previousUrl in sessionStorage for the exercise detail
+                                    this.navHistory.setPreviousUrl(this.returnUrl() || '/workouts');
+                                    const parentSlug = this.variantParentSlug() || parentId;
+                                    this.router.navigate(['/workouts/exercise', parentSlug]);
+                                },
+                                error: (err) => {
+                                    this.saving.set(false);
+                                    console.error('Error adding variant', err);
+                                }
+                            });
                         });
                         return;
                     }

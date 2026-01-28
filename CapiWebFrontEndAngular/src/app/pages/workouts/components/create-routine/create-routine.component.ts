@@ -31,6 +31,7 @@ export interface PendingRoutineDay {
 
 export interface PendingExercise {
     id?: number;
+    variantId?: number; // ID of the RoutineExercise if it is a variant
     slug?: string;
     url_slug?: string;
     short_id?: string;
