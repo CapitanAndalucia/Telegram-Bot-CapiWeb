@@ -98,7 +98,18 @@
 
             <!-- Image Grid -->
             <div class="flex gap-3 overflow-x-auto no-scrollbar pb-2">
-                <!-- Existing images -->
+                <!-- Existing DB images -->
+                @for (img of existingImages(); track img.id) {
+                <div class="relative shrink-0 w-24 h-24 rounded-xl overflow-hidden bg-[#1d3627]">
+                    <img [src]="img.file_url || img.file" alt="Stored Image" class="w-full h-full object-cover" />
+                    <button (click)="removeExistingImage(img.id)"
+                        class="absolute top-1 right-1 flex size-6 items-center justify-center rounded-full bg-black/60 text-white hover:bg-red-500 transition-colors">
+                        <span class="material-symbols-outlined" style="font-size: 14px;">close</span>
+                    </button>
+                </div>
+                }
+
+                <!-- New Upload Preview -->
                 @for (image of exerciseImages(); track $index) {
                 <div class="relative shrink-0 w-24 h-24 rounded-xl overflow-hidden bg-[#1d3627]">
                     <img [src]="image.preview" alt="Preview" class="w-full h-full object-cover" />

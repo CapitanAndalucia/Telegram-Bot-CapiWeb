@@ -127,6 +127,14 @@ export class AdminExerciseModalComponent implements OnInit {
         this.description.set(ex.description || '');
         this.selectedIcon.set(ex.icon || 'fitness_center');
 
+        if (ex.media && Array.isArray(ex.media)) {
+            this.existingImages.set(ex.media.filter((m: any) => m.media_type === 'image'));
+        } else if (ex.exercise_detail && ex.exercise_detail.media) {
+            this.existingImages.set(ex.exercise_detail.media.filter((m: any) => m.media_type === 'image'));
+        } else {
+            this.existingImages.set([]);
+        }
+
         if (ex.description && ex.description.includes(' - ')) {
             const parts = ex.description.split(' - ');
             if (parts.length >= 2) {
@@ -213,6 +221,18 @@ export class AdminExerciseModalComponent implements OnInit {
         this.exerciseImages.update(images => images.filter((_, i) => i !== index));
     }
 
+    async removeExistingImage(mediaId: number) {
+        if (!confirm('¿Eliminar esta imagen?')) return;
+
+        try {
+            await firstValueFrom(this.api.deleteExerciseImage(this.editingId()!, mediaId));
+            this.existingImages.update(images => images.filter((img: any) => img.id !== mediaId));
+        } catch (e) {
+            console.error('Error deleting image', e);
+            alert('Error al eliminar imagen');
+        }
+    }
+
     // --- Save ---
     canSave() {
         return this.exerciseName().trim().length > 0;
@@ -252,6 +272,9 @@ export class AdminExerciseModalComponent implements OnInit {
             if (this.exerciseImages().length > 0 && result.id) {
                 const files = this.exerciseImages().map(img => img.file);
                 await firstValueFrom(this.api.uploadExerciseImages(result.id, files));
+
+                // Refresh exercise to get the uploaded images
+                result = await firstValueFrom(this.api.getExercise(result.id));
             }
 
             this.onSaved.emit(result);

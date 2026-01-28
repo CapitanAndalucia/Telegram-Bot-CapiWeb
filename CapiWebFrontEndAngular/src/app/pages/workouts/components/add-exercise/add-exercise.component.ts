@@ -6,6 +6,7 @@ import { ApiClientService } from '../../../../services/api-client.service';
 import { firstValueFrom } from 'rxjs';
 import { NavigationHistoryService } from '../../../../services/navigation-history.service';
 import { PendingRoutine, PendingExercise } from '../create-routine/create-routine.component';
+import { ConfirmModalComponent } from '../../../../shared/components/confirm-modal/confirm-modal.component';
 
 interface ExerciseSuggestion {
     id: number;
@@ -18,7 +19,7 @@ interface ExerciseSuggestion {
 @Component({
     selector: 'app-add-exercise',
     standalone: true,
-    imports: [CommonModule, FormsModule],
+    imports: [CommonModule, FormsModule, ConfirmModalComponent],
     templateUrl: './add-exercise.component.html',
     styleUrls: []
 })
@@ -442,6 +443,18 @@ export class AddExerciseComponent implements OnInit {
                 if (data.exercise_detail?.id) {
                     this.baseExerciseId.set(data.exercise_detail.id);
                 }
+                if (data.exercise_detail?.media) {
+                    const media = data.exercise_detail.media;
+                    this.existingImages.set(
+                        media.filter((m: any) => m.media_type === 'image')
+                            .map((m: any) => ({
+                                id: m.id,
+                                url: m.file_url || m.file // Prefer absolute URL
+                            }))
+                    );
+                } else {
+                    this.existingImages.set([]);
+                }
             },
             error: (err) => console.error('Error loading exercise', err)
         });
@@ -677,5 +690,39 @@ export class AddExerciseComponent implements OnInit {
                 }
             });
         });
+    }
+    // Existing images (from backend)
+    existingImages = signal<any[]>([]);
+
+    // Confirmation Modal State
+    showDeleteModal = signal<boolean>(false);
+    imageToDeleteId = signal<number | null>(null);
+
+    removeExistingImage(mediaId: number): void {
+        this.imageToDeleteId.set(mediaId);
+        this.showDeleteModal.set(true);
+    }
+
+    confirmDeleteImage(): void {
+        const mediaId = this.imageToDeleteId();
+        const exerciseId = this.baseExerciseId();
+
+        if (!mediaId || !exerciseId) return;
+
+        this.api.deleteExerciseImage(exerciseId, mediaId).subscribe({
+            next: () => {
+                this.existingImages.update(images => images.filter(img => img.id !== mediaId));
+                this.cancelDeleteImage();
+            },
+            error: (err) => {
+                console.error('Error deleting image', err);
+                this.cancelDeleteImage();
+            }
+        });
+    }
+
+    cancelDeleteImage(): void {
+        this.showDeleteModal.set(false);
+        this.imageToDeleteId.set(null);
     }
 }

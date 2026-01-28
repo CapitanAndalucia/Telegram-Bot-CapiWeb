@@ -8,7 +8,17 @@ from .models import (
 class ExerciseMediaSerializer(serializers.ModelSerializer):
     class Meta:
         model = ExerciseMedia
-        fields = ["id", "media_type", "file", "order"]
+        fields = ["id", "media_type", "file", "file_url", "order"]
+
+    file_url = serializers.SerializerMethodField()
+
+    def get_file_url(self, obj):
+        if obj.file:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.file.url)
+            return obj.file.url
+        return None
 
 
 class ExerciseSerializer(serializers.ModelSerializer):

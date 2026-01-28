@@ -697,6 +697,10 @@ export class ApiClientService {
         return this.request(`/workouts/exercises/${id}/`, 'PATCH', { data });
     }
 
+    getExercise(id: number): Observable<any> {
+        return this.request(`/workouts/exercises/${id}/`, 'GET');
+    }
+
     getExerciseLibrary(isCustom?: boolean): Observable<any> {
         const params: Record<string, any> = {};
         if (isCustom !== undefined) {

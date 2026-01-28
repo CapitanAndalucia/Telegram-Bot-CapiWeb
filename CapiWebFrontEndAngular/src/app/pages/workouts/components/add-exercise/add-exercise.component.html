@@ -7,12 +7,18 @@
                 <span class="material-symbols-outlined" style="font-size: 28px;">close</span>
             </button>
             <h2 class="flex-1 text-center text-lg font-bold tracking-tight text-white">
-                {{ variantParentId() ? 'Añadir Alternativo' : 'Añadir Ejercicio' }}
+                @if (variantParentId()) {
+                Añadir Alternativo
+                } @else if (isUpdateMode()) {
+                Modificar Ejercicio
+                } @else {
+                Añadir Ejercicio
+                }
             </h2>
             <button (click)="save()" [disabled]="!canSave()"
                 class="flex h-10 px-4 items-center justify-center rounded-full font-semibold transition-colors"
                 [class]="canSave() ? 'text-[#13ec6a] hover:text-[#0fb650]' : 'text-[#9cacba] cursor-not-allowed'">
-                Guardar
+                {{ isUpdateMode() ? 'Actualizar' : 'Guardar' }}
             </button>
         </div>
 
@@ -96,7 +102,18 @@
 
             <!-- Image Grid -->
             <div class="flex gap-3 overflow-x-auto no-scrollbar pb-2">
-                <!-- Existing images -->
+                <!-- Existing DB images -->
+                @for (img of existingImages(); track img.id) {
+                <div class="relative shrink-0 w-24 h-24 rounded-xl overflow-hidden bg-[#1d3627]">
+                    <img [src]="img.url" alt="Stored Image" class="w-full h-full object-cover" />
+                    <button (click)="removeExistingImage(img.id)"
+                        class="absolute top-1 right-1 flex size-6 items-center justify-center rounded-full bg-black/60 text-white hover:bg-red-500 transition-colors">
+                        <span class="material-symbols-outlined" style="font-size: 14px;">close</span>
+                    </button>
+                </div>
+                }
+
+                <!-- New Upload Preview -->
                 @for (image of exerciseImages(); track $index) {
                 <div class="relative shrink-0 w-24 h-24 rounded-xl overflow-hidden bg-[#1d3627]">
                     <img [src]="image.preview" alt="Preview" class="w-full h-full object-cover" />
@@ -345,8 +362,8 @@
         <button (click)="save()" [disabled]="!canSave()"
             class="pointer-events-auto flex w-full h-14 items-center justify-center gap-2 rounded-full text-lg font-bold shadow-[0_4px_20px_rgba(19,236,106,0.3)] transition-all active:scale-[0.98]"
             [class]="canSave() ? 'bg-[#13ec6a] text-[#102217] hover:bg-[#0fb650]' : 'bg-[#1d3627] text-[#9cacba] cursor-not-allowed'">
-            <span class="material-symbols-outlined">add_circle</span>
-            Añadir a la Rutina
+            <span class="material-symbols-outlined">{{ isUpdateMode() ? 'save' : 'add_circle' }}</span>
+            {{ isUpdateMode() ? 'Guardar y Salir' : 'Añadir a la Rutina' }}
         </button>
     </div>
 
@@ -477,4 +494,11 @@
         </div>
     </div>
     }
+
+    <!-- Confirmation Modal -->
+    <app-confirm-modal [isOpen]="showDeleteModal()" title="Eliminar Imagen"
+        message="¿Estás seguro de que quieres eliminar esta imagen? Esta acción no se puede deshacer."
+        confirmText="Eliminar" cancelText="Cancelar" variant="danger" icon="delete" (confirmed)="confirmDeleteImage()"
+        (cancelled)="cancelDeleteImage()">
+    </app-confirm-modal>
 </div>

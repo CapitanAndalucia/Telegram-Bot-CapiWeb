@@ -470,9 +470,9 @@ export class ExerciseDetailComponent implements OnInit {
         const media = data.exercise_detail?.media || [];
         const images = media
             .filter((m: any) => m.media_type === 'image')
-            .map((m: any) => ({ id: m.id, url: m.file }));
+            .map((m: any) => ({ id: m.id, url: m.file_url || m.file }));
         this.exerciseImages.set(images);
-        this.currentImageIndex.set(0);
+        this.initializeCarousel();
     }
 
     loadSets(id: number): void {
@@ -854,9 +854,7 @@ export class ExerciseDetailComponent implements OnInit {
             this.api.deleteExerciseImage(exerciseId, mediaId).subscribe({
                 next: () => {
                     this.exerciseImages.update(imgs => imgs.filter(img => img.id !== mediaId));
-                    if (this.currentImageIndex() >= this.exerciseImages().length) {
-                        this.currentImageIndex.set(Math.max(0, this.exerciseImages().length - 1));
-                    }
+                    this.initializeCarousel();
                     this.showDeleteImageModal.set(false);
                     this.imageToDelete.set(null);
                 },
