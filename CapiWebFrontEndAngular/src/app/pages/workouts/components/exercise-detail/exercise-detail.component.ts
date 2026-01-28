@@ -70,7 +70,8 @@ export class ExerciseDetailComponent implements OnInit {
     // --- Modals State ---
     showTargetModal = signal<boolean>(false);
     showLogModal = signal<boolean>(false);
-    showTipModal = signal<boolean>(false);
+    showInfoModal = signal<boolean>(false); // Unified Info Modal
+    infoTabIndex = signal<number>(0); // 0: Tips, 1: Notes
 
     // --- Editing State (Name) ---
     isEditing = signal<boolean>(false);
@@ -147,6 +148,10 @@ export class ExerciseDetailComponent implements OnInit {
     swipeOffsetMap = signal<Map<number, number>>(new Map()); // id -> offset
     isSwiping = signal<boolean>(false);
 
+    // Info Modal Swipe State
+    infoSwipeOffset = signal<number>(0);
+    isInfoSwiping = signal<boolean>(false);
+
     private touchStartX = 0;
     private currentTouchX = 0;
     private readonly SWIPE_THRESHOLD = 50;
@@ -205,6 +210,58 @@ export class ExerciseDetailComponent implements OnInit {
             newMap.set(999, 0);
             return newMap;
         });
+    }
+
+    // --- Info Modal Touch Handlers ---
+    onInfoTouchStart(event: TouchEvent) {
+        event.stopPropagation();
+        this.touchStartX = event.touches[0].clientX;
+        this.currentTouchX = this.touchStartX;
+        this.isInfoSwiping.set(true);
+    }
+
+    onInfoTouchMove(event: TouchEvent) {
+        event.stopPropagation();
+        this.currentTouchX = event.touches[0].clientX;
+        let diff = this.currentTouchX - this.touchStartX;
+
+        // Resistance at bounds
+        const currentIndex = this.infoTabIndex();
+        const isFirst = currentIndex === 0; // Tips
+        const isLast = currentIndex === 1; // Notes
+
+        if ((isFirst && diff > 0) || (isLast && diff < 0)) {
+            diff = diff * 0.3;
+        }
+
+        this.infoSwipeOffset.set(diff);
+    }
+
+    onInfoTouchEnd(event: TouchEvent) {
+        event.stopPropagation();
+        this.isInfoSwiping.set(false);
+        const diff = this.currentTouchX - this.touchStartX;
+        const currentIndex = this.infoTabIndex();
+
+        if (Math.abs(diff) > this.SWIPE_THRESHOLD) {
+            // Drag left (diff < 0) -> Next Tab
+            if (diff < 0 && currentIndex === 0) {
+                this.infoTabIndex.set(1);
+            }
+            // Drag right (diff > 0) -> Prev Tab
+            else if (diff > 0 && currentIndex === 1) {
+                this.infoTabIndex.set(0);
+            }
+        }
+        this.infoSwipeOffset.set(0);
+    }
+
+    toggleInfoModal(): void {
+        this.showInfoModal.update(v => !v);
+        // Reset to first tab when opening
+        if (this.showInfoModal()) {
+            this.infoTabIndex.set(0);
+        }
     }
 
     getTransform(): string {

@@ -22,6 +22,11 @@ export class WeeklyPlanComponent implements OnInit {
     routine = signal<Routine | null>(null);
     selectedDay = signal<RoutineDay | null>(null);
 
+    // Note Modal State
+    showNoteModal = signal<boolean>(false);
+    selectedExerciseNote = signal<string>('');
+    selectedExerciseName = signal<string>('');
+
     // Track manually selected variant IDs for each parent exercise
     activeVariantIdMap = signal<Map<number, number>>(new Map());
 
@@ -249,6 +254,19 @@ export class WeeklyPlanComponent implements OnInit {
         // Store previous URL in sessionStorage instead of query params
         this.navHistory.setPreviousUrl(routine ? `/workouts/routine/${routine.url_slug}` : '/workouts');
         this.router.navigate(['/workouts/exercise', exercise.url_slug]);
+    }
+
+    openNoteModal(exercise: RoutineExercise, event: Event): void {
+        event.stopPropagation();
+        if (exercise.note) {
+            this.selectedExerciseNote.set(exercise.note);
+            this.selectedExerciseName.set(exercise.custom_name || exercise.exercise_detail.name);
+            this.showNoteModal.set(true);
+        }
+    }
+
+    closeNoteModal(): void {
+        this.showNoteModal.set(false);
     }
 
     // --- Carousel Methods ---

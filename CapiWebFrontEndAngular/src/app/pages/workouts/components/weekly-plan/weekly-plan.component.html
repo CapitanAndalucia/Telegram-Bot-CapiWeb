@@ -149,11 +149,13 @@
                     }
                 </div>
 
-                <!-- Info Button -->
+                <!-- Info Button - Only if note exists -->
+                @if (group.active.note) {
                 <button class="shrink-0 text-slate-400 hover:text-[#13ec6a] transition-colors p-2 z-10"
-                    (click)="$event.stopPropagation(); viewExerciseDetail(group.active)">
+                    (click)="openNoteModal(group.active, $event)">
                     <span class="material-symbols-outlined" style="font-size: 24px;">info</span>
                 </button>
+                }
             </div>
             }
 
@@ -166,15 +168,31 @@
             }
         </div>
         }
-    </div>
 
-    <!-- Sticky Bottom Action -->
-    <div
-        class="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-[#102217] via-[#102217] to-transparent pt-12 z-30">
-        <button (click)="startWorkout()"
-            class="w-full bg-[#13ec6a] text-[#102217] h-14 rounded-full font-bold text-lg shadow-[0_0_20px_rgba(19,236,106,0.3)] hover:shadow-[0_0_30px_rgba(19,236,106,0.5)] active:scale-[0.98] transition-all flex items-center justify-center gap-2">
-            <span class="material-symbols-outlined">play_arrow</span>
-            Comenzar Entrenamiento
-        </button>
+        <!-- Sticky Bottom Action -->
+        <div
+            class="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-[#102217] via-[#102217] to-transparent pt-12 z-30">
+            <button (click)="startWorkout()"
+                class="w-full bg-[#13ec6a] text-[#102217] h-14 rounded-full font-bold text-lg shadow-[0_0_20px_rgba(19,236,106,0.3)] hover:shadow-[0_0_30px_rgba(19,236,106,0.5)] active:scale-[0.98] transition-all flex items-center justify-center gap-2">
+                <span class="material-symbols-outlined">play_arrow</span>
+                Comenzar Entrenamiento
+            </button>
+        </div>
+
+        <!-- Note Modal -->
+        @if (showNoteModal()) {
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fadeIn"
+            (click)="closeNoteModal()">
+            <div class="w-full max-w-sm rounded-xl bg-[#13ec6a]/10 border border-[#13ec6a]/20 p-5 shadow-2xl animate-slideUp text-left backdrop-blur-md"
+                (click)="$event.stopPropagation()">
+                <div class="flex items-center gap-2 mb-3">
+                    <span class="material-symbols-outlined text-[#13ec6a]" style="font-size: 24px;">info</span>
+                    <h3 class="text-[#13ec6a] text-lg font-bold">{{ selectedExerciseName() }}</h3>
+                </div>
+                <p class="text-slate-300 text-sm leading-relaxed whitespace-pre-wrap">
+                    {{ selectedExerciseNote() }}
+                </p>
+            </div>
+        </div>
+        }
     </div>
-</div>

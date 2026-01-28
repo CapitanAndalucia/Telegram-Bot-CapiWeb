@@ -12,9 +12,9 @@
         <!-- Info and Edit Buttons -->
         @if (!loading() && exercise()) {
         <div class="flex items-center gap-1">
-            <button (click)="showTipModal.set(true)"
-                class="flex size-10 shrink-0 items-center justify-center rounded-full hover:bg-amber-500/20 transition-colors">
-                <span class="material-symbols-outlined text-amber-400" style="font-size: 20px;">lightbulb</span>
+            <button (click)="toggleInfoModal()"
+                class="flex size-10 shrink-0 items-center justify-center rounded-full hover:bg-white/10 transition-colors">
+                <span class="material-symbols-outlined text-slate-300" style="font-size: 20px;">info</span>
             </button>
             <button (click)="toggleEdit()"
                 class="flex size-10 shrink-0 items-center justify-center rounded-full hover:bg-white/10 transition-colors">
@@ -229,37 +229,85 @@
             </div>
         </div>
 
-        <!-- Tip Modal -->
-        @if (showTipModal()) {
+        <!-- Unified Info Modal -->
+        @if (showInfoModal()) {
         <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fadeIn"
-            (click)="showTipModal.set(false)">
-            <div class="w-full max-w-sm rounded-xl bg-[#13ec6a]/10 border border-[#13ec6a]/20 p-5 shadow-2xl animate-slideUp"
+            (click)="toggleInfoModal()">
+            <div class="w-full max-w-sm rounded-xl bg-[#13ec6a]/10 border border-[#13ec6a]/20 overflow-hidden shadow-2xl animate-slideUp backdrop-blur-md"
                 (click)="$event.stopPropagation()">
-                <div class="flex items-center justify-between mb-3">
+
+                <!-- Modal Header -->
+                <div class="flex items-center justify-between p-5 pb-0">
                     <div class="flex items-center gap-2">
-                        <span class="material-symbols-outlined text-[#13ec6a]" style="font-size: 24px;">lightbulb</span>
-                        <h3 class="text-[#13ec6a] text-sm font-bold uppercase tracking-wider">Consejo Próxima Sesión
-                        </h3>
+                        @if (infoTabIndex() === 0) {
+                        <span class="material-symbols-outlined text-[#13ec6a]" style="font-size: 20px;">lightbulb</span>
+                        <h3 class="text-[#13ec6a] text-sm font-bold uppercase tracking-wider">Consejo</h3>
+                        } @else {
+                        <span class="material-symbols-outlined text-[#13ec6a]"
+                            style="font-size: 20px;">description</span>
+                        <h3 class="text-[#13ec6a] text-sm font-bold uppercase tracking-wider">Notas</h3>
+                        }
                     </div>
-                    <button (click)="showTipModal.set(false)"
-                        class="size-8 flex items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors">
-                        <span class="material-symbols-outlined">close</span>
+                    <button (click)="toggleInfoModal()"
+                        class="size-8 flex items-center justify-center rounded-full bg-white/5 text-slate-400 hover:bg-white/10 transition-colors">
+                        <span class="material-symbols-outlined" style="font-size: 18px;">close</span>
                     </button>
                 </div>
-                @if (exercise()?.is_cardio) {
-                <p class="text-slate-200 text-sm leading-relaxed">
-                    ¡Buen ritmo en tu última sesión! Para mejorar tu resistencia, intenta aumentar
-                    <span class="text-[#13ec6a] font-bold">5 minutos</span> o
-                    <span class="text-[#13ec6a] font-bold">0.5 km</span> en tu próxima carrera.
-                </p>
-                } @else {
-                <p class="text-slate-200 text-sm leading-relaxed">
-                    ¡Excelente trabajo en tu última serie! Tu velocidad fue alta en las reps finales. Intenta
-                    aumentar el peso en
-                    <span class="text-[#13ec6a] font-bold">2.5 kg</span> en la próxima sesión para mantener la
-                    sobrecarga progresiva.
-                </p>
-                }
+
+                <!-- Swipeable Content -->
+                <div class="relative overflow-hidden" (touchstart)="onInfoTouchStart($event)"
+                    (touchmove)="onInfoTouchMove($event)" (touchend)="onInfoTouchEnd($event)">
+
+                    <div class="flex transition-transform will-change-transform"
+                        [style.transform]="'translateX(calc(-' + (infoTabIndex() * 100) + '% + ' + infoSwipeOffset() + 'px))'"
+                        [class.duration-300]="!isInfoSwiping()" [class.ease-out]="!isInfoSwiping()">
+
+                        <!-- Slide 1: Tips -->
+                        <div class="w-full shrink-0 p-5">
+                            @if (exercise()?.is_cardio) {
+                            <p class="text-slate-300 text-sm leading-relaxed">
+                                ¡Buen ritmo en tu última sesión! Para mejorar tu resistencia, intenta aumentar
+                                <span class="text-[#13ec6a] font-bold">5 minutos</span> o
+                                <span class="text-[#13ec6a] font-bold">0.5 km</span> en tu próxima carrera.
+                            </p>
+                            } @else {
+                            <p class="text-slate-300 text-sm leading-relaxed">
+                                ¡Excelente trabajo en tu última serie! Tu velocidad fue alta en las reps finales.
+                                Intenta
+                                aumentar el peso en
+                                <span class="text-[#13ec6a] font-bold">2.5 kg</span> en la próxima sesión para mantener
+                                la
+                                sobrecarga progresiva.
+                            </p>
+                            }
+                        </div>
+
+                        <!-- Slide 2: Notes -->
+                        <div class="w-full shrink-0 p-5">
+                            @if (exercise()?.note) {
+                            <p class="text-slate-300 text-sm leading-relaxed whitespace-pre-wrap">{{ exercise()?.note }}
+                            </p>
+                            } @else {
+                            <div class="flex flex-col items-center justify-center py-4 text-slate-500 gap-2">
+                                <span class="material-symbols-outlined" style="font-size: 32px;">note_stack</span>
+                                <p class="text-xs">Sin notas para este ejercicio</p>
+                            </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab Indicators -->
+                <div class="flex justify-center pb-4 gap-2">
+                    <button (click)="infoTabIndex.set(0)" class="h-1.5 rounded-full transition-all duration-300"
+                        [class.w-4]="infoTabIndex() === 0" [class.bg-[#13ec6a]]="infoTabIndex() === 0"
+                        [class.w-1.5]="infoTabIndex() !== 0" [class.bg-white/20]="infoTabIndex() !== 0">
+                    </button>
+                    <button (click)="infoTabIndex.set(1)" class="h-1.5 rounded-full transition-all duration-300"
+                        [class.w-4]="infoTabIndex() === 1" [class.bg-[#13ec6a]]="infoTabIndex() === 1"
+                        [class.w-1.5]="infoTabIndex() !== 1" [class.bg-white/20]="infoTabIndex() !== 1">
+                    </button>
+                </div>
             </div>
         </div>
         }
