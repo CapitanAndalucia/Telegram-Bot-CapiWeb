@@ -527,8 +527,8 @@ export class AddExerciseComponent implements OnInit {
     close(): void {
         const returnUrl = this.returnUrl();
         if (returnUrl) {
-            // Clear the return URL from sessionStorage to prevent stale URLs
-            this.navHistory.clear();
+            // Consume and clear only the return URL, preserving previous URL for the detail page
+            this.navHistory.getReturnUrl();
             // Use replaceUrl to avoid creating duplicate history entries
             this.router.navigateByUrl(returnUrl, { replaceUrl: true });
             return;
