@@ -93,8 +93,7 @@
             </label>
 
             <!-- Hidden file input -->
-            <input type="file" #exerciseImagesInput accept="image/*" multiple (change)="onImagesSelected($event)"
-                class="hidden" />
+            <input type="file" #exerciseImagesInput multiple (change)="onImagesSelected($event)" class="hidden" />
 
             <!-- Image Grid -->
             <div class="flex gap-3 overflow-x-auto no-scrollbar pb-2">
