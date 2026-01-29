@@ -728,8 +728,13 @@ export class AddExerciseComponent implements OnInit {
         const input = event.target as HTMLInputElement;
         if (input.files && input.files.length > 0) {
             const files = Array.from(input.files);
+            let rejected = false;
+
             files.forEach(file => {
-                if (!file.type.startsWith('image/') || file.size > 10 * 1024 * 1024) return;
+                if (!file.type.startsWith('image/') || file.size > 10 * 1024 * 1024) {
+                    rejected = true;
+                    return;
+                }
                 const reader = new FileReader();
                 reader.onload = (e) => {
                     const preview = e.target?.result as string;
@@ -737,6 +742,11 @@ export class AddExerciseComponent implements OnInit {
                 };
                 reader.readAsDataURL(file);
             });
+
+            if (rejected) {
+                alert('Algunos archivos no se añadieron porque no son imágenes o pesan más de 10MB.');
+            }
+
             input.value = '';
         }
     }
