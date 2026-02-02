@@ -21,7 +21,12 @@ interface ExerciseSuggestion {
     standalone: true,
     imports: [CommonModule, FormsModule, ConfirmModalComponent],
     templateUrl: './add-exercise.component.html',
-    styleUrls: []
+    styles: [`
+        .filter-green { filter: brightness(0) saturate(100%) invert(66%) sepia(87%) saturate(379%) hue-rotate(85deg) brightness(108%) contrast(92%); }
+        .filter-yellow { filter: brightness(0) saturate(100%) invert(88%) sepia(61%) saturate(1008%) hue-rotate(358deg) brightness(103%) contrast(104%); }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    `]
 })
 export class AddExerciseComponent implements OnInit {
     private api = inject(ApiClientService);
@@ -355,6 +360,9 @@ export class AddExerciseComponent implements OnInit {
 
     returnUrl = signal<string | null>(null);
 
+    // Routine Exercise Reuse
+    routineExercises = signal<any[]>([]);
+
     async ngOnInit(): Promise<void> {
         // Preload image icons to ensure instant display in picker
         this.iconOptions.forEach(icon => {
@@ -376,6 +384,9 @@ export class AddExerciseComponent implements OnInit {
                 this.editingRoutineSlug.set(routineSlug);
                 this.editingDaySlug.set(daySlug);
 
+                // Load routine exercises for reuse
+                this.loadRoutineExercises(routineSlug);
+
                 if (exerciseSlug) {
                     this.isUpdateMode.set(true);
                     this.editingExerciseSlug.set(exerciseSlug);
@@ -388,6 +399,9 @@ export class AddExerciseComponent implements OnInit {
                 const indexParam = params.get('dayIndex');
                 const index = indexParam ? parseInt(indexParam) : 0;
                 this.dayIndex.set(index);
+
+                // Load pending routine exercises for reuse
+                this.loadPendingRoutineExercises();
             }
         });
 
@@ -408,6 +422,86 @@ export class AddExerciseComponent implements OnInit {
         const storedReturnUrl = this.navHistory.peekReturnUrl();
         if (storedReturnUrl) {
             this.returnUrl.set(storedReturnUrl);
+        }
+    }
+
+    loadRoutineExercises(slug: string): void {
+        this.api.getRoutine(slug).subscribe({
+            next: (routine: any) => {
+                if (routine && routine.days) {
+                    const allExercises: any[] = [];
+                    routine.days.forEach((day: any) => {
+                        if (day.routine_exercises) {
+                            day.routine_exercises.forEach((ex: any) => {
+                                // Prevent duplicates based on name, but we might want multiple configs?
+                                // Let's simplify: Show all unique by name/config, or just all?
+                                // User asked for "created exercises inside the routine".
+                                // Let's map them to a simple structure
+                                allExercises.push({
+                                    id: ex.id,
+                                    name: ex.custom_name || ex.exercise_detail.name,
+                                    category: ex.exercise_detail.category?.name || 'General', // Assuming structure
+                                    equipment: 'N/A', // Detail might not be fully populated in list view, check structure
+                                    icon: ex.icon || ex.exercise_detail.icon || 'fitness_center',
+                                    target_sets: ex.target_sets,
+                                    target_reps: ex.target_reps,
+                                    target_weight: ex.target_weight,
+                                    note: ex.note,
+                                    // Keep original for cloning
+                                    original: ex
+                                });
+                            });
+                        }
+                    });
+                    this.routineExercises.set(allExercises);
+                }
+            }
+        });
+    }
+
+    loadPendingRoutineExercises(): void {
+        const stored = sessionStorage.getItem('pendingRoutine');
+        if (stored) {
+            const routine: PendingRoutine = JSON.parse(stored);
+            const allExercises: any[] = [];
+            routine.days.forEach(day => {
+                day.exercises.forEach(ex => {
+                    // Only add if it has a name (sanity check)
+                    if (ex.name) {
+                        allExercises.push({
+                            id: ex.id, // might be library ID
+                            name: ex.name,
+                            category: 'Routine',
+                            equipment: '',
+                            icon: 'fitness_center', // We might not have icon in pending?
+                            target_sets: ex.sets,
+                            target_reps: ex.reps,
+                            target_weight: ex.weight,
+                            note: ex.notes,
+                            original: ex
+                        });
+                    }
+                });
+            });
+            this.routineExercises.set(allExercises);
+        }
+    }
+
+    selectRoutineExercise(ex: any): void {
+        this.exerciseName.set(ex.name);
+        this.selectedIcon.set(ex.icon);
+        // Category/Equipment might not be available if reusing from pending, default them
+        this.selectedCategory.set(ex.category || 'General');
+        this.selectedEquipment.set(ex.equipment || 'General');
+
+        this.sets.set(ex.target_sets || 3);
+        this.reps.set(ex.target_reps || 10);
+        this.weight.set(ex.target_weight || 0);
+        this.notes.set(ex.note || '');
+
+        // If it was a real API exercise, we might want to capture its library ID
+        if (ex.original && ex.original.exercise_detail) {
+            // If we need to set baseExerciseId or similar
         }
     }
 

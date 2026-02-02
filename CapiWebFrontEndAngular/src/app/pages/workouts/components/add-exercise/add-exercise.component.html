@@ -63,6 +63,53 @@
                 </button>
                 }
             </div>
+
+            <!-- ROUTINE EXERCISES REUSE SECTION -->
+            @if (routineExercises().length > 0 && exerciseName().length === 0) {
+            <div class="mt-6">
+                <p
+                    class="text-sm font-medium text-[#ffd700] uppercase tracking-wider mb-3 ml-1 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-sm">star</span>
+                    Ejercicios de tu Rutina
+                </p>
+                <div class="flex gap-3 overflow-x-auto no-scrollbar pb-2">
+                    @for (ex of routineExercises(); track $index) {
+                    <button (click)="selectRoutineExercise(ex)"
+                        class="relative flex-shrink-0 w-32 p-3 rounded-xl bg-[#1d3627] border border-[#ffd700]/50 hover:border-[#ffd700] hover:bg-[#ffd700]/10 transition-all group flex flex-col gap-2 shadow-lg shadow-black/20">
+
+                        <!-- Icon -->
+                        <div class="size-8 rounded-lg bg-[#ffd700]/10 flex items-center justify-center self-start">
+                            @if (ex.icon && ex.icon.includes('/')) {
+                            <img [src]="ex.icon" class="w-5 h-5 object-contain filter-yellow">
+                            } @else {
+                            <span class="material-symbols-outlined text-[#ffd700]" style="font-size: 20px;">
+                                {{ ex.icon || 'fitness_center' }}
+                            </span>
+                            }
+                        </div>
+
+                        <!-- Info -->
+                        <div class="text-left w-full">
+                            <h4
+                                class="text-white font-bold text-sm leading-tight line-clamp-2 mb-1 group-hover:text-[#ffd700] transition-colors">
+                                {{ ex.name }}
+                            </h4>
+                            <p class="text-xs text-[#ffd700]/70 flex items-center gap-1">
+                                <span>{{ ex.target_sets }}x{{ ex.target_reps }}</span>
+                                <span class="text-[10px] opacity-60">•</span>
+                                <span>{{ ex.target_weight }}kg</span>
+                            </p>
+                        </div>
+
+                        <!-- Floating Action Icon -->
+                        <div class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <span class="material-symbols-outlined text-[#ffd700] text-lg">content_copy</span>
+                        </div>
+                    </button>
+                    }
+                </div>
+            </div>
+            }
         </div>
 
         <!-- Form appears when exercise name is entered -->
