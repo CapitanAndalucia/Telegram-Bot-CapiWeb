@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { ApiClientService } from '../../../../services/api-client.service';
 import { MotivationService } from '../../../../services/motivation';
 import { Routine } from '../../../../models/workouts';
+import { LoadingSpinnerComponent } from '../../../../shared/components/loading-spinner/loading-spinner.component';
 
 interface RoutineCategory {
     name: string;
@@ -14,7 +15,7 @@ interface RoutineCategory {
 @Component({
     selector: 'app-routines-list',
     standalone: true,
-    imports: [CommonModule],
+    imports: [CommonModule, LoadingSpinnerComponent],
     templateUrl: './routines-list.component.html',
     styleUrls: [],
     styles: [`:host { display: block; }`],
@@ -38,6 +39,9 @@ export class RoutinesListComponent implements OnInit {
         { id: 'cardio', label: 'Cardio' },
         { id: 'mobility', label: 'Movilidad' }
     ];
+
+    // Map to track loaded images by routine ID
+    imageLoaded = signal<Map<number, boolean>>(new Map());
 
     // Placeholder images for routines without images
     routineImages = [
@@ -126,6 +130,15 @@ export class RoutinesListComponent implements OnInit {
     // Returns custom image if available, otherwise fallback to default
     getRoutineImage(routine: Routine, index: number): string {
         return routine.image_url || this.routineImages[index % this.routineImages.length];
+        return routine.image_url || this.routineImages[index % this.routineImages.length];
+    }
+
+    onImageLoad(routineId: number): void {
+        this.imageLoaded.update(map => {
+            const newMap = new Map(map);
+            newMap.set(routineId, true);
+            return newMap;
+        });
     }
 
     // Use cached category lookup - O(1) instead of recalculating each render

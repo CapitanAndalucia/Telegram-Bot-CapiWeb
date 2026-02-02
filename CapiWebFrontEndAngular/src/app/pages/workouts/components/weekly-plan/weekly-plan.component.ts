@@ -4,11 +4,12 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { ApiClientService } from '../../../../services/api-client.service';
 import { NavigationHistoryService } from '../../../../services/navigation-history.service';
 import { Routine, RoutineDay, RoutineExercise } from '../../../../models/workouts';
+import { LoadingSpinnerComponent } from '../../../../shared/components/loading-spinner/loading-spinner.component';
 
 @Component({
     selector: 'app-weekly-plan',
     standalone: true,
-    imports: [CommonModule],
+    imports: [CommonModule, LoadingSpinnerComponent],
     templateUrl: './weekly-plan.component.html',
     styleUrls: [],
     styles: [`:host { display: block; }`]
@@ -35,6 +36,9 @@ export class WeeklyPlanComponent implements OnInit {
     // Track swipe offsets for direct manipulation during drag
     swipeOffsetMap = signal<Map<number, number>>(new Map());
     isSwipingMap = signal<Map<number, boolean>>(new Map());
+
+    // Track loaded images for day cards
+    dayImageLoaded = signal<Map<number, boolean>>(new Map());
 
     // Group exercises by variant (only show parents)
     groupedExercises = computed(() => {
@@ -229,6 +233,14 @@ export class WeeklyPlanComponent implements OnInit {
 
     getDayImage(index: number): string {
         return this.dayImages[index % this.dayImages.length];
+    }
+
+    onDayImageLoad(dayId: number): void {
+        this.dayImageLoaded.update(map => {
+            const newMap = new Map(map);
+            newMap.set(dayId, true);
+            return newMap;
+        });
     }
 
     selectDay(day: RoutineDay): void {

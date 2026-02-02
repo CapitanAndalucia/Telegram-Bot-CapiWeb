@@ -24,7 +24,7 @@
     <!-- Loading State -->
     @if (loading()) {
     <div class="flex justify-center py-12">
-        <div class="w-8 h-8 border-2 border-[#13ec6a] border-t-transparent rounded-full animate-spin"></div>
+        <app-loading-spinner [diameter]="50"></app-loading-spinner>
     </div>
     }
 
@@ -36,10 +36,10 @@
                 @for (day of routine()!.days; track day.id; let i = $index) {
                 <!-- Day Card -->
                 <div [id]="'day-' + day.id" (click)="selectDay(day)"
-                    class="snap-center shrink-0 flex w-[85vw] max-w-[320px] flex-col gap-3 rounded-xl p-3 shadow-sm cursor-pointer transition-all"
+                    class="snap-center shrink-0 flex w-[85vw] max-w-[320px] flex-col gap-3 rounded-xl p-3 shadow-sm cursor-pointer transition-all bg-[#1a3324]"
                     [class]="selectedDay()?.id === day.id 
-                                ? 'bg-[#1a3324] ring-2 ring-[#13ec6a] shadow-lg' 
-                                : 'bg-[#1a3324] opacity-80 scale-95'">
+                                ? 'ring-2 ring-[#13ec6a] shadow-lg' 
+                                : 'opacity-80 scale-95'">
 
                     <!-- Today Badge -->
                     @if (isToday(day)) {
@@ -50,9 +50,21 @@
                     }
 
                     <!-- Day Image -->
-                    <div class="w-full bg-center bg-no-repeat aspect-[16/9] bg-cover rounded-lg relative overflow-hidden"
-                        [style.background-image]="'url(' + getDayImage(i) + ')'">
-                        <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                    <div class="w-full aspect-[16/9] rounded-lg relative overflow-hidden bg-[#102217]">
+                        <!-- Image Loader -->
+                        @if (!dayImageLoaded().get(day.id)) {
+                        <div class="absolute inset-0 flex items-center justify-center z-10 bg-[#1a3324]">
+                            <app-loading-spinner [diameter]="30"></app-loading-spinner>
+                        </div>
+                        }
+
+                        <!-- Image -->
+                        <img [src]="getDayImage(i)" alt="" class="absolute inset-0 w-full h-full object-cover"
+                            [class.opacity-0]="!dayImageLoaded().get(day.id)"
+                            [class.opacity-100]="dayImageLoaded().get(day.id)" (load)="onDayImageLoad(day.id)">
+
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent pointer-events-none">
+                        </div>
                     </div>
 
                     <!-- Day Info -->

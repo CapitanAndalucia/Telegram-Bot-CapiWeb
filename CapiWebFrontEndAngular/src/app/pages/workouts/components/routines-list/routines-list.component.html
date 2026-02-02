@@ -30,21 +30,32 @@
         <!-- Loading State -->
         @if (loading()) {
         <div class="flex justify-center py-12">
-            <div class="w-8 h-8 border-2 border-[#13ec6a] border-t-transparent rounded-full animate-spin"></div>
+            <app-loading-spinner [diameter]="50"></app-loading-spinner>
         </div>
         }
 
         <!-- Routine Cards -->
         @for (routine of filteredRoutines(); track routine.id; let i = $index) {
         <article
-            class="group relative w-full h-64 rounded-2xl overflow-hidden shadow-lg transform transition-transform duration-300 hover:scale-[1.02] cursor-pointer"
+            class="group relative w-full h-64 rounded-2xl overflow-hidden shadow-lg transform transition-transform duration-300 hover:scale-[1.02] cursor-pointer bg-[#1a3324]"
             (click)="openRoutine(routine)">
-            <!-- Background Image -->
-            <div class="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110"
-                [style.background-image]="'url(' + getRoutineImage(routine, i) + ')'">
+
+            <!-- Image Loader -->
+            @if (!imageLoaded().get(routine.id!)) {
+            <div class="absolute inset-0 flex items-center justify-center z-10 bg-[#1a3324]">
+                <app-loading-spinner [diameter]="30"></app-loading-spinner>
             </div>
+            }
+
+            <!-- Background Image -->
+            <img [src]="getRoutineImage(routine, i)" alt=""
+                class="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                [class.opacity-0]="!imageLoaded().get(routine.id!)" [class.opacity-100]="imageLoaded().get(routine.id!)"
+                (load)="onImageLoad(routine.id!)">
+
             <!-- Gradient Overlay -->
-            <div class="absolute inset-0 bg-gradient-to-t from-[#102217] via-[#102217]/40 to-transparent opacity-90">
+            <div class="absolute inset-0 bg-gradient-to-t from-[#102217] via-[#102217]/40 to-transparent opacity-90 transition-opacity duration-500"
+                [class.opacity-0]="!imageLoaded().get(routine.id!)" [class.opacity-90]="imageLoaded().get(routine.id!)">
             </div>
             <!-- Content -->
             <div class="absolute inset-0 p-6 flex flex-col justify-end">
