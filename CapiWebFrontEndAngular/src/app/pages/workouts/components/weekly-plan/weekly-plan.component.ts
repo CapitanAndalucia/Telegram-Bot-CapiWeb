@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, OnInit, inject, signal, computed, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ApiClientService } from '../../../../services/api-client.service';
@@ -21,6 +21,8 @@ export class WeeklyPlanComponent implements OnInit {
 
     routine = signal<Routine | null>(null);
     selectedDay = signal<RoutineDay | null>(null);
+
+    @ViewChild('dayCarousel') dayCarousel!: ElementRef;
 
     // Note Modal State
     showNoteModal = signal<boolean>(false);
@@ -187,6 +189,7 @@ export class WeeklyPlanComponent implements OnInit {
                     if (!daySlug) {
                         this.updateUrlForDay(dayToSelect);
                     }
+                    setTimeout(() => this.scrollToSelectedDay(), 100);
                 }
 
                 this.loading.set(false);
@@ -197,6 +200,31 @@ export class WeeklyPlanComponent implements OnInit {
                 this.loading.set(false);
             }
         });
+    }
+
+    private scrollToSelectedDay(): void {
+        const day = this.selectedDay();
+        if (!day || !this.dayCarousel) return;
+
+        const dayElement = document.getElementById(`day-${day.id}`);
+        if (dayElement) {
+            const container = this.dayCarousel.nativeElement;
+            const containerWidth = container.offsetWidth;
+            const cardWidth = dayElement.offsetWidth;
+            const cardLeft = dayElement.offsetLeft; // Relative to parent if parent is positioned, otherwise careful
+
+            // Calculate center position:
+            // The position we want the card to be at is (containerWidth / 2) - (cardWidth / 2)
+            // So we need to scroll to cardLeft - targetPosition
+
+            // For a horizontally scrolling flex container, offsetLeft is usually relative to the container content
+            // However, offsetLeft is relative to offsetParent. 
+            // Better to use getBoundingClientRect if things are complex, but let's try basic calculation first
+            // assuming container is the offsetParent (which it might not be explicitly unless position relative).
+
+            // Let's use scrollIntoView with inline: 'center' which handles it automatically mostly
+            dayElement.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        }
     }
 
     getDayImage(index: number): string {

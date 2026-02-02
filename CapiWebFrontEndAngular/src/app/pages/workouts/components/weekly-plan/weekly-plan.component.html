@@ -32,10 +32,10 @@
         @if (!loading() && routine()) {
         <!-- Horizontal Calendar / Day Carousel -->
         <div class="mt-4 flex w-full flex-col">
-            <div class="flex overflow-x-auto pb-4 pt-2 px-4 gap-4 snap-x snap-mandatory no-scrollbar">
+            <div #dayCarousel class="flex overflow-x-auto pb-4 pt-2 px-4 gap-4 snap-x snap-mandatory no-scrollbar">
                 @for (day of routine()!.days; track day.id; let i = $index) {
                 <!-- Day Card -->
-                <div (click)="selectDay(day)"
+                <div [id]="'day-' + day.id" (click)="selectDay(day)"
                     class="snap-center shrink-0 flex w-[85vw] max-w-[320px] flex-col gap-3 rounded-xl p-3 shadow-sm cursor-pointer transition-all"
                     [class]="selectedDay()?.id === day.id 
                                 ? 'bg-[#1a3324] ring-2 ring-[#13ec6a] shadow-lg' 
