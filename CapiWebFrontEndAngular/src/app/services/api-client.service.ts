@@ -583,6 +583,10 @@ export class ApiClientService {
         return this.request(`/workouts/routine-days/${id}/`, 'PATCH', { data });
     }
 
+    getWorkoutStats(): Observable<any> {
+        return this.request('/workouts/routines/stats/', 'GET');
+    }
+
     deleteRoutineDay(id: number): Observable<any> {
         return this.request(`/workouts/routine-days/${id}/`, 'DELETE');
     }

@@ -56,70 +56,14 @@ export class WorkoutProfileComponent {
 
     // Combined method: Single API call for both stats and personal records
     loadRoutineData(): void {
-        this.api.listRoutines().subscribe({
+        this.api.getWorkoutStats().subscribe({
             next: (response: any) => {
-                const routines = Array.isArray(response) ? response : (response?.results || []);
+                // Set stats directly from backend
+                this.totalWorkouts.set(response.total_workouts || 0);
+                this.currentStreak.set(response.current_streak || 0);
 
-                // Calculate stats
-                let totalCompletedDays = 0;
-                let currentStreakDays = 0;
-
-                if (routines && routines.length > 0) {
-                    const latestRoutine = routines[0];
-
-                    routines.forEach((routine: any) => {
-                        if (routine.days) {
-                            routine.days.forEach((day: any) => {
-                                if (day.is_completed) {
-                                    totalCompletedDays++;
-                                }
-                            });
-                        }
-                    });
-
-                    currentStreakDays = this.calculateStreak(latestRoutine);
-                }
-
-                this.totalWorkouts.set(totalCompletedDays);
-                this.currentStreak.set(currentStreakDays);
-
-                // Calculate personal records
-                const exerciseMaxWeights = new Map<string, { name: string; weight: number; icon: string }>();
-
-                routines.forEach((routine: any) => {
-                    if (routine.days) {
-                        routine.days.forEach((day: any) => {
-                            if (day.routine_exercises) {
-                                day.routine_exercises.forEach((exercise: any) => {
-                                    const name = exercise.exercise_detail?.name || 'Unknown';
-                                    const weight = exercise.target_weight || 0;
-
-                                    const existing = exerciseMaxWeights.get(name);
-                                    if (!existing || weight > existing.weight) {
-                                        exerciseMaxWeights.set(name, {
-                                            name,
-                                            weight,
-                                            icon: 'fitness_center'
-                                        });
-                                    }
-                                });
-                            }
-                        });
-                    }
-                });
-
-                const records = Array.from(exerciseMaxWeights.values())
-                    .sort((a, b) => b.weight - a.weight)
-                    .slice(0, 3)
-                    .map((record, index) => ({
-                        id: index + 1,
-                        name: record.name,
-                        value: record.weight,
-                        unit: 'kg',
-                        icon: record.icon,
-                        hasChart: index === 2
-                    }));
-
+                // Set PRs
+                const records = response.personal_records || [];
                 this.personalRecords.set(records.length > 0 ? records : [
                     { id: 1, name: 'Sin datos', value: 0, unit: 'kg', icon: 'fitness_center' }
                 ]);
@@ -127,18 +71,13 @@ export class WorkoutProfileComponent {
                 this.cdr.markForCheck();
             },
             error: (err: any) => {
-                console.error('Error loading routine data:', err);
+                console.error('Error loading stats data:', err);
                 this.cdr.markForCheck();
             }
         });
     }
 
-    calculateStreak(routine: any): number {
-        if (!routine?.days) return 0;
-        const completedDaysThisWeek = routine.days.filter((d: any) => d.is_completed).length;
-        const requiredDays = routine.days.length;
-        return completedDaysThisWeek >= requiredDays ? completedDaysThisWeek : 0;
-    }
+
 
     // Computed values
     userName = computed(() => this.user()?.first_name || this.user()?.username || 'Usuario');
