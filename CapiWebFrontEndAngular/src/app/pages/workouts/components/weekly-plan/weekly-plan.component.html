@@ -182,6 +182,7 @@
         }
 
         <!-- Sticky Bottom Action -->
+        @if (!session.isActive()) {
         <div
             class="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-[#102217] via-[#102217] to-transparent pt-12 z-30">
             <button (click)="startWorkout()"

@@ -1,10 +1,11 @@
-import { Component, OnInit, inject, signal, OnDestroy } from '@angular/core';
+import { Component, OnInit, inject, signal, OnDestroy, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ApiClientService } from '../../../../services/api-client.service';
 import { NavigationHistoryService } from '../../../../services/navigation-history.service';
 import { Routine, RoutineDay, RoutineExercise } from '../../../../models/workouts';
 import { MotivationService } from '../../../../services/motivation';
+import { WorkoutSessionService } from '../../../../services/workout-session.service';
 
 interface ExerciseGroup {
     parent: RoutineExercise;
@@ -25,12 +26,13 @@ interface ExerciseGroup {
     styleUrls: [],
     styles: [`:host { display: block; }`]
 })
-export class TodayExercisesComponent implements OnInit, OnDestroy {
+export class TodayExercisesComponent implements OnInit {
     private api = inject(ApiClientService);
     private router = inject(Router);
     private route = inject(ActivatedRoute);
     private navHistory = inject(NavigationHistoryService);
     private motivationService = inject(MotivationService);
+    public session = inject(WorkoutSessionService);
 
     routineSlug = signal<string | null>(null);
     daySlug = signal<string | null>(null);
@@ -42,18 +44,29 @@ export class TodayExercisesComponent implements OnInit, OnDestroy {
     loading = signal<boolean>(true);
     error = signal<string | null>(null);
 
-    // Timer
-    hours = signal<number>(0);
-    minutes = signal<number>(0);
-    seconds = signal<number>(0);
-    private timerInterval: any;
-    private startTime: number = 0;
-
     // Progress
     completedCount = signal<number>(0);
     totalCount = signal<number>(0);
     progressPercent = signal<number>(0);
     private hasShownCompletionMotivation = false;
+
+    constructor() {
+        // Effect to sync current active exercise to session
+        effect(() => {
+            const exercises = this.exercises();
+            // Find the active exercise to show in mini player
+            // We'll define "current" as the first one that is isActive
+            const activeGroup = exercises.find(g => g.isActive);
+            if (activeGroup) {
+                this.session.setCurrentExercise(activeGroup.active);
+            }
+        });
+
+        // Effect to sync progress to session
+        effect(() => {
+            this.session.updateProgress(this.completedCount(), this.totalCount());
+        });
+    }
 
     ngOnInit(): void {
         const routineSlugParam = this.route.snapshot.paramMap.get('routineSlug');
@@ -63,11 +76,6 @@ export class TodayExercisesComponent implements OnInit, OnDestroy {
         if (daySlugParam) this.daySlug.set(daySlugParam);
 
         this.loadExercises();
-        this.startTimer();
-    }
-
-    ngOnDestroy(): void {
-        this.stopTimer();
     }
 
     loadExercises(): void {
@@ -90,14 +98,24 @@ export class TodayExercisesComponent implements OnInit, OnDestroy {
                 );
 
                 if (day) {
-                    this.dayTitle.set(day.title || day.day_label || 'Workout');
+                    const title = day.title || day.day_label || 'Workout';
+                    this.dayTitle.set(title);
+
+                    // Initialize Session if not already active for this workout
+                    if (!this.session.isActive() || this.session.activeDaySlug() !== dSlug) {
+                        // New session
+                        this.session.startWorkout(rSlug, dSlug || '', title);
+                    } else {
+                        // Re-entering existing session, make sure title is synced
+                        this.session.activeDayTitle.set(title);
+                    }
 
                     if (day.routine_exercises) {
                         // 1. Filter parents
                         const parents = day.routine_exercises.filter(ex => !ex.variant_of);
 
                         // 2. Map to groups
-                        const groups: ExerciseGroup[] = parents.map((parent, idx) => {
+                        const groups: ExerciseGroup[] = parents.map((parent) => {
                             const versions = [parent, ...(parent.variants || [])];
                             let activeVersion = parent;
 
@@ -118,11 +136,29 @@ export class TodayExercisesComponent implements OnInit, OnDestroy {
                                 activeIndex: activeIndex >= 0 ? activeIndex : 0,
                                 versions: versions,
                                 hasVariants: versions.length > 1,
-                                isCompleted: false,
-                                isActive: idx === 0, // First group active by default
+                                isCompleted: this.session.isExerciseCompleted(parent.id),
+                                isActive: false, // Will calculate below
                                 animationClass: ''
                             };
                         });
+
+                        // 3. Determine active group (first incomplete)
+                        let foundActive = false;
+                        groups.forEach(group => {
+                            if (!group.isCompleted && !foundActive) {
+                                group.isActive = true;
+                                foundActive = true;
+                            } else {
+                                group.isActive = false;
+                            }
+                        });
+
+                        // If all completed, maybe make the last one active? Or none.
+                        // For now, if none active (all done), let's leave none active or keep last.
+                        // But MiniPlayer relies on one being active. 
+                        if (!foundActive && groups.length > 0) {
+                            groups[groups.length - 1].isActive = true;
+                        }
 
                         this.exercises.set(groups);
                         this.updateProgress();
@@ -138,23 +174,6 @@ export class TodayExercisesComponent implements OnInit, OnDestroy {
         });
     }
 
-    startTimer(): void {
-        this.startTime = Date.now();
-        this.timerInterval = setInterval(() => {
-            const elapsed = Date.now() - this.startTime;
-            const totalSeconds = Math.floor(elapsed / 1000);
-            this.hours.set(Math.floor(totalSeconds / 3600));
-            this.minutes.set(Math.floor((totalSeconds % 3600) / 60));
-            this.seconds.set(totalSeconds % 60);
-        }, 1000);
-    }
-
-    stopTimer(): void {
-        if (this.timerInterval) {
-            clearInterval(this.timerInterval);
-        }
-    }
-
     updateProgress(): void {
         const exercises = this.exercises();
         const completed = exercises.filter(e => e.isCompleted).length;
@@ -163,6 +182,9 @@ export class TodayExercisesComponent implements OnInit, OnDestroy {
         this.totalCount.set(total);
         const progress = total > 0 ? Math.round((completed / total) * 100) : 0;
         this.progressPercent.set(progress);
+
+        // Push to session
+        this.session.updateProgress(completed, total);
 
         if (progress >= 50 && !this.hasShownCompletionMotivation) {
             this.hasShownCompletionMotivation = true;
@@ -179,6 +201,9 @@ export class TodayExercisesComponent implements OnInit, OnDestroy {
             // Toggle completion
             updated[index] = { ...updated[index], isCompleted: !updated[index].isCompleted };
 
+            // Update session state
+            this.session.toggleExerciseCompletion(group.parent.id, updated[index].isCompleted);
+
             // Update active status - first incomplete exercise becomes active
             let foundActive = false;
             for (let i = 0; i < updated.length; i++) {
@@ -189,6 +214,9 @@ export class TodayExercisesComponent implements OnInit, OnDestroy {
                     updated[i] = { ...updated[i], isActive: false };
                 }
             }
+
+            // If all complete, keep last one active or none?
+            // "Active" usually means the one highlighted.
 
             this.exercises.set(updated);
             this.updateProgress();
@@ -358,13 +386,13 @@ export class TodayExercisesComponent implements OnInit, OnDestroy {
     }
 
     openExerciseDetail(exercise: RoutineExercise): void {
-        // Store previous URL in sessionStorage instead of query params
-        this.navHistory.setPreviousUrl('/workouts');
+        // Store previous URL in sessionStorage to ensure back button returns here
+        this.navHistory.setPreviousUrl(this.router.url);
         this.router.navigate(['/workouts/exercise', exercise.url_slug]);
     }
 
     finishWorkout(): void {
-        this.stopTimer();
+        this.session.stopWorkout();
         // Could show completion modal or navigate to summary
         this.router.navigate(['/workouts']);
     }

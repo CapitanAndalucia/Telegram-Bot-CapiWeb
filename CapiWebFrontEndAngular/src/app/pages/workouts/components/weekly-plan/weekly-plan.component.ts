@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ApiClientService } from '../../../../services/api-client.service';
 import { NavigationHistoryService } from '../../../../services/navigation-history.service';
+import { WorkoutSessionService } from '../../../../services/workout-session.service';
 import { Routine, RoutineDay, RoutineExercise } from '../../../../models/workouts';
 import { LoadingSpinnerComponent } from '../../../../shared/components/loading-spinner/loading-spinner.component';
 
@@ -19,6 +20,7 @@ export class WeeklyPlanComponent implements OnInit {
     private router = inject(Router);
     private route = inject(ActivatedRoute);
     private navHistory = inject(NavigationHistoryService);
+    public session = inject(WorkoutSessionService);
 
     routine = signal<Routine | null>(null);
     selectedDay = signal<RoutineDay | null>(null);

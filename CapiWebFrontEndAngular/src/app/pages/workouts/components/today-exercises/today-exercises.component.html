@@ -33,7 +33,7 @@
                 <div class="flex grow basis-0 flex-col items-center gap-2">
                     <div
                         class="flex w-full aspect-square max-w-[80px] sm:max-w-none sm:h-20 items-center justify-center rounded-xl bg-[#1d3627] shadow-sm border border-white/5">
-                        <span class="text-white text-3xl font-bold tracking-tight">{{ padZero(hours()) }}</span>
+                        <span class="text-white text-3xl font-bold tracking-tight">{{ padZero(session.hours()) }}</span>
                     </div>
                     <span class="text-slate-400 text-xs font-medium uppercase tracking-wider">Horas</span>
                 </div>
@@ -42,7 +42,8 @@
                 <div class="flex grow basis-0 flex-col items-center gap-2">
                     <div
                         class="flex w-full aspect-square max-w-[80px] sm:max-w-none sm:h-20 items-center justify-center rounded-xl bg-[#1d3627] shadow-sm border border-white/5">
-                        <span class="text-white text-3xl font-bold tracking-tight">{{ padZero(minutes()) }}</span>
+                        <span class="text-white text-3xl font-bold tracking-tight">{{ padZero(session.minutes())
+                            }}</span>
                     </div>
                     <span class="text-slate-400 text-xs font-medium uppercase tracking-wider">Minutos</span>
                 </div>
@@ -51,7 +52,8 @@
                 <div class="flex grow basis-0 flex-col items-center gap-2">
                     <div
                         class="flex w-full aspect-square max-w-[80px] sm:max-w-none sm:h-20 items-center justify-center rounded-xl bg-[#13ec6a] text-[#102217] shadow-[0_0_15px_rgba(19,236,106,0.3)]">
-                        <span class="text-[#102217] text-3xl font-bold tracking-tight">{{ padZero(seconds()) }}</span>
+                        <span class="text-[#102217] text-3xl font-bold tracking-tight">{{ padZero(session.seconds())
+                            }}</span>
                     </div>
                     <span class="text-slate-400 text-xs font-medium uppercase tracking-wider">Segundos</span>
                 </div>
@@ -79,7 +81,7 @@
         <!-- Exercise List -->
         <section class="flex flex-col gap-3 px-4 pb-4">
             @for (group of exercises(); track group.parent.id) {
-            <div (click)="toggleExercise(group)" (touchstart)="onTouchStart($event, group.parent.id)"
+            <div (click)="openExerciseDetail(group.active)" (touchstart)="onTouchStart($event, group.parent.id)"
                 (touchmove)="onTouchMove($event, group.parent.id)" (touchend)="onTouchEnd($event, group)"
                 class="group relative flex items-center justify-between gap-4 rounded-xl bg-[#1d3627] p-4 shadow-sm transition-all active:scale-[0.99] cursor-pointer overflow-hidden select-none"
                 [class]="group.isCompleted ? 'border border-[#13ec6a]/20' : group.isActive ? 'border-l-4 border-l-[#13ec6a] shadow-lg ring-1 ring-white/5' : 'border border-transparent hover:border-white/5 opacity-80'">
